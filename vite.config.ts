@@ -1,12 +1,13 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // The Vite base path is a placeholder here; CI / Pages deployment (Milestone 4)
 // injects the real `/{repo}/` base so the built demo works under GitHub Pages.
 const base = "/ape-kingdom/";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   base,
   test: {
     globals: true,
