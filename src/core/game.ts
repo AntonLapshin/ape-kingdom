@@ -35,6 +35,8 @@ export interface ApeUnit {
   kind: ApeKind;
   /** The player who owns this unit. */
   owner: PlayerId;
+  /** The hex this unit occupies. */
+  hex: Hex;
   /** Whether the unit may act this turn (false for newly recruited apes). */
   hasActed: boolean;
 }
@@ -52,6 +54,36 @@ export interface Hex {
   q: number;
   /** Row (y) coordinate. */
   r: number;
+}
+
+/* ------------------------------------------------------------------ */
+/* Hex helpers                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Whether two hexes are the same hex. */
+export function sameHex(a: Hex, b: Hex): boolean {
+  return a.q === b.q && a.r === b.r;
+}
+
+/**
+ * The six axial neighbours of a hex.
+ * See https://www.redblobgames.com/grids/hexagons/ for the axial system.
+ */
+export function adjacentHexes(hex: Hex): Hex[] {
+  const { q, r } = hex;
+  return [
+    { q: q + 1, r },
+    { q: q - 1, r },
+    { q, r: r + 1 },
+    { q, r: r - 1 },
+    { q: q + 1, r: r - 1 },
+    { q: q - 1, r: r + 1 },
+  ];
+}
+
+/** Whether two hexes are adjacent (share an edge). */
+export function areAdjacent(a: Hex, b: Hex): boolean {
+  return adjacentHexes(a).some((h) => sameHex(h, b));
 }
 
 /* ------------------------------------------------------------------ */
@@ -179,7 +211,7 @@ export function allowsRecruitment(kind: SiteKind): boolean {
 }
 
 /**
- * Create a new ape unit.
+ * Create a new ape unit at a hex.
  *
  * Newly recruited apes cannot move or attack until the next turn, so
  * `hasActed` is set to true by default (they have already "acted" for the
@@ -188,9 +220,10 @@ export function allowsRecruitment(kind: SiteKind): boolean {
 export function createUnit(
   kind: ApeKind,
   owner: PlayerId,
+  hex: Hex,
   hasActed = true,
 ): ApeUnit {
-  return { kind, owner, hasActed };
+  return { kind, owner, hex, hasActed };
 }
 
 /** Create a site on a hex, neutral by default. */
@@ -209,21 +242,25 @@ export function createPlayer(id: PlayerId, bananas = 0): Player {
 }
 
 /**
- * Build the standard two-player setup from the rules:
+ * Build the standard two-player setup force from the rules:
  * each player starts with 3 Monkeys, 1 Gibbon, and 2 bananas.
  *
- * Returns the starting units and player state for the given player ids.
+ * The units are placed at the given origin hex and three of its neighbours
+ * (one unit per hex). Returns the starting units and player state for the
+ * given player id.
  */
-export function startingForce(playerId: PlayerId): {
+export function startingForce(playerId: PlayerId, origin: Hex): {
   units: ApeUnit[];
   player: Player;
 } {
-  const monkeys = Array.from(
-    { length: 3 },
-    (): ApeUnit => createUnit("Monkey", playerId),
-  );
+  const [n1, n2, n3] = adjacentHexes(origin);
   return {
-    units: [...monkeys, createUnit("Gibbon", playerId)],
+    units: [
+      createUnit("Monkey", playerId, origin),
+      createUnit("Monkey", playerId, n1),
+      createUnit("Monkey", playerId, n2),
+      createUnit("Gibbon", playerId, n3),
+    ],
     player: createPlayer(playerId, 2),
   };
 }
@@ -266,5 +303,94 @@ export function collectIncome(state: GameState): GameState {
         bananas: state.players[state.currentPlayer].bananas + income,
       },
     },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Recruit apes (Turn Sequence step B)                                 */
+/* ------------------------------------------------------------------ */
+
+/** The reason a recruitment attempt was rejected. */
+export type RecruitErrorKind =
+  /** The target hex is not a controlled Home Tree or adjacent to one. */
+  | "no-home-tree"
+  /** The target hex is already occupied by a unit. */
+  | "occupied"
+  /** The current player cannot afford the ape. */
+  | "cannot-afford";
+
+/** A typed error describing why recruitment was rejected. */
+export class RecruitError extends Error {
+  readonly kind: RecruitErrorKind;
+
+  constructor(kind: RecruitErrorKind, message: string) {
+    super(message);
+    this.name = "RecruitError";
+    this.kind = kind;
+  }
+}
+
+/**
+ * Turn-sequence step B: Recruit Apes.
+ *
+ * Lets the current player spend bananas to recruit an ape `kind` at a Home
+ * Tree they control. The new ape may be placed on the Home Tree hex (if
+ * empty) or on an adjacent empty hex. The cost is deducted from the current
+ * player's banana balance per `APE_TYPES` (Monkey=2, Gibbon=4, Chimpanzee=8,
+ * Gorilla=16).
+ *
+ * The recruitment is rejected with a typed `RecruitError` when:
+ *  - the target hex is not a controlled Home Tree or adjacent to one;
+ *  - the target hex is occupied by a unit; or
+ *  - the current player cannot afford the ape.
+ *
+ * Newly recruited apes are created with `hasActed = true` so they cannot act
+ * until the next turn. Returns a new `GameState` and does not mutate the input.
+ */
+export function recruitUnit(state: GameState, kind: ApeKind, hex: Hex): GameState {
+  const player = state.players[state.currentPlayer];
+  const cost = costOf(kind);
+
+  // The target must be a Home Tree the current player controls, or adjacent
+  // to one (placement is allowed on the Home Tree hex or an adjacent hex).
+  const hasControlledHomeTree = state.sites.some(
+    (site) =>
+      site.kind === "HomeTree" &&
+      site.owner === state.currentPlayer &&
+      (sameHex(site.hex, hex) || areAdjacent(site.hex, hex)),
+  );
+  if (!hasControlledHomeTree) {
+    throw new RecruitError(
+      "no-home-tree",
+      `Cannot recruit at hex (${hex.q},${hex.r}): it is not a controlled Home Tree or an adjacent empty hex`,
+    );
+  }
+
+  // The target hex must be empty (not occupied by a unit).
+  if (state.units.some((unit) => sameHex(unit.hex, hex))) {
+    throw new RecruitError(
+      "occupied",
+      `Cannot recruit at hex (${hex.q},${hex.r}): the hex is occupied`,
+    );
+  }
+
+  // The current player must be able to afford the ape.
+  if (player.bananas < cost) {
+    throw new RecruitError(
+      "cannot-afford",
+      `Cannot recruit ${kind}: it costs ${cost} bananas but the player has ${player.bananas}`,
+    );
+  }
+
+  return {
+    ...state,
+    players: {
+      ...state.players,
+      [state.currentPlayer]: {
+        ...player,
+        bananas: player.bananas - cost,
+      },
+    },
+    units: [...state.units, createUnit(kind, state.currentPlayer, hex)],
   };
 }

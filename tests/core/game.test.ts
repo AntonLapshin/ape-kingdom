@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Site, Player, GameState } from "../../src/core/game";
+import type { Site, Player, GameState, ApeUnit, ApeKind } from "../../src/core/game";
 import {
   APE_TYPES,
   APE_KINDS,
@@ -18,6 +18,11 @@ import {
   startingForce,
   incomeFor,
   collectIncome,
+  sameHex,
+  adjacentHexes,
+  areAdjacent,
+  recruitUnit,
+  RecruitError,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -91,15 +96,21 @@ describe("site static tables (Sites & Income table)", () => {
 });
 
 describe("unit creation", () => {
-  it("creates a unit that has already acted by default", () => {
-    const unit = createUnit("Monkey", "p1");
-    expect(unit).toEqual({ kind: "Monkey", owner: "p1", hasActed: true });
+  it("creates a unit at a hex that has already acted by default", () => {
+    const unit = createUnit("Monkey", "p1", { q: 1, r: 2 });
+    expect(unit).toEqual({
+      kind: "Monkey",
+      owner: "p1",
+      hex: { q: 1, r: 2 },
+      hasActed: true,
+    });
   });
 
   it("creates a unit that can act when hasActed is false", () => {
-    const unit = createUnit("Gorilla", "p2", false);
+    const unit = createUnit("Gorilla", "p2", { q: 0, r: 0 }, false);
     expect(unit.kind).toBe("Gorilla");
     expect(unit.owner).toBe("p2");
+    expect(unit.hex).toEqual({ q: 0, r: 0 });
     expect(unit.hasActed).toBe(false);
   });
 });
@@ -130,12 +141,68 @@ describe("player creation", () => {
 
 describe("standard setup (Setup section)", () => {
   it("gives each player 3 Monkeys, 1 Gibbon, and 2 bananas", () => {
-    const force = startingForce("p1");
+    const force = startingForce("p1", { q: 0, r: 0 });
     expect(force.units).toHaveLength(4);
     expect(force.units.filter((u) => u.kind === "Monkey")).toHaveLength(3);
     expect(force.units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
     expect(force.units.every((u) => u.owner === "p1")).toBe(true);
     expect(force.player).toEqual({ id: "p1", bananas: 2 });
+  });
+
+  it("places the starting units at distinct hexes around the origin", () => {
+    const force = startingForce("p1", { q: 0, r: 0 });
+    const hexes = force.units.map((u) => u.hex);
+    // Each unit is on a distinct hex (one unit per hex).
+    expect(new Set(hexes.map((h) => `${h.q},${h.r}`)).size).toBe(4);
+    // One unit sits on the origin and the rest on adjacent hexes.
+    expect(force.units.some((u) => sameHex(u.hex, { q: 0, r: 0 }))).toBe(true);
+    for (const hex of hexes) {
+      expect(sameHex(hex, { q: 0, r: 0 }) || areAdjacent(hex, { q: 0, r: 0 })).toBe(true);
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Hex helpers                                                         */
+/* ------------------------------------------------------------------ */
+
+describe("sameHex", () => {
+  it("returns true for equal hexes", () => {
+    expect(sameHex({ q: 1, r: 2 }, { q: 1, r: 2 })).toBe(true);
+  });
+
+  it("returns false for different hexes", () => {
+    expect(sameHex({ q: 1, r: 2 }, { q: 2, r: 2 })).toBe(false);
+    expect(sameHex({ q: 1, r: 2 }, { q: 1, r: 3 })).toBe(false);
+  });
+});
+
+describe("adjacentHexes", () => {
+  it("returns the six axial neighbours of a hex", () => {
+    const neighbours = adjacentHexes({ q: 0, r: 0 });
+    expect(neighbours).toHaveLength(6);
+    expect(neighbours).toContainEqual({ q: 1, r: 0 });
+    expect(neighbours).toContainEqual({ q: -1, r: 0 });
+    expect(neighbours).toContainEqual({ q: 0, r: 1 });
+    expect(neighbours).toContainEqual({ q: 0, r: -1 });
+    expect(neighbours).toContainEqual({ q: 1, r: -1 });
+    expect(neighbours).toContainEqual({ q: -1, r: 1 });
+  });
+
+  it("does not include the origin hex itself", () => {
+    expect(adjacentHexes({ q: 0, r: 0 })).not.toContainEqual({ q: 0, r: 0 });
+  });
+});
+
+describe("areAdjacent", () => {
+  it("returns true for neighbours", () => {
+    expect(areAdjacent({ q: 0, r: 0 }, { q: 1, r: 0 })).toBe(true);
+    expect(areAdjacent({ q: 0, r: 0 }, { q: -1, r: 1 })).toBe(true);
+  });
+
+  it("returns false for the same hex and non-adjacent hexes", () => {
+    expect(areAdjacent({ q: 0, r: 0 }, { q: 0, r: 0 })).toBe(false);
+    expect(areAdjacent({ q: 0, r: 0 }, { q: 2, r: 0 })).toBe(false);
   });
 });
 
@@ -143,15 +210,16 @@ describe("standard setup (Setup section)", () => {
 /* Collect income (Turn Sequence step A)                                */
 /* ------------------------------------------------------------------ */
 
-/** Build a minimal game state for income tests. */
+/** Build a minimal game state for reducer tests. */
 function gameState(opts: {
   sites?: Site[];
+  units?: ApeUnit[];
   players?: Record<string, Player>;
   currentPlayer?: string;
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
-    units: [],
+    units: opts.units ?? [],
     players: opts.players ?? { p1: createPlayer("p1"), p2: createPlayer("p2") },
     currentPlayer: opts.currentPlayer ?? "p1",
     turnOrder: ["p1", "p2"],
@@ -233,5 +301,156 @@ describe("collectIncome", () => {
     // Input is unchanged.
     expect(state.players.p1.bananas).toBe(0);
     expect(state.sites).toEqual([createSite("Nest", 0, 0, "p1")]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Recruit apes (Turn Sequence step B)                                 */
+/* ------------------------------------------------------------------ */
+
+describe("recruitUnit", () => {
+  /** A controlled Home Tree at (0,0) for p1, with bananas to spend. */
+  function recruitState(bananas = 20, units: ApeUnit[] = []): GameState {
+    return gameState({
+      sites: [createSite("HomeTree", 0, 0, "p1")],
+      units,
+      players: { p1: createPlayer("p1", bananas), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+  }
+
+  it("recruits an ape on an empty controlled Home Tree hex and deducts the cost", () => {
+    const state = recruitState(10);
+    const next = recruitUnit(state, "Monkey", { q: 0, r: 0 });
+    expect(next.players.p1.bananas).toBe(10 - 2);
+    expect(next.units).toHaveLength(1);
+    expect(next.units[0]).toEqual({
+      kind: "Monkey",
+      owner: "p1",
+      hex: { q: 0, r: 0 },
+      hasActed: true,
+    });
+  });
+
+  it("recruits an ape on an adjacent empty hex", () => {
+    const state = recruitState(10);
+    const next = recruitUnit(state, "Gibbon", { q: 1, r: 0 });
+    expect(next.players.p1.bananas).toBe(10 - 4);
+    expect(next.units[0].hex).toEqual({ q: 1, r: 0 });
+  });
+
+  it("deducts the correct cost for each ape kind", () => {
+    const cases: Array<[ApeKind, number]> = [
+      ["Monkey", 2],
+      ["Gibbon", 4],
+      ["Chimpanzee", 8],
+      ["Gorilla", 16],
+    ];
+    for (const [kind, cost] of cases) {
+      const next = recruitUnit(recruitState(100), kind, { q: 0, r: 0 });
+      expect(next.players.p1.bananas).toBe(100 - cost);
+    }
+  });
+
+  it("marks newly recruited apes as hasActed so they cannot act this turn", () => {
+    const next = recruitUnit(recruitState(10), "Monkey", { q: 0, r: 0 });
+    expect(next.units[0].hasActed).toBe(true);
+  });
+
+  it("keeps existing units and other players untouched", () => {
+    const existing = createUnit("Monkey", "p2", { q: 5, r: 5 });
+    const state = recruitState(10, [existing]);
+    const next = recruitUnit(state, "Monkey", { q: 0, r: 0 });
+    expect(next.units).toHaveLength(2);
+    expect(next.units).toContainEqual(existing);
+    expect(next.players.p2.bananas).toBe(0);
+  });
+
+  it("rejects with a typed error when the player cannot afford the ape", () => {
+    const state = recruitState(1); // Monkey costs 2
+    expect(() => recruitUnit(state, "Monkey", { q: 0, r: 0 })).toThrowError(
+      RecruitError,
+    );
+    let caught: unknown;
+    try {
+      recruitUnit(state, "Monkey", { q: 0, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(RecruitError);
+    expect((caught as RecruitError).kind).toBe("cannot-afford");
+  });
+
+  it("rejects when the target hex is not a controlled Home Tree or adjacent", () => {
+    // Far from the controlled Home Tree.
+    const state = recruitState(20);
+    expect(() => recruitUnit(state, "Monkey", { q: 5, r: 5 })).toThrowError(
+      RecruitError,
+    );
+    let caught: unknown;
+    try {
+      recruitUnit(state, "Monkey", { q: 5, r: 5 });
+    } catch (e) {
+      caught = e;
+    }
+    expect((caught as RecruitError).kind).toBe("no-home-tree");
+  });
+
+  it("rejects when the only nearby Home Tree is controlled by another player", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 0, 0, "p2")],
+      players: { p1: createPlayer("p1", 20), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    expect(() => recruitUnit(state, "Monkey", { q: 0, r: 0 })).toThrowError(
+      RecruitError,
+    );
+  });
+
+  it("rejects when the only nearby Home Tree is neutral", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 0, 0)],
+      players: { p1: createPlayer("p1", 20), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    expect(() => recruitUnit(state, "Monkey", { q: 0, r: 0 })).toThrowError(
+      RecruitError,
+    );
+  });
+
+  it("rejects when the target hex is occupied by a unit", () => {
+    const occupied = createUnit("Monkey", "p1", { q: 0, r: 0 });
+    const state = recruitState(20, [occupied]);
+    expect(() => recruitUnit(state, "Monkey", { q: 0, r: 0 })).toThrowError(
+      RecruitError,
+    );
+    let caught: unknown;
+    try {
+      recruitUnit(state, "Gorilla", { q: 0, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect((caught as RecruitError).kind).toBe("occupied");
+  });
+
+  it("rejects when an adjacent hex is occupied", () => {
+    const occupied = createUnit("Monkey", "p1", { q: 1, r: 0 });
+    const state = recruitState(20, [occupied]);
+    expect(() => recruitUnit(state, "Monkey", { q: 1, r: 0 })).toThrowError(
+      RecruitError,
+    );
+  });
+
+  it("does not mutate the input state", () => {
+    const state = recruitState(10);
+    const next = recruitUnit(state, "Monkey", { q: 0, r: 0 });
+    expect(next).not.toBe(state);
+    expect(next.players).not.toBe(state.players);
+    expect(next.players.p1).not.toBe(state.players.p1);
+    expect(next.units).not.toBe(state.units);
+    // Input unchanged.
+    expect(state.players.p1.bananas).toBe(10);
+    expect(state.units).toHaveLength(0);
+    expect(state.sites).toEqual([createSite("HomeTree", 0, 0, "p1")]);
   });
 });

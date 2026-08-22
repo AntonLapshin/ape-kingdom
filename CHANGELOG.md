@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the turn-sequence "Recruit Apes" step as a pure reducer
+  `recruitUnit(state, kind, hex)` in `src/core/game.ts`, which lets the
+  current player spend bananas to recruit an ape at a controlled Home Tree
+  (on the Home Tree hex if empty, or an adjacent empty hex), deducts the cost
+  per `APE_TYPES` (Monkey=2, Gibbon=4, Chimpanzee=8, Gorilla=16), marks newly
+  recruited apes `hasActed = true`, and returns a new immutable `GameState`.
+  Rejects with a typed `RecruitError` when the player cannot afford the ape,
+  the hex is not a controlled Home Tree or adjacent empty hex, or the target
+  hex is occupied. Includes hex helpers (`sameHex`, `adjacentHexes`,
+  `areAdjacent`) and 100% core test coverage (#8).
 - Added the turn-sequence "Collect Income" step as a pure reducer
   `collectIncome(state)` in `src/core/game.ts`, which credits the current
   player with the banana income of every site they control (Grove=1, Nest=2,
