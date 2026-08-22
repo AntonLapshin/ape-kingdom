@@ -146,6 +146,8 @@ export interface GameState {
   currentPlayer: PlayerId;
   /** The player ids in turn order. */
   turnOrder: PlayerId[];
+  /** The winning player, or null while the game is still in progress. */
+  winner: PlayerId | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -685,4 +687,56 @@ export function eliminatePlayers(state: GameState): GameState {
   }
   const turnOrder = state.turnOrder.filter((id) => !eliminated.has(id));
   return { ...state, players, turnOrder };
+}
+
+/* ------------------------------------------------------------------ */
+/* Victory                                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Determine the winner of the game per the victory rules.
+ *
+ * The game ends immediately when one player either:
+ *  - controls every Home Tree on the map, or
+ *  - is the only player not eliminated.
+ *
+ * Returns the winning player id, or `null` when the game is still in
+ * progress (no player controls every Home Tree and more than one player
+ * remains in active play).
+ */
+export function checkVictory(state: GameState): PlayerId | null {
+  const homeTrees = state.sites.filter((site) => site.kind === "HomeTree");
+
+  // Victory by controlling every Home Tree on the map. If there are no Home
+  // Trees at all, no player can win this way (there is nothing to control).
+  if (homeTrees.length > 0) {
+    for (const id of Object.keys(state.players)) {
+      const controlsAll = homeTrees.every((site) => site.owner === id);
+      if (controlsAll) return id;
+    }
+  }
+
+  // Victory by being the only player not eliminated. A player is eliminated
+  // per `isEliminated` (controls no Home Tree and has no units). If exactly
+  // one player is not eliminated, that player wins.
+  const active = Object.keys(state.players).filter(
+    (id) => !isEliminated(id, state.sites, state.units),
+  );
+  if (active.length === 1) return active[0];
+
+  // No winner yet.
+  return null;
+}
+
+/**
+ * Victory detection reducer.
+ *
+ * Determines the game winner per the victory rules and returns a new
+ * `GameState` with the `winner` field set to the winning player (or `null`
+ * while the game is still in progress). Combines with the elimination
+ * reducer: a player wins when all other players are eliminated. Returns a
+ * new immutable `GameState` and does not mutate the input.
+ */
+export function resolveVictory(state: GameState): GameState {
+  return { ...state, winner: checkVictory(state) };
 }
