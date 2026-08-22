@@ -14,7 +14,7 @@ export default function App() {
           projectName="ape-kingdom"
           owner="AntonLapshin"
           repo="ape-kingdom"
-          description="Implement a new project "Ape Kingdom" that is a turn-based game, the rules are described in ws/temp/ape-kingdom-rules.md and the guidelines for the implementation are described in the same folder. Keep those guidelines in /guidelines folder of the project and instruct all the personas to follow those guidelines"
+          description='Implement a new project "Ape Kingdom" that is a turn-based game, the rules are described in ws/temp/ape-kingdom-rules.md and the guidelines for the implementation are described in the same folder. Keep those guidelines in /guidelines folder of the project and instruct all the personas to follow those guidelines'
         />
       </div>
     </main>
