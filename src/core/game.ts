@@ -394,3 +394,115 @@ export function recruitUnit(state: GameState, kind: ApeKind, hex: Hex): GameStat
     units: [...state.units, createUnit(kind, state.currentPlayer, hex)],
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Move and capture (Turn Sequence step C — movement part)             */
+/* ------------------------------------------------------------------ */
+
+/** The reason a movement attempt was rejected. */
+export type MoveErrorKind =
+  /** The unit has already acted this turn (moved or attacked). */
+  | "already-acted"
+  /** The target hex is farther than the unit's Movement value. */
+  | "out-of-range"
+  /** The target hex is occupied by another unit. */
+  | "occupied";
+
+/** A typed error describing why a move was rejected. */
+export class MoveError extends Error {
+  readonly kind: MoveErrorKind;
+
+  constructor(kind: MoveErrorKind, message: string) {
+    super(message);
+    this.name = "MoveError";
+    this.kind = kind;
+  }
+}
+
+/**
+ * The straight-line (hex-distance) number of steps between two hexes.
+ *
+ * See https://www.redblobgames.com/grids/hexagons/ for the axial distance
+ * formula. A distance of 1 means the hexes are adjacent; 0 means the same hex.
+ */
+export function hexDistance(a: Hex, b: Hex): number {
+  const { q: q1, r: r1 } = a;
+  const { q: q2, r: r2 } = b;
+  return Math.max(Math.abs(q1 - q2), Math.abs(r1 - r2), Math.abs(q1 + r1 - q2 - r2));
+}
+
+/**
+ * Turn-sequence step C (movement part): Move and Capture.
+ *
+ * Moves a unit up to its Movement value (standard 1 hex) toward `targetHex`.
+ * The unit must be owned by the current player and must not have already
+ * acted this turn (a unit may not move after attacking, and newly recruited
+ * apes are marked `hasActed = true` so they cannot act until the next turn).
+ *
+ * The move is rejected with a typed `MoveError` when:
+ *  - the unit has already acted this turn (`already-acted`);
+ *  - the target hex is farther than the unit's Movement value (`out-of-range`);
+ *  - the target hex is occupied by another unit (`occupied`).
+ *
+ * Because standard movement is 1 hex, "may not move through enemy units" is
+ * enforced by the occupied-target check — with a single-step move there are
+ * no intermediate path hexes to pass through.
+ *
+ * Moving onto an unoccupied Grove, Nest, or Home Tree captures that site for
+ * the moving unit's owner (site ownership changes). Returns a new `GameState`
+ * with the unit's `hasActed` set to true; does not mutate the input.
+ *
+ * Combat (attacking adjacent enemy units) is handled in a later task and is
+ * out of scope here.
+ */
+export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameState {
+  // The unit must belong to the current player and exist in the state.
+  const existing = state.units.find((u) => u === unit || sameHex(u.hex, unit.hex));
+  if (!existing || existing.owner !== state.currentPlayer) {
+    throw new MoveError(
+      "already-acted",
+      `Cannot move a unit that is not owned by the current player`,
+    );
+  }
+
+  // A unit may not move after attacking or acting this turn.
+  if (existing.hasActed) {
+    throw new MoveError(
+      "already-acted",
+      `Unit at (${existing.hex.q},${existing.hex.r}) has already acted this turn`,
+    );
+  }
+
+  // The target must be within the unit's Movement value.
+  const distance = hexDistance(existing.hex, targetHex);
+  const movement = movementOf(existing.kind);
+  if (distance > movement) {
+    throw new MoveError(
+      "out-of-range",
+      `Cannot move ${existing.kind} from (${existing.hex.q},${existing.hex.r}) to ` +
+        `(${targetHex.q},${targetHex.r}): distance ${distance} exceeds movement ${movement}`,
+    );
+  }
+
+  // The target hex must not be occupied by another unit (a unit may not enter
+  // a hex occupied by another unit, nor move through enemy units — with a
+  // single-step standard move, the target is the only hex on the path).
+  if (state.units.some((u) => u !== existing && sameHex(u.hex, targetHex))) {
+    throw new MoveError(
+      "occupied",
+      `Cannot move to (${targetHex.q},${targetHex.r}): the hex is occupied`,
+    );
+  }
+
+  // Update the unit's hex and mark it as acted this turn.
+  const units = state.units.map((u) =>
+    u === existing ? { ...u, hex: targetHex, hasActed: true } : u,
+  );
+
+  // Capture an unoccupied site at the target hex for the moving unit's owner.
+  const sites = state.sites.map((site) =>
+    sameHex(site.hex, targetHex) ? { ...site, owner: existing.owner } : site,
+  );
+
+  return { ...state, units, sites };
+}

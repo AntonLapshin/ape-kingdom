@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the turn-sequence "Move and Capture" step (movement part) as a pure
+  reducer `moveUnit(state, unit, targetHex)` in `src/core/game.ts`, which
+  moves a unit up to its Movement value (standard 1 hex) toward a target hex,
+  marks it `hasActed = true`, captures an unoccupied Grove, Nest, or Home Tree
+  at the target for the moving unit's owner, and returns a new immutable
+  `GameState`. Rejects with a typed `MoveError` when the unit has already
+  acted this turn, the target is beyond the unit's movement value, or the
+  target hex is occupied by another unit. Includes the `hexDistance` helper
+  and 100% core test coverage (#9). Combat (attacking adjacent enemy units)
+  is out of scope here and handled in a later task.
 - Added the turn-sequence "Recruit Apes" step as a pure reducer
   `recruitUnit(state, kind, hex)` in `src/core/game.ts`, which lets the
   current player spend bananas to recruit an ape at a controlled Home Tree
