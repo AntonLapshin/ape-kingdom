@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a structural test (`tests/m4-ui-theme.test.ts`) guarding acceptance
+  criterion 1 of the M4 UI token refactor (#32 / #35): the five M4 UI files
+  (`src/ui/components/Board.tsx`, `ActionControls.tsx`, `StatusPanel.tsx`,
+  `PlayableGame.tsx`, `src/App.tsx`) must use only token-backed utilities —
+  no raw hex, no `rgba(...)`, and no default Tailwind palette classes
+  (`slate-*`, `indigo-*`, `rose-*`, `sky-*`, `emerald-*`, `amber-*` outside
+  the allowed `brand-*` token names). Mirrors the structural approach of
+  `tests/theme.test.ts`; core stays 100% covered (#36).
 - Added the design-token theme system for the client (M5-T1), per
   `guidelines/GUIDELINES-WEB-THEME.md`. `src/theme.css` defines the two-layer
   token model — Layer 1 (theme-independent brand palette: amber→rose→violet
