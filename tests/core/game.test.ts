@@ -28,6 +28,8 @@ import {
   MoveError,
   attackUnit,
   AttackError,
+  isEliminated,
+  eliminatePlayers,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -135,12 +137,12 @@ describe("site creation", () => {
 });
 
 describe("player creation", () => {
-  it("creates a player with a default zero banana balance", () => {
-    expect(createPlayer("p1")).toEqual({ id: "p1", bananas: 0 });
+  it("creates a player with a default zero banana balance, not eliminated", () => {
+    expect(createPlayer("p1")).toEqual({ id: "p1", bananas: 0, eliminated: false });
   });
 
-  it("creates a player with an explicit banana balance", () => {
-    expect(createPlayer("p2", 5)).toEqual({ id: "p2", bananas: 5 });
+  it("creates a player with an explicit banana balance, not eliminated", () => {
+    expect(createPlayer("p2", 5)).toEqual({ id: "p2", bananas: 5, eliminated: false });
   });
 });
 
@@ -151,7 +153,7 @@ describe("standard setup (Setup section)", () => {
     expect(force.units.filter((u) => u.kind === "Monkey")).toHaveLength(3);
     expect(force.units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
     expect(force.units.every((u) => u.owner === "p1")).toBe(true);
-    expect(force.player).toEqual({ id: "p1", bananas: 2 });
+    expect(force.player).toEqual({ id: "p1", bananas: 2, eliminated: false });
   });
 
   it("places the starting units at distinct hexes around the origin", () => {
@@ -221,13 +223,14 @@ function gameState(opts: {
   units?: ApeUnit[];
   players?: Record<string, Player>;
   currentPlayer?: string;
+  turnOrder?: string[];
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
     units: opts.units ?? [],
     players: opts.players ?? { p1: createPlayer("p1"), p2: createPlayer("p2") },
     currentPlayer: opts.currentPlayer ?? "p1",
-    turnOrder: ["p1", "p2"],
+    turnOrder: opts.turnOrder ?? ["p1", "p2"],
   };
 }
 
@@ -839,5 +842,136 @@ describe("attackUnit", () => {
     expect(state.units).toHaveLength(2);
     expect(state.units[0].hex).toEqual({ q: 1, r: 0 });
     expect(state.units[0].hasActed).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Elimination                                                         */
+/* ------------------------------------------------------------------ */
+
+describe("isEliminated", () => {
+  it("eliminates a player who controls no Home Tree and has no units", () => {
+    expect(isEliminated("p1", [], [])).toBe(true);
+  });
+
+  it("does not eliminate a player who controls a Home Tree even with no units", () => {
+    const sites = [createSite("HomeTree", 0, 0, "p1")];
+    expect(isEliminated("p1", sites, [])).toBe(false);
+  });
+
+  it("does not eliminate a player who controls no Home Tree but still has units", () => {
+    const units = [createUnit("Monkey", "p1", { q: 1, r: 0 })];
+    expect(isEliminated("p1", [], units)).toBe(false);
+  });
+
+  it("does not eliminate a player who controls a Home Tree and has units", () => {
+    const sites = [createSite("HomeTree", 0, 0, "p1")];
+    const units = [createUnit("Monkey", "p1", { q: 1, r: 0 })];
+    expect(isEliminated("p1", sites, units)).toBe(false);
+  });
+
+  it("ignores non-Home-Tree sites a player controls when deciding elimination", () => {
+    // Controlling Groves/Nests without a Home Tree or units still means
+    // eliminated (only a Home Tree counts for survival).
+    const sites = [createSite("Grove", 0, 0, "p1"), createSite("Nest", 1, 0, "p1")];
+    expect(isEliminated("p1", sites, [])).toBe(true);
+  });
+
+  it("does not count another player's Home Tree or units", () => {
+    const sites = [createSite("HomeTree", 0, 0, "p2")];
+    const units = [createUnit("Monkey", "p2", { q: 1, r: 0 })];
+    expect(isEliminated("p1", sites, units)).toBe(true);
+  });
+});
+
+describe("eliminatePlayers", () => {
+  it("marks and drops a player who has no Home Tree and no units", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 0, 0, "p1")],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    const next = eliminatePlayers(state);
+    expect(next.players.p1.eliminated).toBe(false);
+    expect(next.players.p2.eliminated).toBe(true);
+    expect(next.turnOrder).toEqual(["p1"]);
+  });
+
+  it("keeps a player with units but no Home Tree in active play", () => {
+    const state = gameState({
+      units: [
+        createUnit("Monkey", "p1", { q: 0, r: 0 }),
+        createUnit("Gibbon", "p2", { q: 2, r: 0 }),
+      ],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    const next = eliminatePlayers(state);
+    // Neither has a Home Tree, but both have units, so neither is eliminated.
+    expect(next.players.p1.eliminated).toBe(false);
+    expect(next.players.p2.eliminated).toBe(false);
+    expect(next.turnOrder).toEqual(["p1", "p2"]);
+  });
+
+  it("keeps a player with a Home Tree but no units in active play", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 0, 0, "p1")],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    const next = eliminatePlayers(state);
+    expect(next.players.p1.eliminated).toBe(false);
+    expect(next.players.p2.eliminated).toBe(true);
+    expect(next.turnOrder).toEqual(["p1"]);
+  });
+
+  it("handles multiple players: only truly eliminated players are dropped", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 0, 0, "p1"), createSite("HomeTree", 5, 0, "p2")],
+      units: [createUnit("Monkey", "p3", { q: 1, r: 0 })],
+      players: {
+        p1: createPlayer("p1", 0),
+        p2: createPlayer("p2", 0),
+        p3: createPlayer("p3", 0),
+        p4: createPlayer("p4", 0),
+      },
+      turnOrder: ["p1", "p2", "p3", "p4"],
+    });
+    const next = eliminatePlayers(state);
+    // p1, p2 control Home Trees; p3 has units; p4 is eliminated.
+    expect(next.players.p1.eliminated).toBe(false);
+    expect(next.players.p2.eliminated).toBe(false);
+    expect(next.players.p3.eliminated).toBe(false);
+    expect(next.players.p4.eliminated).toBe(true);
+    expect(next.turnOrder).toEqual(["p1", "p2", "p3"]);
+  });
+
+  it("preserves banana balances and site/unit ownership for survivors", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("Grove", 1, 0, "p1"),
+        createSite("Nest", 2, 0, "p2"),
+      ],
+      units: [createUnit("Monkey", "p1", { q: 3, r: 0 })],
+      players: { p1: createPlayer("p1", 7), p2: createPlayer("p2", 0) },
+    });
+    const next = eliminatePlayers(state);
+    expect(next.players.p1.bananas).toBe(7);
+    expect(next.players.p1.eliminated).toBe(false);
+    expect(next.players.p2.eliminated).toBe(true);
+    expect(next.players.p2.bananas).toBe(0);
+    // Site/unit ownership unchanged.
+    expect(next.sites).toEqual(state.sites);
+    expect(next.units).toEqual(state.units);
+  });
+
+  it("returns a new GameState and does not mutate the input", () => {
+    const state = gameState();
+    const next = eliminatePlayers(state);
+    expect(next).not.toBe(state);
+    expect(next.players).not.toBe(state.players);
+    expect(next.turnOrder).not.toBe(state.turnOrder);
+    // Input unchanged.
+    expect(state.players.p1.eliminated).toBe(false);
+    expect(state.turnOrder).toEqual(["p1", "p2"]);
   });
 });
