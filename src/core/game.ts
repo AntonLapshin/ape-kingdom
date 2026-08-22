@@ -126,6 +126,8 @@ export interface Player {
   id: PlayerId;
   /** Banana balance (may be saved without limit). */
   bananas: number;
+  /** Whether the player has been eliminated from active play. */
+  eliminated: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -238,7 +240,7 @@ export function createSite(
 
 /** Create a player with a starting banana balance. */
 export function createPlayer(id: PlayerId, bananas = 0): Player {
-  return { id, bananas };
+  return { id, bananas, eliminated: false };
 }
 
 /**
@@ -633,4 +635,54 @@ export function attackUnit(
   }
 
   return { ...state, units, sites };
+}
+
+/* ------------------------------------------------------------------ */
+/* Elimination                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Whether a player is eliminated per the elimination rules.
+ *
+ * A player is eliminated if they control no Home Tree and have no units. A
+ * player who controls no Home Tree but still has units is NOT eliminated and
+ * may continue playing (recovering by capturing another Home Tree).
+ */
+export function isEliminated(
+  playerId: PlayerId,
+  sites: Site[],
+  units: ApeUnit[],
+): boolean {
+  const controlsHomeTree = sites.some(
+    (site) => site.kind === "HomeTree" && site.owner === playerId,
+  );
+  const hasUnits = units.some((unit) => unit.owner === playerId);
+  return !controlsHomeTree && !hasUnits;
+}
+
+/**
+ * Elimination reducer.
+ *
+ * Marks players as eliminated per the elimination rules: a player is
+ * eliminated if they control no Home Tree and have no units. A player who
+ * controls no Home Tree but still has units is NOT eliminated and may
+ * continue playing (recovering by capturing another Home Tree).
+ *
+ * Eliminated players are marked `eliminated = true` on their player record
+ * and dropped from `turnOrder` (removed from active play). Site and unit
+ * ownership is left unchanged — an eliminated player has no units and no Home
+ * Tree by definition, and their remaining sites (Groves/Nests) become neutral
+ * only if another reducer re-owns them, so there is no orphaned state to
+ * clean up here. Returns a new `GameState` and does not mutate the input.
+ */
+export function eliminatePlayers(state: GameState): GameState {
+  const eliminated = new Set<PlayerId>();
+  const players: Record<PlayerId, Player> = {};
+  for (const id of Object.keys(state.players)) {
+    const isGone = isEliminated(id, state.sites, state.units);
+    if (isGone) eliminated.add(id);
+    players[id] = { ...state.players[id], eliminated: isGone };
+  }
+  const turnOrder = state.turnOrder.filter((id) => !eliminated.has(id));
+  return { ...state, players, turnOrder };
 }

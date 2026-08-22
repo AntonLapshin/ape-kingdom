@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the elimination reducer `eliminatePlayers(state)` in `src/core/game.ts`,
+  which marks players as eliminated per the rules: a player is eliminated if
+  they control no Home Tree and have no units, while a player who controls no
+  Home Tree but still has units is NOT eliminated (they may recover by
+  capturing another Home Tree). Eliminated players are marked `eliminated =
+  true` on their player record and dropped from `turnOrder` (removed from
+  active play), preserving site/unit ownership for survivors. Includes the
+  `isEliminated` helper, an `eliminated` flag on the `Player` record, and 100%
+  core test coverage (#14).
 - Added the turn-sequence "Move and Fight" attack step as a pure reducer
   `attackUnit(state, attacker, targetHex)` in `src/core/game.ts`, which
   resolves a single attack against an adjacent enemy unit by comparing ranks
