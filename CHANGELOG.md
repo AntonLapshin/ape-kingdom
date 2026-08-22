@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Modeled the core Ape Kingdom game entities as pure TypeScript in
+  `src/core/game.ts` (hex map, sites, ape units, players, game state) with
+  helper functions (rank/cost/movement lookup, site income, unit/site/player
+  creation, standard two-player setup) and 100% core test coverage (#3).
 - Initial React + Tailwind + TypeScript scaffold (Vite).
 - Core/UI separation with `src/core` (business logic) and `src/ui` (thin views).
 - Vitest setup enforcing 100% coverage on `src/core/**/*.ts`.
