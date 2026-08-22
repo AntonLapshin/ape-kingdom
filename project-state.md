@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1 complete, M2 in progress** — Foundation (guidelines, core scaffold, CI, Pages) is done; the core game engine (full rules) is the current milestone.
+**M1, M2 complete; M3 in progress** — Foundation (guidelines, core scaffold, CI, Pages) and the full core game engine (all rules reducers) are done; the AI opponent / Human vs AI game loop is the current milestone.
 
 ## What's here
 
@@ -13,19 +13,24 @@
 - Vitest with 100% coverage enforced on `src/core/**/*.ts`.
 - `/guidelines` folder with the Ape Kingdom game rules and web implementation guidelines (theme, atomic design, context injection), referenced from README/manifest.
 - Core entity model in `src/core/game.ts`: ape units (4 ranks), sites (Grove/Nest/Home Tree), players, hex map, static data tables (cost/rank/movement/income), and helpers (create unit/site/player, standard two-player setup). 100% core coverage.
+- Full rules engine implemented as pure reducers in `src/core/game.ts`: `collectIncome` (M2-T1), `recruitUnit` (M2-T2), `moveUnit` (M2-T3), `attackUnit` (M2-T4), `eliminatePlayers` (M2-T5), `resolveVictory`/`checkVictory` (M2-T6). All reject illegal actions with typed errors and are 100% core covered.
 - CI (lint + test:coverage + build) green on `main`.
 - GitHub Pages enabled (build via GitHub Actions) and the live demo is deployed: https://AntonLapshin.github.io/ape-kingdom/
 
 ## Next steps
 
-- [ ] M2 — implement the full rules engine in `src/core` as pure reducers (income, recruit, move/capture, combat, elimination, victory), 100% covered.
+- [x] M1 — Foundation: rules, guidelines, core scaffold, CI, Pages.
+- [x] M2 — full rules engine in `src/core` as pure reducers (income, recruit, move/capture, combat, elimination, victory), 100% covered.
   - [x] M2-T1 Collect income reducer (#7)
   - [x] M2-T2 Recruit apes reducer (#8)
   - [x] M2-T3 Move and capture reducer (#9)
-  - [ ] M2-T4 Combat (attack) reducer (#13)
-  - [ ] M2-T5 Elimination reducer (#14)
+  - [x] M2-T4 Combat (attack) reducer (#13)
+  - [x] M2-T5 Elimination reducer (#14)
   - [x] M2-T6 Victory detection reducer (#15)
 - [ ] M3 — AI opponent and Human vs AI game loop.
+  - [ ] M3-T1 Legal-move enumeration for the current player
+  - [ ] M3-T2 AI decision layer (deterministic, rule-legal)
+  - [ ] M3-T3 Core game loop (human move -> AI reply -> turn advance) with full-game tests
 - [ ] M4 — interactive playable client UI.
 - [ ] M5 — beautiful animated Tailwind UI polish.
 - [ ] M6 — hardening and demo readiness.
