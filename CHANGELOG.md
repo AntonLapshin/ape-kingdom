@@ -19,6 +19,20 @@ project-state.md + this changelog reflect the shipped POC.
 
 ### Added
 
+- Added the pure Showcase core engine (M7-T1), per
+  `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`. `src/core/showcase.ts`
+  implements the hand-rolled component browser's pure engine with no
+  React/DOM dependency: a `ShowcaseRegistry` of showcase files (each with a
+  `name` and a map of named showcase render functions, which core treats as
+  opaque), an immutable selection state (selected file + selected showcase +
+  expanded sidebar set), `select(state, registry, file, showcase)` and
+  `toggleFile` transitions, and URL deep-link helpers `encodeSelection` /
+  `decodeSelection` for the `?file=..&showcase=..` query string.
+  `validateRegistry` rejects malformed registries and `select`/`toggleFile`
+  reject unknown file/showcase names with typed `ShowcaseError`s
+  (`unknown-file` / `unknown-showcase` / `invalid-registry`) — no silent
+  fallbacks. Covered by `tests/core/showcase.test.ts` (21 tests); core stays
+  100% covered (#39).
 - Added animations and interaction polish to the playable UI (M5-T3),
   per `guidelines/GUIDELINES-WEB-THEME.md`. `src/styles/index.css` now
   defines token-driven animation classes (all referencing `var(--color-…)`,
