@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1, M2 complete; M3 in progress** — Foundation (guidelines, core scaffold, CI, Pages) and the full core game engine (all rules reducers) are done; the AI opponent / Human vs AI game loop is the current milestone.
+**M1, M2, M3 complete; M4 in progress** — Foundation (guidelines, core scaffold, CI, Pages), the full core game engine (all rules reducers), and the AI opponent / Human vs AI game loop are done; the interactive playable client UI is the current milestone.
 
 ## What's here
 
@@ -33,5 +33,8 @@
   - [x] M3-T2 AI decision layer (deterministic, rule-legal) (#19)
   - [x] M3-T3 Core game loop (human move -> AI reply -> turn advance) with full-game tests (#20)
 - [ ] M4 — interactive playable client UI.
+  - [ ] M4-T1 Core game-session controller for the playable UI (#25)
+  - [ ] M4-T2 useGameSession view model for the playable UI (#26)
+  - [ ] M4-T3 Playable board UI wired into the app (#27)
 - [ ] M5 — beautiful animated Tailwind UI polish.
 - [ ] M6 — hardening and demo readiness.
