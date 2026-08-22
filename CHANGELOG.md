@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Project complete (M1–M6).** All milestones implemented, merged, and
+tested; the POC is shipped and demoable. Final verification (M6): `npm test`
+(266 tests), `npm run test:coverage` (100% on `src/core/**/*.ts`), and
+`npm run build` all pass; CI is green on `main`; the live demo is deployed at
+https://AntonLapshin.github.io/ape-kingdom/. The `/guidelines` folder is
+complete and referenced from README/manifest, and manifest.md +
+project-state.md + this changelog reflect the shipped POC.
+
 ### Added
 
 - Added animations and interaction polish to the playable UI (M5-T3),

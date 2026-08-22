@@ -1,6 +1,9 @@
 # ape-kingdom — Manifest
 
-> Project charter / intent. This file is a living document maintained by the
+> Project charter / intent.
+
+**Status: done** — all milestones implemented, merged, tested, and the live
+POC demo is deployed. See `project-state.md` and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
 
@@ -108,17 +111,17 @@ and Review Engineer review must be checked against them:
   - Run a final polish pass on accessibility, load time, and demo readiness
 
 **Sub-issues:**
-  - [ ] M5-T1 Design-token theme system for the client (#31)
-  - [ ] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
-  - [ ] M5-T3 Animations and interaction polish for the playable UI (#33)
+  - [x] M5-T1 Design-token theme system for the client (#31)
+  - [x] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
+  - [x] M5-T3 Animations and interaction polish for the playable UI (#33)
 
 ### M6 — Hardening and demo readiness
 
 **Goal:** Finalize the POC: end-to-end verification, full test coverage enforcement, and a polished live demo.
 
 **Scope:**
-  - Add integration tests covering a full Human vs AI game through the UI
-  - Verify npm install && npm test && npm run build and 100% src/core coverage pass in CI
-  - Confirm the /guidelines folder is complete and referenced so all personas follow the rules
-  - Deploy the final build to GitHub Pages and verify the live demo
-  - Update manifest.md, project-state.md, and CHANGELOG.md to reflect the shipped POC
+  - [x] Add integration tests covering a full Human vs AI game through the UI
+  - [x] Verify npm install && npm test && npm run build and 100% src/core coverage pass in CI
+  - [x] Confirm the /guidelines folder is complete and referenced so all personas follow the rules
+  - [x] Deploy the final build to GitHub Pages and verify the live demo
+  - [x] Update manifest.md, project-state.md, and CHANGELOG.md to reflect the shipped POC

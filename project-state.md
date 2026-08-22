@@ -4,7 +4,12 @@
 
 ## Status
 
-**M1–M4 complete; M5 in progress** — Foundation (guidelines, core scaffold, CI, Pages), the full core game engine (all rules reducers), the AI opponent / Human vs AI game loop, and the interactive playable client UI are done; the beautiful animated Tailwind UI polish is the current milestone.
+**DONE — all milestones (M1–M6) complete.** Foundation (guidelines, core
+scaffold, CI, Pages), the full core game engine (all rules reducers), the AI
+opponent / Human vs AI game loop, the interactive playable client UI, the
+beautiful animated Tailwind UI polish, and hardening/demo readiness are all
+implemented, merged, tested, and deployed. The live demo is green at
+https://AntonLapshin.github.io/ape-kingdom/.
 
 ## What's here
 
@@ -37,8 +42,13 @@
   - [x] M4-T1 Core game-session controller for the playable UI (#25)
   - [x] M4-T2 useGameSession view model for the playable UI (#26)
   - [x] M4-T3 Playable board UI wired into the app (#27)
-- [ ] M5 — beautiful animated Tailwind UI polish.
-  - [ ] M5-T1 Design-token theme system for the client (#31)
-  - [ ] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
-  - [ ] M5-T3 Animations and interaction polish for the playable UI (#33)
-- [ ] M6 — hardening and demo readiness.
+- [x] M5 — beautiful animated Tailwind UI polish.
+  - [x] M5-T1 Design-token theme system for the client (#31)
+  - [x] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
+  - [x] M5-T3 Animations and interaction polish for the playable UI (#33)
+- [x] M6 — hardening and demo readiness. All verification gates green:
+  full Human vs AI game integration tests, `npm test` (266 tests) +
+  `npm run test:coverage` (100% src/core) + `npm run build` pass, CI green on
+  `main`, Pages deployed and live demo verified, /guidelines complete and
+  referenced, and docs (manifest/project-state/CHANGELOG) current. **Project
+  complete.**
