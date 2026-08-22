@@ -4,14 +4,15 @@
 
 ## Status
 
-**M1–M6 complete (POC shipped); M7 (Showcase) in progress.** Foundation
-(guidelines, core scaffold, CI, Pages), the full core game engine (all rules
-reducers), the AI opponent / Human vs AI game loop, the interactive playable
-client UI, the beautiful animated Tailwind UI polish, and hardening/demo
-readiness are all implemented, merged, tested, and deployed. The live demo is
-green at https://AntonLapshin.github.io/ape-kingdom/. New unplanned work
-(issue #38) — adopting the Showcase component browser for every atom component
-per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` — is planned as milestone M7.
+**M1–M7 complete (POC shipped); M8 (break down UI elements into Atom
+components) in progress.** Foundation (guidelines, core scaffold, CI, Pages),
+the full core game engine (all rules reducers), the AI opponent / Human vs AI
+game loop, the interactive playable client UI, the beautiful animated Tailwind
+UI polish, hardening/demo readiness, and the Showcase component browser (M7)
+are all implemented, merged, tested, and deployed. The live demo is green at
+https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #47
+(break down UI elements into Atom components, planned as milestone M8) and
+issue #48 (map generator, to be planned as a later milestone) — was added.
 
 ## What's here
 
@@ -54,10 +55,21 @@ per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` — is planned as milestone M7.
   `main`, Pages deployed and live demo verified, /guidelines complete and
   referenced, and docs (manifest/project-state/CHANGELOG) current. **POC
   complete.**
-- [ ] M7 — Showcase for atom components (issue #38): adopt the hand-rolled
+- [x] M7 — Showcase for atom components (issue #38): adopt the hand-rolled
   Showcase component browser so every atom component is demoed, exposed via a
-  `/showcase` route.
-  - [ ] M7-T1 Showcase core engine in `src/core` (#39)
-  - [ ] M7-T2 `useShowcase` view model + `Showcase` component (#40)
-  - [ ] M7-T3 Showcase demos for every atom component + registration (#41)
-  - [ ] M7-T4 `/showcase` route in the app + top-right link + README update (#45) — planned, `pi:ready`
+  `/showcase` route. **Complete** (PRs #42, #43, #44, #46 merged).
+  - [x] M7-T1 Showcase core engine in `src/core` (#39 → PR #42)
+  - [x] M7-T2 `useShowcase` view model + `Showcase` component (#40 → PR #43)
+  - [x] M7-T3 Showcase demos for every atom component + registration (#41 → PR #44)
+  - [x] M7-T4 `/showcase` route in the app + top-right link + README update (#45 → PR #46)
+- [ ] M8 — Break down UI elements into Atom components (issue #47): extract the
+  inline cell/unit/content rendering from `Board.tsx` into reusable Atom
+  components (`Cell`, `Unit`, `Content`) each with a registered Showcase demo.
+  - [x] #47 split into M8-T1..T3 (closed)
+  - [ ] M8-T1 `Cell` atom component + showcase (#51, `pi:ready`)
+  - [ ] M8-T2 `Unit` atom component + showcase (#49, `pi:ready`)
+  - [ ] M8-T3 `Content` atom component + showcase (#50, `pi:ready`)
+  - [ ] M8-T4 Refactor `Board` to compose atoms — planned next slice
+- [ ] M9 — Map generator (issue #48): core map generator (single island
+  surrounded by water, mountains, lakes) + new map per game. **Unplanned — to
+  be broken down in a later PM turn.**

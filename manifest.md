@@ -2,10 +2,10 @@
 
 > Project charter / intent.
 
-**Status: in-progress** — M1–M6 are complete and the POC is shipped, but
-new unplanned work (M7 — Showcase for atom components, per the atomic-design
-guidelines) was added via issue #38. See `project-state.md` and `CHANGELOG.md`
-for details. This file is a living document maintained by the
+**Status: in-progress** — M1–M7 are complete and the POC is shipped, but a
+new unplanned work item (issue #47 — break down UI elements into Atom
+components) was added and is planned as milestone M8. See `project-state.md`
+and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
 
@@ -136,11 +136,37 @@ and Review Engineer review must be checked against them:
     app
   - Keep all logic in `src/core` (100% covered); UI stays thin and dumb
 
+**Sub-issues:**
+  - [x] M7-T1 Showcase core engine in `src/core` (#38 → PR #42)
+  - [x] M7-T2 `useShowcase` view model + `Showcase` component (#38 → PR #43)
+  - [x] M7-T3 Showcase demos for every atom component + registration (#38 → PR #44)
+  - [x] M7-T4 `/showcase` route in the app (#38 → PR #46)
+
+### M8 — Break down UI elements into Atom components
+
+**Goal:** Extract the inline cell/unit/content rendering currently embedded in
+`Board.tsx` into small, reusable **Atom** components (`Cell`, `Unit`, `Content`)
+in `src/ui/components/`, each with a registered Showcase demo, per
+`guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` (rules 1, 7 and §2 Atom layer).
+Planned from unplanned issue #47.
+
+**Scope:**
+  - `Cell` atom — the board hex cell (hex clip-path, owner/terrain background
+    variants) as a pure presentational component in `src/ui/components/Cell.tsx`
+  - `Unit` atom — the ape unit badge (kind + rank, owner colour) as a pure
+    component in `src/ui/components/Unit.tsx`
+  - `Content` atom — the site content marker (Home Tree, Nest, Grove) as a pure
+    component in `src/ui/components/Content.tsx`
+  - Each atom gets a showcase demo file in `src/ui/showcases/` registered in
+    `src/ui/showcases/index.ts`
+  - Refactor `Board.tsx` to compose the new atoms (behaviour unchanged)
+  - Keep all atoms pure (no hooks/context/side effects); core stays 100% covered
+
 **Sub-issues (first slice):**
-  - [ ] M7-T1 Showcase core engine in `src/core` (#38)
-  - [ ] M7-T2 `useShowcase` view model + `Showcase` component (#38)
-  - [ ] M7-T3 Showcase demos for every atom component + registration (#38)
-  - [ ] M7-T4 `/showcase` route in the app (#38) — planned next slice
+  - [ ] M8-T1 `Cell` atom component + showcase (#47)
+  - [ ] M8-T2 `Unit` atom component + showcase (#47)
+  - [ ] M8-T3 `Content` atom component + showcase (#47)
+  - [ ] M8-T4 Refactor `Board` to compose atoms (#47) — planned next slice
 
 ### M6 — Hardening and demo readiness
 
