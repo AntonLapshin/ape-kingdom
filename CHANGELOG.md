@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the pure core legal-move enumeration entry point in
+  `src/core/legalMoves.ts` (M3-T1): `legalMoves(state)` returns every legal
+  action available to the current player across each turn step (collect
+  income, recruit every affordable ape kind at every legal placement hex,
+  move every not-acted unit to every reachable unoccupied hex, and attack
+  every not-acted unit against every adjacent enemy unit), returned in
+  turn-step order as plain serializable `GameAction` descriptors that can be
+  fed back into the existing reducers. It shares the enumeration logic with
+  the AI layer (`legalActions`), so the UI and AI see the same legal moves;
+  100% core coverage maintained (#21).
 - Added the pure core game loop orchestration in `src/core/gameLoop.ts` (M3-T3):
   `playTurn(state, humanMoves, aiSeed, aiOptions?)` wires the full Human vs AI
   turn cycle — it collects income for the human (step A), applies their
