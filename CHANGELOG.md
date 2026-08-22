@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the playable board UI (M4-T3) replacing the scaffold `DemoPanel` in
+  `App.tsx` with a full Human vs AI game screen. New thin, dumb components in
+  `src/ui/components`: `Board` renders the hex map from the view-model
+  `board` cells (site/unit owner colouring, ape badges, current-player
+  footer); `ActionControls` renders one button per legal action plus Clear /
+  End Turn, letting the human select recruit / move / fight / collect-income
+  actions and submit their turn (the AI replies and the turn advances live);
+  `StatusPanel` shows the current player, each player's banana score and
+  elimination status, the turn step, and a clear win/loss message when the
+  game ends. `PlayableGame` is the thin composition layer that wires the
+  `useGameSession` view model to the three dumb components (the only
+  stateful UI layer). Pure presentation helpers (`actionLabel`, `playerName`,
+  `STEP_LABELS`, `SITE_LABELS`, `hexToPixel`) live in `src/ui/presentation.ts`
+  so the components stay pure and dumb. Covered by UI tests (Vitest + Testing
+  Library) for each component and the full `PlayableGame` wiring; core stays
+  100% covered (#27).
 - Added the thin `useGameSession` view model in
   `src/ui/viewModels/useGameSession.ts` (M4-T2) that adapts the core
   game-session controller (`src/core/gameSession.ts`) into a plain,
