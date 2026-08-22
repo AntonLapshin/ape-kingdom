@@ -26,6 +26,21 @@ guidelines.
 
 Live demo: **[https://AntonLapshin.github.io/ape-kingdom/](https://AntonLapshin.github.io/ape-kingdom/)**
 
+## Showcase
+
+The app includes a hand-rolled **Showcase** component browser (a Storybook-style
+gallery, per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`) that demos every atom
+component in the UI.
+
+- **Route:** open the app and click the **Showcase** link in the top-right
+  corner, or go directly to
+  [`/showcase`](https://AntonLapshin.github.io/ape-kingdom/showcase).
+- **Deep links:** each showcase is deep-linkable via the `?file=..&showcase=..`
+  query string, and the browser back/forward buttons step through your
+  selections.
+- **Back to the game:** click **← Back to game** (top-right) to return to the
+  playable game, which remains the default view.
+
 ## Stack
 
 - [Vite](https://vitejs.dev/) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)

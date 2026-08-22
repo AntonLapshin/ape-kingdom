@@ -19,6 +19,20 @@ project-state.md + this changelog reflect the shipped POC.
 
 ### Added
 
+- Added the `/showcase` route, top-right link, and README documentation
+  (M7-T4), completing M7 (#45). `src/App.tsx` is now a thin, router-agnostic
+  page that derives its route from the pathname (`/showcase` → showcase,
+  otherwise the playable game, which remains the default view), navigates via
+  `window.history.pushState` (preserving the app's base path, e.g.
+  `/ape-kingdom/` under GitHub Pages), and handles browser back/forward via
+  `popstate`. It renders a fixed top-right **Showcase** link that opens the
+  showcase and flips to **← Back to game** to return to the game. The
+  showcase page composes the existing dumb `Showcase` component through the
+  `useShowcase` view model, so deep links (`?file=..&showcase=..`) and browser
+  back/forward still work. `README.md` documents the `/showcase` route and
+  how to reach it. Covered by `tests/ui/App.test.tsx` (6 tests: default game
+  view, link open/back, direct `/showcase` render, deep-link selection, and
+  popstate navigation); core stays 100% covered.
 - Added the pure Showcase core engine (M7-T1), per
   `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`. `src/core/showcase.ts`
   implements the hand-rolled component browser's pure engine with no
