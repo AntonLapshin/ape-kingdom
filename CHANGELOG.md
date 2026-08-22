@@ -33,6 +33,22 @@ project-state.md + this changelog reflect the shipped POC.
   (`unknown-file` / `unknown-showcase` / `invalid-registry`) — no silent
   fallbacks. Covered by `tests/core/showcase.test.ts` (21 tests); core stays
   100% covered (#39).
+- Added the `useShowcase` view model and dumb `Showcase` component (M7-T2),
+  per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` §4. `src/ui/viewModels/useShowcase.ts`
+  is a thin view model binding the core showcase engine (`src/core/showcase.ts`)
+  to React state and syncing the selection to the URL (`?file=..&showcase=..`)
+  via `window.history` / `popstate` — router-agnostic, no react-router
+  dependency. It reads the initial selection from the URL on mount, pushes the
+  selection on change, and re-applies it on browser back/forward; a stale deep
+  link naming an unknown file/showcase is ignored gracefully (the core still
+  rejects it with a typed `ShowcaseError`). The pure presentation adaptation
+  `toShowcaseView` is exported for direct testing. `src/ui/components/Showcase.tsx`
+  is a dumb component rendering a collapsible sidebar (file list + expandable
+  showcase entries) and a canvas that renders the selected showcase, reading
+  the view-model `view` and calling its `onSelect` / `onToggleFile` callbacks —
+  no business logic, no hooks, no side effects. Covered by
+  `tests/ui/useShowcase.test.ts` and `tests/ui/Showcase.test.tsx`; core stays
+  100% covered (#40).
 - Added animations and interaction polish to the playable UI (M5-T3),
   per `guidelines/GUIDELINES-WEB-THEME.md`. `src/styles/index.css` now
   defines token-driven animation classes (all referencing `var(--color-…)`,
