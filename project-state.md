@@ -29,7 +29,7 @@
   - [x] M2-T5 Elimination reducer (#14)
   - [x] M2-T6 Victory detection reducer (#15)
 - [ ] M3 — AI opponent and Human vs AI game loop.
-  - [ ] M3-T1 Legal-move enumeration for the current player
+  - [x] M3-T1 Legal-move enumeration for the current player (#21)
   - [x] M3-T2 AI decision layer (deterministic, rule-legal) (#19)
   - [x] M3-T3 Core game loop (human move -> AI reply -> turn advance) with full-game tests (#20)
 - [ ] M4 — interactive playable client UI.
