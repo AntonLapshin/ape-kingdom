@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the thin `useGameSession` view model in
+  `src/ui/viewModels/useGameSession.ts` (M4-T2) that adapts the core
+  game-session controller (`src/core/gameSession.ts`) into a plain,
+  serializable UI-state shape for the playable board: `board` cells (hex +
+  site/unit), `players` with banana scores and elimination status, the
+  `currentPlayer`, the human's selectable `legalActions`, the `step`, and the
+  `winner`/`isDone` status. It exposes thin helpers `selectAction`, `clearActions`
+  (which resets the current turn via the new core `resetTurn`), and `submitTurn`
+  that delegate to the core controller only — no game rules or business logic
+  live in the view layer. The pure presentation adaptations (`boardCells`,
+  `playerViews`, `toGameSessionView`) are exported separately and covered by a
+  UI test (Vitest + Testing Library); `resetTurn` added to the core session
+  controller with 100% core coverage maintained (#26).
 - Added the pure core game-session controller in
   `src/core/gameSession.ts` (M4-T1): `createGameSession(aiSeed?, aiOptions?)`
   builds a new session from the standard two-player setup (Home Trees,
