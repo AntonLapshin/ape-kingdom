@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the pure core game-session controller in
+  `src/core/gameSession.ts` (M4-T1): `createGameSession(aiSeed?, aiOptions?)`
+  builds a new session from the standard two-player setup (Home Trees,
+  neutral Groves/Nests, `startingForce`) and returns the initial `GameState`
+  plus the current player's `legalMoves`. The human selects one legal action
+  at a time via `selectAction` (which validates the action against the
+  session's `legalMoves`, enforces the income -> recruit -> move/fight turn
+  ordering, and recomputes the projected `state` and next `legalMoves`), then
+  ends the turn with `submitTurn`, which runs the AI's seeded/deterministic
+  reply via `playTurn` from `src/core/gameLoop.ts` and advances to the next
+  human turn — or marks the session `done` with the winner when the game
+  ends. The session exposes `baseState`/`state`, the selected `moves`, the
+  current `step` (`income`/`recruit`/`movefight`/`done`), the `legalMoves`,
+  and the `winner`. Full-game simulation tests complete many seeded games
+  through the session API with a winner and no illegal moves; 100% core
+  coverage maintained (#25).
 - Added the pure core legal-move enumeration entry point in
   `src/core/legalMoves.ts` (M3-T1): `legalMoves(state)` returns every legal
   action available to the current player across each turn step (collect
