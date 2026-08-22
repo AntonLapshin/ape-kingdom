@@ -33,6 +33,19 @@ project-state.md + this changelog reflect the shipped POC.
   (`unknown-file` / `unknown-showcase` / `invalid-registry`) — no silent
   fallbacks. Covered by `tests/core/showcase.test.ts` (21 tests); core stays
   100% covered (#39).
+- Added showcase demo files for every atom component and their registration
+  (M7-T3), per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` §5 and rule 7.
+  `src/ui/showcases/` now contains one thin demo file per atom component —
+  `ActionControls.tsx`, `Board.tsx`, `StatusPanel.tsx`, `DemoPanel.tsx` — each
+  exporting a `name` constant (the sidebar display name) and one named render
+  function per variant/state, with only imports + tiny scene-setting render
+  functions (no component implementation, no business logic).
+  `src/ui/showcases/index.ts` aggregates them into the `showcaseRegistry()`
+  `ShowcaseRegistry` that the `useShowcase` view model / `Showcase` component
+  consume, so every atom component in `src/ui/components/` has a registered
+  showcase. Covered by `tests/ui/showcases.test.tsx` (validates the registry
+  via the core `validateRegistry`, asserts every atom component is registered,
+  and mounts every showcase render); core stays 100% covered (#41).
 - Added animations and interaction polish to the playable UI (M5-T3),
   per `guidelines/GUIDELINES-WEB-THEME.md`. `src/styles/index.css` now
   defines token-driven animation classes (all referencing `var(--color-…)`,
