@@ -30,6 +30,8 @@ import {
   AttackError,
   isEliminated,
   eliminatePlayers,
+  checkVictory,
+  resolveVictory,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -224,6 +226,7 @@ function gameState(opts: {
   players?: Record<string, Player>;
   currentPlayer?: string;
   turnOrder?: string[];
+  winner?: string | null;
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
@@ -231,6 +234,7 @@ function gameState(opts: {
     players: opts.players ?? { p1: createPlayer("p1"), p2: createPlayer("p2") },
     currentPlayer: opts.currentPlayer ?? "p1",
     turnOrder: opts.turnOrder ?? ["p1", "p2"],
+    winner: opts.winner ?? null,
   };
 }
 
@@ -973,5 +977,176 @@ describe("eliminatePlayers", () => {
     // Input unchanged.
     expect(state.players.p1.eliminated).toBe(false);
     expect(state.turnOrder).toEqual(["p1", "p2"]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Victory detection                                                   */
+/* ------------------------------------------------------------------ */
+
+describe("checkVictory", () => {
+  it("returns the player who controls every Home Tree on the map", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p1"),
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe("p1");
+  });
+
+  it("does not declare a winner when no player controls every Home Tree", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p2"),
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+    });
+    expect(checkVictory(state)).toBe(null);
+  });
+
+  it("does not declare a winner when there are no Home Trees and multiple players survive", () => {
+    // No Home Trees on the map: no player can win by controlling them all,
+    // and both players still have units so neither is eliminated.
+    const state = gameState({
+      sites: [createSite("Grove", 0, 0, "p1"), createSite("Nest", 1, 0, "p2")],
+      units: [
+        createUnit("Monkey", "p1", { q: 2, r: 0 }),
+        createUnit("Gibbon", "p2", { q: 3, r: 0 }),
+      ],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe(null);
+  });
+
+  it("returns the sole surviving player not eliminated", () => {
+    // p2 controls no Home Tree and has no units → eliminated; p1 survives
+    // (has units). p1 does NOT control every Home Tree (one is neutral), so
+    // victory is decided by sole survival.
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0), // neutral
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe("p1");
+  });
+
+  it("declares the winner when all other players are eliminated (sole survivor)", () => {
+    // p2 has no Home Tree and no units; p3 has no Home Tree and no units;
+    // only p1 remains in active play. p1 does not control every Home Tree
+    // (one is neutral), so victory is decided by sole survival.
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0), // neutral
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: {
+        p1: createPlayer("p1", 2),
+        p2: createPlayer("p2", 0),
+        p3: createPlayer("p3", 0),
+      },
+      turnOrder: ["p1", "p2", "p3"],
+    });
+    expect(checkVictory(state)).toBe("p1");
+  });
+
+  it("returns null when more than one player is not eliminated", () => {
+    // p1 and p2 both have units (and no Home Tree), so neither is eliminated.
+    const state = gameState({
+      units: [
+        createUnit("Monkey", "p1", { q: 0, r: 0 }),
+        createUnit("Gibbon", "p2", { q: 2, r: 0 }),
+      ],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe(null);
+  });
+
+  it("returns null (draw) when every player is eliminated", () => {
+    // No player controls a Home Tree and no player has units, so all
+    // players are eliminated and `active.length === 0`. No sole survivor
+    // and no Home Tree controller → no winner (draw).
+    const state = gameState({
+      sites: [createSite("Grove", 0, 0, "p1"), createSite("Nest", 1, 0, "p2")],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe(null);
+  });
+
+  it("gives a player who controls every Home Tree victory even if another survives", () => {
+    // p1 controls both Home Trees → p1 wins regardless of p2 having units.
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p1"),
+      ],
+      units: [createUnit("Monkey", "p2", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe("p1");
+  });
+});
+
+describe("resolveVictory", () => {
+  it("sets winner to the player who controls every Home Tree", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p1"),
+      ],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    const next = resolveVictory(state);
+    expect(next.winner).toBe("p1");
+  });
+
+  it("sets winner to the sole surviving player not eliminated", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0), // neutral
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(resolveVictory(state).winner).toBe("p1");
+  });
+
+  it("sets winner to null while the game is still in progress", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p2"),
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+    });
+    expect(resolveVictory(state).winner).toBe(null);
+  });
+
+  it("returns a new GameState and does not mutate the input", () => {
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p1"),
+      ],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    const next = resolveVictory(state);
+    expect(next).not.toBe(state);
+    // Input is unchanged and had no winner before resolution.
+    expect(state.winner).toBe(null);
+    expect(next.winner).toBe("p1");
+    // Other state is preserved.
+    expect(next.sites).toEqual(state.sites);
+    expect(next.units).toEqual(state.units);
+    expect(next.players).toEqual(state.players);
+    expect(next.turnOrder).toEqual(state.turnOrder);
   });
 });

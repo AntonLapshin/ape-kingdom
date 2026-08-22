@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the victory detection reducer `resolveVictory(state)` in
+  `src/core/game.ts`, which determines the game winner per the victory rules:
+  the game ends immediately when one player either controls every Home Tree on
+  the map, or is the only player not eliminated. `checkVictory(state)` returns
+  the winning player id (or `null` while the game is still in progress), and
+  `resolveVictory` returns a new immutable `GameState` with its `winner` field
+  set to the winning player (or `null`). Combines with the elimination reducer
+  (M2-T5): a player wins when all other players are eliminated. Adds a `winner`
+  field to the `GameState` record and 100% core test coverage covering
+  all-controls victory, sole-survivor victory, and no-winner in-progress cases
+  (#15).
 - Added the elimination reducer `eliminatePlayers(state)` in `src/core/game.ts`,
   which marks players as eliminated per the rules: a player is eliminated if
   they control no Home Tree and have no units, while a player who controls no
