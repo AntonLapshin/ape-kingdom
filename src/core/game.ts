@@ -227,3 +227,44 @@ export function startingForce(playerId: PlayerId): {
     player: createPlayer(playerId, 2),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Turn-sequence reducers                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The total banana income the given player controls from their sites.
+ *
+ * Neutral sites (owner null) produce no income, per the rules:
+ * "Neutral sites produce no income until captured."
+ */
+export function incomeFor(playerId: PlayerId, sites: Site[]): number {
+  return sites.reduce((total, site) => {
+    if (site.owner !== playerId) return total;
+    return total + incomeOf(site.kind);
+  }, 0);
+}
+
+/**
+ * Turn-sequence step A: Collect Income.
+ *
+ * Credits the current player with the banana income of every site they
+ * control (Grove=1, Nest=2, Home Tree=3 per `SITE_TYPES`). Neutral sites
+ * produce no income. Bananas may be saved without limit, so the income is
+ * added to the current player's existing balance.
+ *
+ * Returns a new `GameState` and does not mutate the input.
+ */
+export function collectIncome(state: GameState): GameState {
+  const income = incomeFor(state.currentPlayer, state.sites);
+  return {
+    ...state,
+    players: {
+      ...state.players,
+      [state.currentPlayer]: {
+        ...state.players[state.currentPlayer],
+        bananas: state.players[state.currentPlayer].bananas + income,
+      },
+    },
+  };
+}
