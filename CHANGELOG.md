@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the turn-sequence "Move and Fight" attack step as a pure reducer
+  `attackUnit(state, attacker, targetHex)` in `src/core/game.ts`, which
+  resolves a single attack against an adjacent enemy unit by comparing ranks
+  per the rules: attacker rank higher → defender destroyed and the attacker
+  moves into its hex; equal ranks → both units destroyed; attacker rank lower
+  → attacker destroyed and defender remains. The attacker must be owned by
+  the current player and must not have already acted this turn, and is marked
+  `hasActed = true` after the attack. If the defender occupied a site and the
+  attacker wins, the attacker captures that site; if both units are destroyed
+  site ownership does not change. Returns a new immutable `GameState` and
+  rejects with a typed `AttackError` for illegal attacks (not the owner's
+  turn, already acted, non-adjacent target, or no enemy unit at the target).
+  Includes 100% core test coverage (#13).
 - Added the turn-sequence "Move and Capture" step (movement part) as a pure
   reducer `moveUnit(state, unit, targetHex)` in `src/core/game.ts`, which
   moves a unit up to its Movement value (standard 1 hex) toward a target hex,
