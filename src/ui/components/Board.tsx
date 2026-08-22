@@ -1,6 +1,7 @@
 import type { BoardCell } from "../viewModels/useGameSession";
 import type { PlayerId } from "../../core/game";
 import { HEX_SIZE, hexToPixel, SITE_LABELS } from "../presentation";
+import { Unit } from "./Unit";
 
 export interface BoardProps {
   /** The renderable board cells (hex + site/unit) from the view model. */
@@ -79,15 +80,11 @@ export function Board({ board, currentPlayer }: BoardProps) {
               </span>
             )}
             {cell.unit && (
-              <span
-                data-testid="board-unit"
-                data-owner={cell.unit.owner}
-                className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-inverted ${
-                  cell.unit.owner === "p1" ? "bg-brand-rose-deep" : "bg-brand-violet-deep"
-                }`}
-              >
-                {cell.unit.kind}
-              </span>
+              <Unit
+                kind={cell.unit.kind}
+                rank={cell.unit.rank}
+                owner={cell.unit.owner}
+              />
             )}
           </div>
         );

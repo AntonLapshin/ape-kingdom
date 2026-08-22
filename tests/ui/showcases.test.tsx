@@ -28,6 +28,7 @@ describe("showcase registry", () => {
       "Board",
       "DemoPanel",
       "StatusPanel",
+      "Unit",
     ]);
   });
 
