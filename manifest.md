@@ -3,7 +3,8 @@
 > Project charter / intent.
 
 **Status: done** — all milestones implemented, merged, tested, and the live
-POC demo is deployed. See `project-state.md` and `CHANGELOG.md` for details. This file is a living document maintained by the
+POC demo is deployed. See `project-state.md` and `CHANGELOG.md` for details.
+`completed_at: 2026-08-22T20:53:24Z` This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
 
