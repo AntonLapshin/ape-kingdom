@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added animations and interaction polish to the playable UI (M5-T3),
+  per `guidelines/GUIDELINES-WEB-THEME.md`. `src/styles/index.css` now
+  defines token-driven animation classes (all referencing `var(--color-…)`,
+  no raw colors): `hex-cell` (subtle gradient/glow plus smooth hover/active
+  feedback on board hexes), `hex-current` (the current player's territory is
+  visually distinct via an accent glow ring), `hex-pop` (hexes pop in on
+  mount, staggered by index), `turn-fade` (the current-player highlight and
+  turn-step label fade/slide on turn changes), `result-celebrate` (a springy
+  pop-in celebrating win/loss when `isDone`/`winner` becomes set), and
+  `btn-action` (clean pressed/disabled feedback on the action, Clear, and
+  End Turn buttons). All new animations are disabled under
+  `prefers-reduced-motion`. The thin components stay dumb — `Board` adds the
+  `hex-cell`/`hex-pop`/`hex-current` classes keyed off the view-model
+  `currentPlayer`, `StatusPanel` adds `turn-fade`/`result-celebrate`, and
+  `ActionControls` adds `btn-action` — with no game logic added; all state
+  still flows from core via `useGameSession`. Covered by a structural test
+  (`tests/m5-ui-polish.test.ts`) guarding the keyframe/class presence in
+  `index.css` and that the components stay thin (no core value imports);
+  core stays 100% covered (#33).
 - Added a structural test (`tests/m4-ui-theme.test.ts`) guarding acceptance
   criterion 1 of the M4 UI token refactor (#32 / #35): the five M4 UI files
   (`src/ui/components/Board.tsx`, `ActionControls.tsx`, `StatusPanel.tsx`,

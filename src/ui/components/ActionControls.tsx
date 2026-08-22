@@ -43,7 +43,10 @@ export function ActionControls({
 
   return (
     <div data-testid="actions" className="space-y-3">
-      <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+      <div
+        key={step}
+        className="turn-fade text-xs font-semibold uppercase tracking-wide text-text-muted"
+      >
         Step: {STEP_LABELS[step]}
       </div>
       {legalActions.length === 0 ? (
@@ -58,7 +61,7 @@ export function ActionControls({
               type="button"
               data-testid="action-button"
               onClick={() => onSelect(action)}
-              className="rounded-md border border-line-strong bg-panel px-3 py-1.5 text-left text-xs text-text-primary transition hover:border-accent hover:bg-accent-soft"
+              className="btn-action rounded-md border border-line-strong bg-panel px-3 py-1.5 text-left text-xs text-text-primary transition hover:border-accent hover:bg-accent-soft"
             >
               {actionLabel(action)}
             </button>
@@ -70,7 +73,7 @@ export function ActionControls({
           type="button"
           data-testid="clear-actions"
           onClick={onClear}
-          className="rounded-md border border-line-strong bg-panel px-3 py-1.5 text-xs font-medium text-text-body transition hover:bg-accent-soft"
+          className="btn-action rounded-md border border-line-strong bg-panel px-3 py-1.5 text-xs font-medium text-text-body transition hover:bg-accent-soft"
         >
           Clear
         </button>
@@ -78,7 +81,7 @@ export function ActionControls({
           type="button"
           data-testid="submit-turn"
           onClick={onSubmit}
-          className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-inverted transition hover:bg-accent-strong"
+          className="btn-action rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-inverted transition hover:bg-accent-strong"
         >
           End Turn
         </button>
