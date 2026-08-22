@@ -506,3 +506,131 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
 
   return { ...state, units, sites };
 }
+
+/* ------------------------------------------------------------------ */
+/* Combat (Turn Sequence step C — attack part)                         */
+/* ------------------------------------------------------------------ */
+
+/** The reason an attack attempt was rejected. */
+export type AttackErrorKind =
+  /** The attacker is not owned by the current player. */
+  | "not-owner"
+  /** The attacker has already acted this turn. */
+  | "already-acted"
+  /** The target hex is not adjacent to the attacker. */
+  | "not-adjacent"
+  /** There is no unit (enemy or otherwise) at the target hex. */
+  | "no-enemy";
+
+/** A typed error describing why an attack was rejected. */
+export class AttackError extends Error {
+  readonly kind: AttackErrorKind;
+
+  constructor(kind: AttackErrorKind, message: string) {
+    super(message);
+    this.name = "AttackError";
+    this.kind = kind;
+  }
+}
+
+/**
+ * Turn-sequence step C (attack part): Combat.
+ *
+ * Resolves a single attack by `attacker` against an enemy unit at
+ * `targetHex`. The attacker must be owned by the current player, must not
+ * have already acted this turn (a unit may not move after attacking, and may
+ * attack only once per turn), and must be adjacent to an enemy-occupied
+ * target hex.
+ *
+ * Combat is resolved by comparing ranks per the rules table:
+ *  - attacker rank higher → defender is destroyed, attacker moves into the
+ *    defender's hex;
+ *  - equal ranks → both units are destroyed;
+ *  - attacker rank lower → attacker is destroyed, defender remains.
+ *
+ * If the defender was occupying a site and the attacker wins, the attacker
+ * captures that site (site owner becomes the attacker's owner). If both units
+ * are destroyed, site ownership does not change.
+ *
+ * The attack is rejected with a typed `AttackError` when:
+ *  - the attacker is not owned by the current player (`not-owner`);
+ *  - the attacker has already acted this turn (`already-acted`);
+ *  - the target hex is not adjacent to the attacker (`not-adjacent`);
+ *  - there is no enemy unit at the target hex (`no-enemy`).
+ *
+ * Returns a new `GameState` and does not mutate the input.
+ */
+export function attackUnit(
+  state: GameState,
+  attacker: ApeUnit,
+  targetHex: Hex,
+): GameState {
+  // The attacker must exist in the state and be owned by the current player.
+  const existing = state.units.find((u) => u === attacker || sameHex(u.hex, attacker.hex));
+  if (!existing || existing.owner !== state.currentPlayer) {
+    throw new AttackError(
+      "not-owner",
+      `Cannot attack with a unit that is not owned by the current player`,
+    );
+  }
+
+  // A unit may attack only once per turn. A unit may not move after
+  // attacking, so an attacker that has already acted cannot attack.
+  if (existing.hasActed) {
+    throw new AttackError(
+      "already-acted",
+      `Unit at (${existing.hex.q},${existing.hex.r}) has already acted this turn`,
+    );
+  }
+
+  // The target must be adjacent to the attacker.
+  if (!areAdjacent(existing.hex, targetHex)) {
+    throw new AttackError(
+      "not-adjacent",
+      `Cannot attack from (${existing.hex.q},${existing.hex.r}) to ` +
+        `(${targetHex.q},${targetHex.r}): the target is not adjacent`,
+    );
+  }
+
+  // There must be an enemy unit at the target hex.
+  const defender = state.units.find((u) => sameHex(u.hex, targetHex));
+  if (!defender) {
+    throw new AttackError(
+      "no-enemy",
+      `Cannot attack (${targetHex.q},${targetHex.r}): there is no unit there`,
+    );
+  }
+  if (defender.owner === existing.owner) {
+    throw new AttackError(
+      "no-enemy",
+      `Cannot attack (${targetHex.q},${targetHex.r}): the unit there is friendly`,
+    );
+  }
+
+  const attackerRank = rankOf(existing.kind);
+  const defenderRank = rankOf(defender.kind);
+
+  // The attacker always acts this turn, regardless of the outcome.
+  const actedAttacker = { ...existing, hasActed: true };
+  let units: ApeUnit[];
+  let sites: Site[] = state.sites;
+
+  if (attackerRank > defenderRank) {
+    // Attacker wins: defender is destroyed, attacker moves into its hex.
+    units = state.units
+      .filter((u) => u !== defender)
+      .map((u) => (u === existing ? { ...actedAttacker, hex: targetHex } : u));
+    // The attacker captures any site the defender occupied.
+    sites = state.sites.map((site) =>
+      sameHex(site.hex, targetHex) ? { ...site, owner: existing.owner } : site,
+    );
+  } else if (attackerRank === defenderRank) {
+    // Equal ranks: both units are destroyed; site ownership does not change.
+    units = state.units.filter((u) => u !== existing && u !== defender);
+  } else {
+    // Attacker rank lower: attacker is destroyed, defender remains.
+    units = state.units.filter((u) => u !== existing);
+  }
+
+  return { ...state, units, sites };
+}

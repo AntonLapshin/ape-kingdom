@@ -26,6 +26,8 @@ import {
   hexDistance,
   moveUnit,
   MoveError,
+  attackUnit,
+  AttackError,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -629,5 +631,213 @@ describe("moveUnit", () => {
     expect(state.units[0].hex).toEqual({ q: 1, r: 0 });
     expect(state.units[0].hasActed).toBe(false);
     expect(state.sites[0].owner).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Combat (Turn Sequence step C — attack part)                         */
+/* ------------------------------------------------------------------ */
+
+describe("attackUnit", () => {
+  /** A p1 Monkey at (1,0) that has not yet acted, facing a p2 Monkey at (2,0). */
+  function attackState(opts: {
+    attacker?: ApeUnit;
+    defender?: ApeUnit;
+    units?: ApeUnit[];
+    sites?: Site[];
+    currentPlayer?: string;
+  } = {}): GameState {
+    const attacker = opts.attacker ?? createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const defender = opts.defender ?? createUnit("Monkey", "p2", { q: 2, r: 0 });
+    return gameState({
+      sites: opts.sites ?? [],
+      units: opts.units ?? [attacker, defender],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: opts.currentPlayer ?? "p1",
+    });
+  }
+
+  it("destroys the defender and moves the attacker in when the attacker rank is higher", () => {
+    const attacker = createUnit("Gorilla", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    // Only the attacker remains, now on the defender's hex.
+    expect(next.units).toHaveLength(1);
+    expect(next.units[0].owner).toBe("p1");
+    expect(next.units[0].hex).toEqual({ q: 2, r: 0 });
+    expect(next.units[0].hasActed).toBe(true);
+  });
+
+  it("destroys both units when ranks are equal", () => {
+    const state = attackState(); // Monkey vs Monkey
+    const next = attackUnit(state, state.units[0], { q: 2, r: 0 });
+    expect(next.units).toHaveLength(0);
+  });
+
+  it("destroys the attacker and keeps the defender when the attacker rank is lower", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Gorilla", "p2", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    expect(next.units).toHaveLength(1);
+    expect(next.units[0].owner).toBe("p2");
+    expect(next.units[0].hex).toEqual({ q: 2, r: 0 });
+  });
+
+  it("marks the attacking unit as acted after the attack", () => {
+    const attacker = createUnit("Gibbon", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    // Attacker wins and moved in; it must be marked as acted.
+    expect(next.units[0].hasActed).toBe(true);
+  });
+
+  it("captures the defender's site when the attacker wins", () => {
+    const attacker = createUnit("Gorilla", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const state = attackState({
+      attacker,
+      defender,
+      sites: [createSite("Grove", 2, 0, "p2")],
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p1");
+  });
+
+  it("does not change site ownership when both units are destroyed", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const state = attackState({
+      attacker,
+      defender,
+      sites: [createSite("Nest", 2, 0, "p2")],
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p2");
+  });
+
+  it("leaves site ownership unchanged when the attacker is destroyed", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Gorilla", "p2", { q: 2, r: 0 });
+    const state = attackState({
+      attacker,
+      defender,
+      sites: [createSite("HomeTree", 2, 0, "p2")],
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p2");
+  });
+
+  it("keeps other units and sites untouched", () => {
+    const attacker = createUnit("Gorilla", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const bystander = createUnit("Gibbon", "p1", { q: 5, r: 5 });
+    const state = attackState({
+      attacker,
+      defender,
+      units: [attacker, defender, bystander],
+      sites: [createSite("Grove", 2, 0, "p2"), createSite("Nest", 7, 7)],
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    // Bystander survives untouched.
+    expect(next.units).toHaveLength(2);
+    expect(next.units.find((u) => sameHex(u.hex, { q: 5, r: 5 }))).toEqual(bystander);
+    // Unrelated site untouched.
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 7, r: 7 }))?.owner).toBeNull();
+  });
+
+  it("rejects when the attacker is not owned by the current player", () => {
+    const attacker = createUnit("Monkey", "p2", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p1", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender }); // currentPlayer is p1
+    let caught: unknown;
+    try {
+      attackUnit(state, attacker, { q: 2, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("not-owner");
+  });
+
+  it("rejects when the attacker is not present in the state", () => {
+    const state = attackState();
+    const ghost = createUnit("Monkey", "p1", { q: 9, r: 9 }, false);
+    let caught: unknown;
+    try {
+      attackUnit(state, ghost, { q: 8, r: 8 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("not-owner");
+  });
+
+  it("rejects when the attacker has already acted this turn", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, true);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender });
+    let caught: unknown;
+    try {
+      attackUnit(state, attacker, { q: 2, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("already-acted");
+  });
+
+  it("rejects when the target hex is not adjacent to the attacker", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 3, r: 0 });
+    const state = attackState({ attacker, defender });
+    let caught: unknown;
+    try {
+      attackUnit(state, attacker, { q: 3, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("not-adjacent");
+  });
+
+  it("rejects when there is no unit at the target hex", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const state = attackState({ attacker, units: [attacker] });
+    let caught: unknown;
+    try {
+      attackUnit(state, attacker, { q: 2, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("no-enemy");
+  });
+
+  it("rejects when attacking a friendly unit at the target hex", () => {
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const friendly = createUnit("Gibbon", "p1", { q: 2, r: 0 });
+    const state = attackState({ attacker, units: [attacker, friendly] });
+    let caught: unknown;
+    try {
+      attackUnit(state, attacker, { q: 2, r: 0 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("no-enemy");
+  });
+
+  it("returns a new GameState and does not mutate the input", () => {
+    const state = attackState();
+    const next = attackUnit(state, state.units[0], { q: 2, r: 0 });
+    expect(next).not.toBe(state);
+    expect(next.units).not.toBe(state.units);
+    // Input unchanged.
+    expect(state.units).toHaveLength(2);
+    expect(state.units[0].hex).toEqual({ q: 1, r: 0 });
+    expect(state.units[0].hasActed).toBe(false);
   });
 });
