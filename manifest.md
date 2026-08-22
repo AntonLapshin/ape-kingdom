@@ -107,6 +107,11 @@ and Review Engineer review must be checked against them:
   - Ensure the animated UI remains thin and driven purely by core state (no logic leaks)
   - Run a final polish pass on accessibility, load time, and demo readiness
 
+**Sub-issues:**
+  - [ ] M5-T1 Design-token theme system for the client (#31)
+  - [ ] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
+  - [ ] M5-T3 Animations and interaction polish for the playable UI (#33)
+
 ### M6 — Hardening and demo readiness
 
 **Goal:** Finalize the POC: end-to-end verification, full test coverage enforcement, and a polished live demo.

@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1, M2, M3 complete; M4 in progress** — Foundation (guidelines, core scaffold, CI, Pages), the full core game engine (all rules reducers), and the AI opponent / Human vs AI game loop are done; the interactive playable client UI is the current milestone.
+**M1–M4 complete; M5 in progress** — Foundation (guidelines, core scaffold, CI, Pages), the full core game engine (all rules reducers), the AI opponent / Human vs AI game loop, and the interactive playable client UI are done; the beautiful animated Tailwind UI polish is the current milestone.
 
 ## What's here
 
@@ -17,6 +17,7 @@
 - AI opponent and game loop in `src/core`: `ai.ts` (M3-T2) enumerates legal actions and selects a deterministic, rule-legal move; `gameLoop.ts` (M3-T3) wires the full Human vs AI turn cycle via `playTurn` (human moves -> AI reply -> turn advance), enforcing turn-step ordering and skipping eliminated players, with full-game simulation tests proving games complete with a winner and the AI never makes an illegal move. 100% core covered.
 - CI (lint + test:coverage + build) green on `main`.
 - GitHub Pages enabled (build via GitHub Actions) and the live demo is deployed: https://AntonLapshin.github.io/ape-kingdom/
+- Playable M4 UI wired into the app (`PlayableGame` composing thin `Board`, `ActionControls`, `StatusPanel` components through the `useGameSession` view model and the core `gameSession` controller); all UI components covered by Vitest + Testing Library, core stays 100% covered.
 
 ## Next steps
 
@@ -28,13 +29,16 @@
   - [x] M2-T4 Combat (attack) reducer (#13)
   - [x] M2-T5 Elimination reducer (#14)
   - [x] M2-T6 Victory detection reducer (#15)
-- [ ] M3 — AI opponent and Human vs AI game loop.
+- [x] M3 — AI opponent and Human vs AI game loop.
   - [x] M3-T1 Legal-move enumeration for the current player (#21)
   - [x] M3-T2 AI decision layer (deterministic, rule-legal) (#19)
   - [x] M3-T3 Core game loop (human move -> AI reply -> turn advance) with full-game tests (#20)
-- [ ] M4 — interactive playable client UI.
-  - [ ] M4-T1 Core game-session controller for the playable UI (#25)
-  - [ ] M4-T2 useGameSession view model for the playable UI (#26)
-  - [ ] M4-T3 Playable board UI wired into the app (#27)
+- [x] M4 — interactive playable client UI.
+  - [x] M4-T1 Core game-session controller for the playable UI (#25)
+  - [x] M4-T2 useGameSession view model for the playable UI (#26)
+  - [x] M4-T3 Playable board UI wired into the app (#27)
 - [ ] M5 — beautiful animated Tailwind UI polish.
+  - [ ] M5-T1 Design-token theme system for the client (#31)
+  - [ ] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
+  - [ ] M5-T3 Animations and interaction polish for the playable UI (#33)
 - [ ] M6 — hardening and demo readiness.
