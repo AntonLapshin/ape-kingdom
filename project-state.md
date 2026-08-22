@@ -24,7 +24,7 @@
   - [x] M2-T3 Move and capture reducer (#9)
   - [ ] M2-T4 Combat (attack) reducer (#13)
   - [ ] M2-T5 Elimination reducer (#14)
-  - [ ] M2-T6 Victory detection reducer (#15)
+  - [x] M2-T6 Victory detection reducer (#15)
 - [ ] M3 — AI opponent and Human vs AI game loop.
 - [ ] M4 — interactive playable client UI.
 - [ ] M5 — beautiful animated Tailwind UI polish.
