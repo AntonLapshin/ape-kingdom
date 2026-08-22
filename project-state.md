@@ -5,14 +5,16 @@
 ## Status
 
 **M1–M7 complete (POC shipped); M8 (break down UI elements into Atom
-components) in progress.** Foundation (guidelines, core scaffold, CI, Pages),
-the full core game engine (all rules reducers), the AI opponent / Human vs AI
-game loop, the interactive playable client UI, the beautiful animated Tailwind
-UI polish, hardening/demo readiness, and the Showcase component browser (M7)
-are all implemented, merged, tested, and deployed. The live demo is green at
+components) and M9 (map generator) in progress.** Foundation (guidelines,
+core scaffold, CI, Pages), the full core game engine (all rules reducers),
+the AI opponent / Human vs AI game loop, the interactive playable client UI,
+the beautiful animated Tailwind UI polish, hardening/demo readiness, and the
+Showcase component browser (M7) are all implemented, merged, tested, and
+deployed. The live demo is green at
 https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #47
 (break down UI elements into Atom components, planned as milestone M8) and
-issue #48 (map generator, to be planned as a later milestone) — was added.
+issue #48 (map generator, planned as milestone M9) — was added and split into
+small `pi:ready` sub-issues.
 
 ## What's here
 
@@ -70,6 +72,9 @@ issue #48 (map generator, to be planned as a later milestone) — was added.
   - [ ] M8-T2 `Unit` atom component + showcase (#49, `pi:ready`)
   - [ ] M8-T3 `Content` atom component + showcase (#50, `pi:ready`)
   - [ ] M8-T4 Refactor `Board` to compose atoms — planned next slice
-- [ ] M9 — Map generator (issue #48): core map generator (single island
-  surrounded by water, mountains, lakes) + new map per game. **Unplanned — to
-  be broken down in a later PM turn.**
+- [ ] M9 — Map generator (issue #48): a configurable core map generator (single
+  island surrounded by water, with mountains and lakes) and a fresh generated
+  map per game (default 20×20). #48 split into M9-T1..T3 (closed).
+  - [ ] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#54, `pi:ready`)
+  - [ ] M9-T2 New generated map per game (default 20×20) wired into setup (#53, `pi:ready`)
+  - [ ] M9-T3 Render generated terrain in the UI `Board` (#52, `pi:ready`)

@@ -2,9 +2,9 @@
 
 > Project charter / intent.
 
-**Status: in-progress** — M1–M7 are complete and the POC is shipped, but a
-new unplanned work item (issue #47 — break down UI elements into Atom
-components) was added and is planned as milestone M8. See `project-state.md`
+**Status: in-progress** — M1–M7 are complete and the POC is shipped. Unplanned
+work was added: M8 (break down UI elements into Atom components, issue #47,
+in progress) and M9 (map generator, issue #48, planned). See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
@@ -167,6 +167,31 @@ Planned from unplanned issue #47.
   - [ ] M8-T2 `Unit` atom component + showcase (#47)
   - [ ] M8-T3 `Content` atom component + showcase (#47)
   - [ ] M8-T4 Refactor `Board` to compose atoms (#47) — planned next slice
+
+### M9 — Map generator
+
+**Goal:** Add a configurable map generator in the core game engine that builds
+a playable hex map (a single island surrounded by water, with some mountains
+and lakes/water cells) from input dimensions, and generate a fresh map each
+time a game starts (default 20×20 with default generation props). Planned from
+unplanned issue #48.
+
+**Scope:**
+  - Add a terrain model (land / water / mountain) to the core and a pure
+    `generateMap(width, height, config)` engine in `src/core/mapGenerator.ts`
+    that produces a single island surrounded by water with mountains and lakes,
+    driven by configurable generation props (island size, mountain/lake density,
+    seed, etc.) — 100% core covered
+  - Wire the generated map into game setup so a new map is generated per game
+    (default 20×20 + default props), replacing/parametrizing the current fixed
+    `standardSetup` board
+  - Render the generated terrain in the UI `Board` via the `Cell` atom variants
+  - Keep all generation logic in `src/core` (100% covered); UI stays thin
+
+**Sub-issues (first slice):**
+  - [ ] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#48)
+  - [ ] M9-T2 New generated map per game (default 20×20) wired into setup (#48)
+  - [ ] M9-T3 Render generated terrain in the UI `Board` (#48)
 
 ### M6 — Hardening and demo readiness
 
