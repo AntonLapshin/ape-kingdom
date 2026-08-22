@@ -254,6 +254,55 @@ function scoreAction(
 /* ------------------------------------------------------------------ */
 
 /**
+ * Select a single action from a provided (non-empty) list of legal actions.
+ *
+ * This is the shared selection engine behind both `aiChooseMove` (which feeds
+ * it the full `legalActions` set) and the game loop's AI turn (which feeds it
+ * the filtered set of meaningful actions, excluding the already-collected
+ * `collectIncome`). Selection is deterministic: the same `actions`, `state`,
+ * `seed`, and `options` always produce the same action.
+ *
+ * With `difficulty: 0` (default) it picks uniformly at random from `actions`,
+ * seeded for reproducibility. With a higher difficulty it scores each action
+ * and picks the highest-scoring one (ties broken by the seed), honouring the
+ * `preferRecruit`, `preferCapture`, and `avoidLosingAttacks` options.
+ *
+ * The caller is responsible for passing a non-empty list. `legalActions`
+ * always includes `collectIncome` for a present player, so the full legal set
+ * is never empty.
+ */
+export function chooseFromActions(
+  actions: GameAction[],
+  state: GameState,
+  seed: number,
+  options: AiOptions = {},
+): GameAction {
+  const rng = mulberry32(seed);
+  const difficulty = options.difficulty ?? 0;
+
+  // Naive AI: uniform random over the provided set (deterministic via seed).
+  if (difficulty <= 0) {
+    const index = Math.floor(rng() * actions.length);
+    return actions[index];
+  }
+
+  // Strategic AI: pick the highest-scoring action; ties broken by the seed.
+  let best: GameAction[] = [];
+  let bestScore = -Infinity;
+  for (const action of actions) {
+    const score = scoreAction(action, state, options);
+    if (score > bestScore) {
+      bestScore = score;
+      best = [action];
+    } else if (score === bestScore) {
+      best.push(action);
+    }
+  }
+  const index = Math.floor(rng() * best.length);
+  return best[index];
+}
+
+/**
  * Choose a single rule-legal action for the current player.
  *
  * The action is drawn from the legal-move set enumerated by `legalActions`,
@@ -276,28 +325,5 @@ export function aiChooseMove(
   seed: number,
   options: AiOptions = {},
 ): GameAction {
-  const actions = legalActions(state);
-  const rng = mulberry32(seed);
-  const difficulty = options.difficulty ?? 0;
-
-  // Naive AI: uniform random over the legal set (deterministic via seed).
-  if (difficulty <= 0) {
-    const index = Math.floor(rng() * actions.length);
-    return actions[index];
-  }
-
-  // Strategic AI: pick the highest-scoring action; ties broken by the seed.
-  let best: GameAction[] = [];
-  let bestScore = -Infinity;
-  for (const action of actions) {
-    const score = scoreAction(action, state, options);
-    if (score > bestScore) {
-      bestScore = score;
-      best = [action];
-    } else if (score === bestScore) {
-      best.push(action);
-    }
-  }
-  const index = Math.floor(rng() * best.length);
-  return best[index];
+  return chooseFromActions(legalActions(state), state, seed, options);
 }
