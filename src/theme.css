@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/* =========================================================================
+ * Ape Kingdom — Design-token theme system (M5-T1)
+ *
+ * Two-layer token model:
+ *   Layer 1 — theme-independent brand palette (never changes between themes)
+ *   Layer 2 — theme (semantic) roles (the only layer that changes on re-skin)
+ *
+ * This is the ONLY file allowed to hold literal color values. Everywhere else
+ * (utilities, components) references tokens via `var(--color-…)` or the
+ * Tailwind utilities they map to. See guidelines/GUIDELINES-WEB-THEME.md.
+ * ========================================================================= */
+
+/* -------------------------------------------------------------------------
+ * 1. Theme-independent base palette (the brand identity)
+ * ------------------------------------------------------------------------- */
+:root {
+  /* Brand tri-gradient family: amber → rose → violet */
+  --color-brand-amber: #e8b06c;
+  --color-brand-amber-soft: #f7e3c8;
+  --color-brand-rose: #d98a8a;
+  --color-brand-rose-deep: #b85c6e;
+  --color-brand-violet: #9d7bd8;
+  --color-brand-violet-deep: #6f4fa8;
+
+  /* Accent family */
+  --color-accent: #c06b3e;
+  --color-accent-strong: #a8542f;
+  --color-accent-soft: #f3ddd0;
+
+  /* Semantic state colors */
+  --color-success: #4a8a5e;
+  --color-success-soft: #dcefe1;
+  --color-danger: #c05c4a;
+  --color-danger-soft: #f5ddda;
+  --color-premium: #b8860b;
+
+  /* Pure neutrals */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-inverted: #ffffff;
+
+  /* Non-color brand tokens */
+  --radius-control: 0.75rem;
+}
+
+/* -------------------------------------------------------------------------
+ * 2. Theme (semantic) tokens — light theme (default)
+ * ------------------------------------------------------------------------- */
+:root {
+  /* Surfaces */
+  --color-canvas: #ffd7ae;
+  --color-panel: #fbf7f4;
+  --color-panel-strong: #ffffff;
+  --color-line: #f0e9e3;
+  --color-line-strong: #e2d7cd;
+
+  /* Text roles */
+  --color-text-primary: #4d3a2a;
+  --color-text-body: #6b5444;
+  --color-text-muted: #a08b7c;
+  --color-text-faint: #c4b3a6;
+  --color-text-on-accent: #ffffff;
+
+  /* Shadows */
+  --color-shadow: rgba(120, 80, 70, 0.12);
+  --color-shadow-accent: rgba(192, 107, 62, 0.32);
+  --color-shadow-input: rgba(120, 80, 70, 0.16);
+
+  /* Frosted-glass surfaces */
+  --color-glass: rgba(251, 247, 244, 0.72);
+  --color-glass-line: rgba(240, 233, 227, 0.85);
+  --color-glass-inner: rgba(255, 255, 255, 0.6);
+  --color-glass-strong: rgba(251, 247, 244, 0.88);
+  --color-glass-soft: rgba(255, 255, 255, 0.45);
+  --color-glass-dark: rgba(77, 58, 42, 0.55);
+  --color-glass-panel: rgba(251, 247, 244, 0.9);
+
+  /* Stage (backdrop) and dark gradient stops */
+  --color-stage: #ffd7ae;
+  --color-stage-dark-start: #b85c6e;
+  --color-stage-dark-mid: #6f4fa8;
+  --color-stage-dark-end: #4d3a2a;
+}
+
+/* -------------------------------------------------------------------------
+ * Re-expose every token to Tailwind so utilities like `bg-panel`,
+ * `text-text-primary`, `border-line`, `bg-stage` are available.
+ * The `inline` keyword keeps utilities pointing at the CSS variable so a
+ * theme swap (a re-skin redefining the semantic `--color-*` variables)
+ * re-skins the whole app without touching any component.
+ * ------------------------------------------------------------------------- */
+@theme inline {
+  /* Layer 1 — brand palette */
+  --color-brand-amber: var(--color-brand-amber);
+  --color-brand-amber-soft: var(--color-brand-amber-soft);
+  --color-brand-rose: var(--color-brand-rose);
+  --color-brand-rose-deep: var(--color-brand-rose-deep);
+  --color-brand-violet: var(--color-brand-violet);
+  --color-brand-violet-deep: var(--color-brand-violet-deep);
+
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-accent-soft: var(--color-accent-soft);
+
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+  --color-premium: var(--color-premium);
+
+  --color-white: var(--color-white);
+  --color-black: var(--color-black);
+  --color-inverted: var(--color-inverted);
+
+  /* Layer 2 — semantic roles */
+  --color-canvas: var(--color-canvas);
+  --color-panel: var(--color-panel);
+  --color-panel-strong: var(--color-panel-strong);
+  --color-line: var(--color-line);
+  --color-line-strong: var(--color-line-strong);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-body: var(--color-text-body);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-faint: var(--color-text-faint);
+  --color-text-on-accent: var(--color-text-on-accent);
+
+  --color-shadow: var(--color-shadow);
+  --color-shadow-accent: var(--color-shadow-accent);
+  --color-shadow-input: var(--color-shadow-input);
+
+  --color-glass: var(--color-glass);
+  --color-glass-line: var(--color-glass-line);
+  --color-glass-inner: var(--color-glass-inner);
+  --color-glass-strong: var(--color-glass-strong);
+  --color-glass-soft: var(--color-glass-soft);
+  --color-glass-dark: var(--color-glass-dark);
+  --color-glass-panel: var(--color-glass-panel);
+
+  --color-stage: var(--color-stage);
+  --color-stage-dark-start: var(--color-stage-dark-start);
+  --color-stage-dark-mid: var(--color-stage-dark-mid);
+  --color-stage-dark-end: var(--color-stage-dark-end);
+
+  --radius-control: var(--radius-control);
+}

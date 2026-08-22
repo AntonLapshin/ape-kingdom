@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the design-token theme system for the client (M5-T1), per
+  `guidelines/GUIDELINES-WEB-THEME.md`. `src/theme.css` defines the two-layer
+  token model — Layer 1 (theme-independent brand palette: amber→rose→violet
+  gradient family, accent, success/danger/premium, pure neutrals) and Layer 2
+  (semantic roles: `canvas`, `panel`, `line`, `text-primary`/`text-body`/
+  `text-muted`/`text-faint`/`text-on-accent`, `shadow`/`shadow-accent`,
+  `glass*`, `stage`, dark gradient stops) — and re-exposes every token to
+  Tailwind via `@theme inline` so components can use `bg-panel`,
+  `text-text-primary`, `border-line`, etc. `src/styles/index.css` defines
+  reusable `@utility` surfaces (`glass`, `glass-strong`, `glass-soft`,
+  `glass-dark`, `glass-panel`, `glass-input`, `surface`) plus animation
+  keyframes/classes (`.login-bg`, `.orb`, `.btn-shine`, `.menu-pop`, custom
+  scrollbars), all referencing tokens via `var(--color-…)` with no raw colors
+  outside token definitions. No component code was changed — the token system
+  is wired into the Tailwind entry. This required upgrading Tailwind CSS from
+  v3 to v4 (`@tailwindcss/vite` plugin, CSS-first `@theme`/`@utility` config,
+  `tailwind.config.ts` removed). Covered by structural tests
+  (`tests/theme.test.ts`) verifying the two-layer token model and the
+  Tailwind wiring; core stays 100% covered (#31).
 - Added the playable board UI (M4-T3) replacing the scaffold `DemoPanel` in
   `App.tsx` with a full Human vs AI game screen. New thin, dumb components in
   `src/ui/components`: `Board` renders the hex map from the view-model
