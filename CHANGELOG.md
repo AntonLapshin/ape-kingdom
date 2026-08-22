@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the pure core game loop orchestration in `src/core/gameLoop.ts` (M3-T3):
+  `playTurn(state, humanMoves, aiSeed, aiOptions?)` wires the full Human vs AI
+  turn cycle — it collects income for the human (step A), applies their
+  submitted recruit / move / fight actions (steps B + C) in rule order via
+  `applyHumanMoves` (which enforces the income -> recruit -> move/fight step
+  ordering and throws a typed `TurnOrderError` on a recruit-after-fight),
+  then runs the AI's full turn via `runAiTurn` (M3-T2, never illegal), then
+  advances the turn to the next active (non-eliminated) player via
+  `advanceTurn` (which resets `hasActed` for the new current player's units
+  and skips eliminated players). Victory is resolved after each side's turn
+  via `resolveVictory`; once a winner exists the loop stops. Also adds
+  `applyAction` (a plain serializable `GameAction` -> reducer adapter the UI
+  can call), `aiTurnActions` (the AI's full ordered turn as a move list),
+  and `chooseFromActions` in `src/core/ai.ts` (the shared seeded/scoring
+  selection engine behind `aiChooseMove` and the AI turn). Full-game
+  simulation tests complete many seeded games with a winner and verify the
+  AI never makes an illegal move; 100% core coverage maintained (#20).
 - Added the pure core AI decision layer in `src/core/ai.ts` (M3-T2):
   `legalActions(state)` enumerates every legal action for the current player
   across each turn step (collect income, recruit every affordable ape kind at
