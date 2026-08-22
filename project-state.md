@@ -60,4 +60,4 @@ per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` — is planned as milestone M7.
   - [ ] M7-T1 Showcase core engine in `src/core` (#39)
   - [ ] M7-T2 `useShowcase` view model + `Showcase` component (#40)
   - [ ] M7-T3 Showcase demos for every atom component + registration (#41)
-  - [ ] M7-T4 `/showcase` route in the app (planned next slice)
+  - [ ] M7-T4 `/showcase` route in the app + top-right link + README update (#45) — planned, `pi:ready`
