@@ -1,0 +1,68 @@
+{
+  "$comment": "auto-pi default project configuration. Copied to {project}/.pi/config.json at seed time (M5), with the project section filled in. No secrets live here.",
+  "project": {
+    "name": "ape-kingdom",
+    "repo": "ape-kingdom",
+    "owner": "AntonLapshin",
+    "ownerEmail": "",
+    "defaultBranch": "main",
+    "demoUrl": "https://AntonLapshin.github.io/ape-kingdom/"
+  },
+  "pi": {
+    "model": "",
+    "provider": "",
+    "contextMaxTokens": 150000,
+    "maxRetries": 2,
+    "retryBaseDelayMs": 5000,
+    "retryMaxDelayMs": 30000
+  },
+  "loop": {
+    "intervalSeconds": 60,
+    "stopOnBudgetExceeded": true,
+    "maxConsecutiveFailures": 3
+  },
+  "limits": {
+    "maxBatchIssues": 3,
+    "maxIssueAttempts": 3,
+    "maxTokensPerCycle": 250000,
+    "maxTokensPerDay": 750000,
+    "maxCostPerDayUsd": 20,
+    "maxPromptTokensPerPersona": 135000,
+    "maxOutputTokensPerPersona": 8000
+  },
+  "github": {
+    "autoCreateRepo": true,
+    "repoVisibility": "public"
+  },
+  "stack": {
+    "framework": "react",
+    "typescript": true,
+    "tailwind": true,
+    "testRunner": "vitest"
+  },
+  "quality": {
+    "coreCoveragePercent": 100,
+    "featureBranches": true
+  },
+  "review": {
+    "reviewerCanPushTestCommits": false
+  },
+  "pages": {
+    "enabled": true,
+    "deployBranch": "gh-pages"
+  },
+  "notifications": {
+    "telegram": {
+      "enabled": false,
+      "botTokenEnv": "TELEGRAM_BOT_TOKEN",
+      "chatIdEnv": "TELEGRAM_CHAT_ID",
+      "notifyOnDone": true,
+      "notifyOnStopped": true,
+      "notifyOnNeedsHuman": true
+    }
+  },
+  "logging": {
+    "maxFileSizeMb": 10,
+    "rotate": true
+  }
+}
