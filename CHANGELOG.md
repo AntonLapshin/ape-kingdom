@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the pure core AI decision layer in `src/core/ai.ts` (M3-T2):
+  `legalActions(state)` enumerates every legal action for the current player
+  across each turn step (collect income, recruit every affordable ape kind at
+  every legal placement hex, move every not-acted unit to every reachable
+  unoccupied hex, and attack every not-acted unit against every adjacent enemy
+  unit), returned as plain serializable `GameAction` descriptors that feed
+  directly into the existing reducers. `aiChooseMove(state, seed, options?)`
+  selects a single rule-legal action from that set, deterministically for a
+  given seed via a seeded PRNG. With `difficulty: 0` (default) it picks
+  uniformly at random from the legal set; at higher difficulty it scores each
+  action and prefers the best, honouring the configurable `preferRecruit`,
+  `preferCapture`, and `avoidLosingAttacks` behavior knobs. Every returned
+  action is legal — applying it to the corresponding reducer never throws a
+  typed error. Includes the `reachableHexes` helper and 100% core test
+  coverage covering enumeration, determinism, legality across many seeds, and
+  strategic preferences (#19).
 - Added the victory detection reducer `resolveVictory(state)` in
   `src/core/game.ts`, which determines the game winner per the victory rules:
   the game ends immediately when one player either controls every Home Tree on
