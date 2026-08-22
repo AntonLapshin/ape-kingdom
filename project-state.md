@@ -19,9 +19,12 @@
 ## Next steps
 
 - [ ] M2 — implement the full rules engine in `src/core` as pure reducers (income, recruit, move/capture, combat, elimination, victory), 100% covered.
-  - [ ] M2-T1 Collect income reducer (#7)
-  - [ ] M2-T2 Recruit apes reducer (#8)
-  - [ ] M2-T3 Move and capture reducer (#9)
+  - [x] M2-T1 Collect income reducer (#7)
+  - [x] M2-T2 Recruit apes reducer (#8)
+  - [x] M2-T3 Move and capture reducer (#9)
+  - [ ] M2-T4 Combat (attack) reducer (#13)
+  - [ ] M2-T5 Elimination reducer (#14)
+  - [ ] M2-T6 Victory detection reducer (#15)
 - [ ] M3 — AI opponent and Human vs AI game loop.
 - [ ] M4 — interactive playable client UI.
 - [ ] M5 — beautiful animated Tailwind UI polish.
