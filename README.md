@@ -2,6 +2,23 @@
 
 Implement a new project "Ape Kingdom" that is a turn-based game, the rules are described in ws/temp/ape-kingdom-rules.md and the guidelines for the implementation are described in the same folder. Keep those guidelines in /guidelines folder of the project and instruct all the personas to follow those guidelines
 
+## Guidelines
+
+All personas (PM, Engineer, Review Engineer) **must follow** the game rules and
+implementation guidelines in the [`/guidelines`](guidelines/) folder:
+
+- [`guidelines/ape-kingdom-rules.md`](guidelines/ape-kingdom-rules.md) — the complete
+  Ape Kingdom game ruleset (the single source of truth for game behavior).
+- [`guidelines/GUIDELINES-WEB-THEME.md`](guidelines/GUIDELINES-WEB-THEME.md) — design-token
+  theming system for the React + Tailwind client.
+- [`guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`](guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md) —
+  Atoms → Molecules → Pages component architecture and the Showcase component browser.
+- [`guidelines/GUIDELINES-WEB-CONTEXT-INJECTION.md`](guidelines/GUIDELINES-WEB-CONTEXT-INJECTION.md) —
+  wiring side effects through a single React context with real + mock twins.
+
+Every issue must be planned, implemented, and reviewed against these rules and
+guidelines.
+
 > Generated and maintained by [auto-pi](https://github.com/AntonLapshin/auto-pi) — an
 > autonomous engineering team harness for Pi.
 

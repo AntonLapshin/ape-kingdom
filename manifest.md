@@ -8,6 +8,22 @@
 
 Implement "Ape Kingdom", a fully local turn-based game (web app in the browser) with a well-tested TypeScript core and a React + TypeScript + TailwindCSS client running separately as the UI, playable Human vs AI. The game rules and implementation guidelines are defined in ws/temp/ape-kingdom-rules.md; those guidelines are kept in the project's /guidelines folder and all personas are instructed to follow them.
 
+## Guidelines (all personas must follow)
+
+All work in this project is governed by the rules and guidelines in the
+[`/guidelines`](guidelines/) folder. Every PM plan, Engineer implementation,
+and Review Engineer review must be checked against them:
+
+- **Game rules** — [`guidelines/ape-kingdom-rules.md`](guidelines/ape-kingdom-rules.md)
+  is the single source of truth for game behavior. No game feature outside these
+  rules may be added.
+- **Web theme** — [`guidelines/GUIDELINES-WEB-THEME.md`](guidelines/GUIDELINES-WEB-THEME.md)
+  (design-token theming).
+- **Atomic design** — [`guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`](guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md)
+  (component architecture + Showcase).
+- **Context injection** — [`guidelines/GUIDELINES-WEB-CONTEXT-INJECTION.md`](guidelines/GUIDELINES-WEB-CONTEXT-INJECTION.md)
+  (side-effect wiring).
+
 ## Goals
 
 - Deliver a fully implemented, well-tested TypeScript core of the game as the single source of truth for rules and state, with 100% test coverage on src/core

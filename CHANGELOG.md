@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Core/UI separation with `src/core` (business logic) and `src/ui` (thin views).
 - Vitest setup enforcing 100% coverage on `src/core/**/*.ts`.
 - Initial demo panel rendering project name / status / demo info.
+- Added `/guidelines` folder with the Ape Kingdom game rules and the web
+  implementation guidelines (theme, atomic design, context injection), and
+  referenced them from `README.md` and `manifest.md` so all personas follow them (#2).
 
 ### Fixed
 
