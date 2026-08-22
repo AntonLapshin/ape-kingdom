@@ -2,9 +2,10 @@
 
 > Project charter / intent.
 
-**Status: done** — all milestones implemented, merged, tested, and the live
-POC demo is deployed. See `project-state.md` and `CHANGELOG.md` for details.
-`completed_at: 2026-08-22T20:53:24Z` This file is a living document maintained by the
+**Status: in-progress** — M1–M6 are complete and the POC is shipped, but
+new unplanned work (M7 — Showcase for atom components, per the atomic-design
+guidelines) was added via issue #38. See `project-state.md` and `CHANGELOG.md`
+for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
 
@@ -115,6 +116,31 @@ and Review Engineer review must be checked against them:
   - [x] M5-T1 Design-token theme system for the client (#31)
   - [x] M5-T2 Refactor M4 UI to semantic theme tokens (#32)
   - [x] M5-T3 Animations and interaction polish for the playable UI (#33)
+
+### M7 — Showcase for atom components
+
+**Goal:** Adopt the hand-rolled Showcase component browser (per
+`guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` §4–§5 and the referenced
+`showcase` library) so every atom component is demoed, and expose it via a
+`/showcase` route in the web app.
+
+**Scope:**
+  - Adopt the showcase library's pure core engine in `src/core` (registry,
+    selection, expand/collapse, URL encode/decode) with 100% core coverage
+  - Add a thin `useShowcase` view model (`src/ui/viewModels`) and a dumb
+    `Showcase` component (`src/ui/components`) rendering sidebar + canvas with
+    URL deep-linking
+  - Create showcase demo files for every atom component in `src/ui/showcases/`
+    and register them
+  - Add a `/showcase` route to the app so the browser is accessible via the web
+    app
+  - Keep all logic in `src/core` (100% covered); UI stays thin and dumb
+
+**Sub-issues (first slice):**
+  - [ ] M7-T1 Showcase core engine in `src/core` (#38)
+  - [ ] M7-T2 `useShowcase` view model + `Showcase` component (#38)
+  - [ ] M7-T3 Showcase demos for every atom component + registration (#38)
+  - [ ] M7-T4 `/showcase` route in the app (#38) — planned next slice
 
 ### M6 — Hardening and demo readiness
 

@@ -4,12 +4,14 @@
 
 ## Status
 
-**DONE — all milestones (M1–M6) complete.** Foundation (guidelines, core
-scaffold, CI, Pages), the full core game engine (all rules reducers), the AI
-opponent / Human vs AI game loop, the interactive playable client UI, the
-beautiful animated Tailwind UI polish, and hardening/demo readiness are all
-implemented, merged, tested, and deployed. The live demo is green at
-https://AntonLapshin.github.io/ape-kingdom/.
+**M1–M6 complete (POC shipped); M7 (Showcase) in progress.** Foundation
+(guidelines, core scaffold, CI, Pages), the full core game engine (all rules
+reducers), the AI opponent / Human vs AI game loop, the interactive playable
+client UI, the beautiful animated Tailwind UI polish, and hardening/demo
+readiness are all implemented, merged, tested, and deployed. The live demo is
+green at https://AntonLapshin.github.io/ape-kingdom/. New unplanned work
+(issue #38) — adopting the Showcase component browser for every atom component
+per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md` — is planned as milestone M7.
 
 ## What's here
 
@@ -50,5 +52,12 @@ https://AntonLapshin.github.io/ape-kingdom/.
   full Human vs AI game integration tests, `npm test` (266 tests) +
   `npm run test:coverage` (100% src/core) + `npm run build` pass, CI green on
   `main`, Pages deployed and live demo verified, /guidelines complete and
-  referenced, and docs (manifest/project-state/CHANGELOG) current. **Project
+  referenced, and docs (manifest/project-state/CHANGELOG) current. **POC
   complete.**
+- [ ] M7 — Showcase for atom components (issue #38): adopt the hand-rolled
+  Showcase component browser so every atom component is demoed, exposed via a
+  `/showcase` route.
+  - [ ] M7-T1 Showcase core engine in `src/core` (#39)
+  - [ ] M7-T2 `useShowcase` view model + `Showcase` component (#40)
+  - [ ] M7-T3 Showcase demos for every atom component + registration (#41)
+  - [ ] M7-T4 `/showcase` route in the app (planned next slice)
