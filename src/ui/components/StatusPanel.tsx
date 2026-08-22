@@ -34,7 +34,10 @@ export function StatusPanel({
   return (
     <div data-testid="status" className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-text-primary">
+        <span
+          key={currentPlayer}
+          className="turn-fade text-sm font-semibold text-text-primary"
+        >
           Current: {playerName(currentPlayer)}
         </span>
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
@@ -66,8 +69,9 @@ export function StatusPanel({
 
       {isDone && winner && (
         <div
+          key={winner}
           data-testid="result"
-          className={`rounded-md px-3 py-2 text-center text-sm font-semibold ${
+          className={`result-celebrate rounded-md px-3 py-2 text-center text-sm font-semibold ${
             winner === "p1"
               ? "bg-success-soft text-success"
               : "bg-danger-soft text-danger"

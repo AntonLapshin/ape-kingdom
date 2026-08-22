@@ -50,23 +50,27 @@ export function Board({ board, currentPlayer }: BoardProps) {
       style={{ width, height }}
       data-testid="board"
     >
-      {board.map((cell) => {
+      {board.map((cell, index) => {
         const { x, y } = hexToPixel(cell.hex.q, cell.hex.r);
         const owner = cell.site?.owner ?? cell.unit?.owner ?? null;
         const bg = owner ? OWNER_BG[owner] ?? OWNER_BG.neutral : OWNER_BG.neutral;
+        const isCurrentTerritory = owner === currentPlayer;
         return (
           <div
             key={`${cell.hex.q},${cell.hex.r}`}
             data-testid="board-cell"
             data-hex={`${cell.hex.q},${cell.hex.r}`}
             data-owner={owner ?? "neutral"}
-            className={`absolute flex flex-col items-center justify-center ${bg} border border-line-strong`}
+            className={`hex-cell hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
+              isCurrentTerritory ? "hex-current" : ""
+            }`}
             style={{
               width: HEX_SIZE * 2,
               height: HEX_SIZE * 2,
               left: x - minX + pad - HEX_SIZE,
               top: y - minY + pad - HEX_SIZE,
               clipPath: HEX_CLIP,
+              animationDelay: `${index * 40}ms`,
             }}
           >
             {cell.site && (
