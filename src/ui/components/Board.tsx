@@ -13,11 +13,15 @@ export interface BoardProps {
 const HEX_CLIP =
   "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)";
 
-/** Tailwind background classes used to colour a hex by its controller. */
+/**
+ * Token-backed background classes used to colour a hex by its controller.
+ * Player/site/unit colours map to the brand palette tokens (rose → violet
+ * brand family), per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
+ */
 const OWNER_BG: Record<string, string> = {
-  p1: "bg-rose-200",
-  p2: "bg-sky-200",
-  neutral: "bg-amber-100",
+  p1: "bg-brand-rose",
+  p2: "bg-brand-violet",
+  neutral: "bg-brand-amber-soft",
 };
 
 /**
@@ -49,14 +53,14 @@ export function Board({ board, currentPlayer }: BoardProps) {
       {board.map((cell) => {
         const { x, y } = hexToPixel(cell.hex.q, cell.hex.r);
         const owner = cell.site?.owner ?? cell.unit?.owner ?? null;
-        const bg = owner ? OWNER_BG[owner] ?? "bg-amber-100" : OWNER_BG.neutral;
+        const bg = owner ? OWNER_BG[owner] ?? OWNER_BG.neutral : OWNER_BG.neutral;
         return (
           <div
             key={`${cell.hex.q},${cell.hex.r}`}
             data-testid="board-cell"
             data-hex={`${cell.hex.q},${cell.hex.r}`}
             data-owner={owner ?? "neutral"}
-            className={`absolute flex flex-col items-center justify-center ${bg} border border-slate-400`}
+            className={`absolute flex flex-col items-center justify-center ${bg} border border-line-strong`}
             style={{
               width: HEX_SIZE * 2,
               height: HEX_SIZE * 2,
@@ -66,7 +70,7 @@ export function Board({ board, currentPlayer }: BoardProps) {
             }}
           >
             {cell.site && (
-              <span className="text-[10px] font-semibold leading-none text-slate-700">
+              <span className="text-[10px] font-semibold leading-none text-text-body">
                 {SITE_LABELS[cell.site.kind]}
               </span>
             )}
@@ -74,8 +78,8 @@ export function Board({ board, currentPlayer }: BoardProps) {
               <span
                 data-testid="board-unit"
                 data-owner={cell.unit.owner}
-                className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white ${
-                  cell.unit.owner === "p1" ? "bg-rose-600" : "bg-sky-600"
+                className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-inverted ${
+                  cell.unit.owner === "p1" ? "bg-brand-rose-deep" : "bg-brand-violet-deep"
                 }`}
               >
                 {cell.unit.kind}
@@ -84,7 +88,7 @@ export function Board({ board, currentPlayer }: BoardProps) {
           </div>
         );
       })}
-      <div className="pointer-events-none absolute bottom-0 right-0 text-xs text-slate-500">
+      <div className="pointer-events-none absolute bottom-0 right-0 text-xs text-text-muted">
         Turn: {currentPlayer === "p1" ? "You (p1)" : "AI (p2)"}
       </div>
     </div>

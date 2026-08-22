@@ -34,10 +34,10 @@ export function StatusPanel({
   return (
     <div data-testid="status" className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-800">
+        <span className="text-sm font-semibold text-text-primary">
           Current: {playerName(currentPlayer)}
         </span>
-        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+        <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
           {STEP_LABELS[step]}
         </span>
       </div>
@@ -49,17 +49,17 @@ export function StatusPanel({
             data-testid="player-score"
             className={`flex items-center justify-between rounded-md px-3 py-1.5 text-sm ${
               player.id === currentPlayer && !isDone
-                ? "bg-indigo-50 ring-1 ring-indigo-200"
-                : "bg-slate-50"
+                ? "bg-accent-soft ring-1 ring-accent"
+                : "bg-panel-strong"
             }`}
           >
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-text-primary">
               {playerName(player.id)}
               {player.eliminated && (
-                <span className="ml-2 text-xs text-rose-600">eliminated</span>
+                <span className="ml-2 text-xs text-danger">eliminated</span>
               )}
             </span>
-            <span className="text-slate-600">🍌 {player.bananas}</span>
+            <span className="text-text-body">🍌 {player.bananas}</span>
           </li>
         ))}
       </ul>
@@ -69,8 +69,8 @@ export function StatusPanel({
           data-testid="result"
           className={`rounded-md px-3 py-2 text-center text-sm font-semibold ${
             winner === "p1"
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-rose-100 text-rose-800"
+              ? "bg-success-soft text-success"
+              : "bg-danger-soft text-danger"
           }`}
         >
           {winner === "p1"

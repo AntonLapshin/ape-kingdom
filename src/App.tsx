@@ -9,7 +9,7 @@ import { PlayableGame } from "./ui/components/PlayableGame";
  */
 export default function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+    <main className="login-bg flex min-h-screen items-center justify-center p-6">
       <div className="w-full">
         <PlayableGame />
       </div>

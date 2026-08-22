@@ -29,15 +29,15 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
       data-testid="playable-game"
       className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_300px]"
     >
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-bold text-slate-900">
+      <div className="glass-panel rounded-2xl p-4">
+        <h2 className="mb-3 text-lg font-bold text-text-primary">
           Ape Kingdom
         </h2>
         <Board board={view.board} currentPlayer={view.currentPlayer} />
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="glass-panel rounded-2xl p-4">
           <StatusPanel
             players={view.players}
             currentPlayer={view.currentPlayer}
@@ -46,7 +46,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
             isDone={view.isDone}
           />
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="glass-panel rounded-2xl p-4">
           <ActionControls
             legalActions={view.legalActions}
             step={view.step}

@@ -187,6 +187,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implementation guidelines (theme, atomic design, context injection), and
   referenced them from `README.md` and `manifest.md` so all personas follow them (#2).
 
+### Changed
+
+- Refactored the M4 playable UI to use the semantic design tokens from
+  `src/theme.css` (M5-T2) instead of raw Tailwind palettes, applying the brand
+  gradient look per `guidelines/GUIDELINES-WEB-THEME.md`. `Board` maps
+  player/site/unit colours to the brand tokens (`bg-brand-rose` /
+  `bg-brand-violet` for the hex cells, `bg-brand-rose-deep` /
+  `bg-brand-violet-deep` for the unit badges, `bg-brand-amber-soft` for
+  neutral cells) and uses `border-line-strong` / `text-text-body` /
+  `text-text-muted` / `text-inverted`; `ActionControls` buttons use
+  `bg-panel`, `border-line-strong`, `text-text-primary`/`text-text-body`,
+  `bg-accent`/`bg-accent-strong`/`bg-accent-soft`, and `text-inverted`;
+  `StatusPanel` uses `text-text-primary`/`text-text-body`, `bg-accent-soft`
+  + `ring-accent` for the current player, `bg-panel-strong`, and
+  `bg-success-soft text-success` / `bg-danger-soft text-danger` for the
+  win/loss result; `PlayableGame` panels use the `glass-panel` token surface;
+  and `App` gets the brand gradient backdrop (`.login-bg`: canvas + brand
+  gradient stops). No component logic changed — the components stay thin and
+  dumb and all game state still flows through `useGameSession`. Existing UI
+  tests still pass unchanged; core stays 100% covered (#32).
+
 ### Fixed
 
 - Committed `package-lock.json` so CI's `npm ci` step passes (#1).
