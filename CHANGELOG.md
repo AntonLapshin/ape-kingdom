@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added the turn-sequence "Collect Income" step as a pure reducer
+  `collectIncome(state)` in `src/core/game.ts`, which credits the current
+  player with the banana income of every site they control (Grove=1, Nest=2,
+  Home Tree=3), ignores neutral sites, adds to the existing balance without
+  limit, and returns a new immutable `GameState`. Includes the `incomeFor`
+  helper and 100% core test coverage (#7).
 - Modeled the core Ape Kingdom game entities as pure TypeScript in
   `src/core/game.ts` (hex map, sites, ape units, players, game state) with
   helper functions (rank/cost/movement lookup, site income, unit/site/player

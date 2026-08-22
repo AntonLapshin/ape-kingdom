@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type { Site, Player, GameState } from "../../src/core/game";
 import {
   APE_TYPES,
   APE_KINDS,
@@ -15,6 +16,8 @@ import {
   createSite,
   createPlayer,
   startingForce,
+  incomeFor,
+  collectIncome,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -133,5 +136,102 @@ describe("standard setup (Setup section)", () => {
     expect(force.units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
     expect(force.units.every((u) => u.owner === "p1")).toBe(true);
     expect(force.player).toEqual({ id: "p1", bananas: 2 });
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Collect income (Turn Sequence step A)                                */
+/* ------------------------------------------------------------------ */
+
+/** Build a minimal game state for income tests. */
+function gameState(opts: {
+  sites?: Site[];
+  players?: Record<string, Player>;
+  currentPlayer?: string;
+} = {}): GameState {
+  return {
+    sites: opts.sites ?? [],
+    units: [],
+    players: opts.players ?? { p1: createPlayer("p1"), p2: createPlayer("p2") },
+    currentPlayer: opts.currentPlayer ?? "p1",
+    turnOrder: ["p1", "p2"],
+  };
+}
+
+describe("incomeFor", () => {
+  it("sums income from all sites controlled by the player", () => {
+    const sites = [
+      createSite("Grove", 0, 0, "p1"),
+      createSite("Nest", 1, 0, "p1"),
+      createSite("HomeTree", 2, 0, "p1"),
+    ];
+    expect(incomeFor("p1", sites)).toBe(1 + 2 + 3);
+  });
+
+  it("ignores sites owned by other players", () => {
+    const sites = [
+      createSite("Nest", 0, 0, "p2"),
+      createSite("HomeTree", 1, 0, "p2"),
+    ];
+    expect(incomeFor("p1", sites)).toBe(0);
+  });
+
+  it("ignores neutral sites (owner null)", () => {
+    const sites = [createSite("Grove", 0, 0), createSite("Nest", 1, 0, null)];
+    expect(incomeFor("p1", sites)).toBe(0);
+  });
+
+  it("returns 0 when the player controls no sites", () => {
+    expect(incomeFor("p1", [])).toBe(0);
+  });
+});
+
+describe("collectIncome", () => {
+  it("credits the current player with the income of every controlled site", () => {
+    const state = gameState({
+      sites: [
+        createSite("Grove", 0, 0, "p1"),
+        createSite("Nest", 1, 0, "p1"),
+        createSite("HomeTree", 2, 0, "p1"),
+        createSite("Grove", 3, 0, "p2"),
+        createSite("Nest", 4, 0), // neutral
+      ],
+      players: { p1: createPlayer("p1", 5), p2: createPlayer("p2", 0) },
+    });
+    const next = collectIncome(state);
+    // p1 controls Grove(1)+Nest(2)+HomeTree(3) = 6; starts with 5.
+    expect(next.players.p1.bananas).toBe(5 + 6);
+    // p2's balance is untouched.
+    expect(next.players.p2.bananas).toBe(0);
+  });
+
+  it("adds income to the current player's existing balance (may save without limit)", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 0, 0, "p1")],
+      players: { p1: createPlayer("p1", 100), p2: createPlayer("p2", 0) },
+    });
+    expect(collectIncome(state).players.p1.bananas).toBe(103);
+  });
+
+  it("adds no bananas when the current player controls no sites", () => {
+    const state = gameState({
+      sites: [createSite("Grove", 0, 0, "p2"), createSite("Nest", 1, 0)],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(collectIncome(state).players.p1.bananas).toBe(2);
+  });
+
+  it("returns a new GameState and does not mutate the input", () => {
+    const state = gameState({
+      sites: [createSite("Nest", 0, 0, "p1")],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+    });
+    const next = collectIncome(state);
+    expect(next).not.toBe(state);
+    expect(next.players).not.toBe(state.players);
+    expect(next.players.p1).not.toBe(state.players.p1);
+    // Input is unchanged.
+    expect(state.players.p1.bananas).toBe(0);
+    expect(state.sites).toEqual([createSite("Nest", 0, 0, "p1")]);
   });
 });
