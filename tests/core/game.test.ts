@@ -1069,6 +1069,17 @@ describe("checkVictory", () => {
     expect(checkVictory(state)).toBe(null);
   });
 
+  it("returns null (draw) when every player is eliminated", () => {
+    // No player controls a Home Tree and no player has units, so all
+    // players are eliminated and `active.length === 0`. No sole survivor
+    // and no Home Tree controller → no winner (draw).
+    const state = gameState({
+      sites: [createSite("Grove", 0, 0, "p1"), createSite("Nest", 1, 0, "p2")],
+      players: { p1: createPlayer("p1", 2), p2: createPlayer("p2", 0) },
+    });
+    expect(checkVictory(state)).toBe(null);
+  });
+
   it("gives a player who controls every Home Tree victory even if another survives", () => {
     // p1 controls both Home Trees → p1 wins regardless of p2 having units.
     const state = gameState({
