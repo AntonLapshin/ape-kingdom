@@ -369,3 +369,27 @@ export function submitTurn(session: GameSession): GameSession {
     winner: null,
   };
 }
+
+/**
+ * Reset a session back to the start of the current human turn.
+ *
+ * Discards any actions the human has selected this turn (`moves`) and returns
+ * a fresh session positioned at the income step on the current `baseState`
+ * (the state at the start of the turn), so the UI can offer an "undo / clear
+ * selections" behaviour without losing the progress of the game.
+ *
+ * If the game has already ended (`step === "done"`), the session is returned
+ * unchanged — there is nothing to reset. Returns a new `GameSession`; does not
+ * mutate the input.
+ */
+export function resetTurn(session: GameSession): GameSession {
+  if (session.step === "done") return session;
+  return {
+    ...session,
+    state: session.baseState,
+    moves: [],
+    step: "income",
+    legalMoves: legalMovesFor(session.baseState, "income"),
+    winner: null,
+  };
+}

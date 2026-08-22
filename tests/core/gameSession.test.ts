@@ -7,6 +7,7 @@ import {
   createGameSession,
   selectAction,
   submitTurn,
+  resetTurn,
   standardSetup,
   GameSessionError,
 } from "../../src/core/gameSession";
@@ -360,6 +361,58 @@ describe("submitTurn", () => {
     };
     session = submitTurn(session);
     expect(() => submitTurn(session)).toThrow(GameSessionError);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* resetTurn                                                           */
+/* ------------------------------------------------------------------ */
+
+describe("resetTurn", () => {
+  it("discards this turn's selections and returns to the income step", () => {
+    let session = createGameSession();
+    session = selectAction(session, { type: "collectIncome" });
+    session = selectAction(session, {
+      type: "recruit",
+      kind: "Monkey",
+      hex: RECRUIT_HEX,
+    });
+    expect(session.step).toBe("recruit");
+    expect(session.moves).toHaveLength(2);
+
+    const reset = resetTurn(session);
+    expect(reset.step).toBe("income");
+    expect(reset.moves).toEqual([]);
+    expect(reset.legalMoves).toEqual([{ type: "collectIncome" }]);
+    expect(reset.winner).toBeNull();
+    // The base state (start of the turn) is preserved.
+    expect(reset.state).toEqual(reset.baseState);
+    expect(reset.baseState).toEqual(session.baseState);
+  });
+
+  it("returns the session unchanged once the game has ended", () => {
+    let session = createGameSession();
+    session = selectAction(session, { type: "collectIncome" });
+    session = {
+      ...session,
+      baseState: {
+        ...session.baseState,
+        sites: session.baseState.sites.map((s) =>
+          s.kind === "HomeTree" ? { ...s, owner: "p1" } : s,
+        ),
+      },
+      state: {
+        ...session.state,
+        sites: session.state.sites.map((s) =>
+          s.kind === "HomeTree" ? { ...s, owner: "p1" } : s,
+        ),
+      },
+    };
+    session = submitTurn(session);
+    expect(session.step).toBe("done");
+    const reset = resetTurn(session);
+    expect(reset.step).toBe("done");
+    expect(reset.winner).toBe("p1");
   });
 });
 
