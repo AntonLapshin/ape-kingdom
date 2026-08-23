@@ -5,15 +5,19 @@
 ## Status
 
 **M1–M9 complete (POC shipped); M10 (enhance UI & gameplay — viewport
-navigation + cell info/action panel, from issue #63) in progress.** Foundation
-(guidelines, core scaffold, CI, Pages), the full core game engine (all rules
-reducers), the AI opponent / Human vs AI game loop, the interactive playable
-client UI, the beautiful animated Tailwind UI polish, hardening/demo readiness,
-the Showcase component browser (M7), the Atom component breakdown (M8), and the
-map generator (M9) are all implemented, merged, tested, and deployed. The live
-demo is green at https://AntonLapshin.github.io/ape-kingdom/. New unplanned
-work — issue #63 (enhance UI & gameplay) — is planned as milestone M10 and was
-split into small `pi:ready` sub-issues.
+navigation + cell info/action panel + movement, from issue #63) in progress.**
+Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
+(all rules reducers), the AI opponent / Human vs AI game loop, the interactive
+playable client UI, the beautiful animated Tailwind UI polish,
+hardening/demo readiness, the Showcase component browser (M7), the Atom
+component breakdown (M8), and the map generator (M9) are all implemented,
+merged, tested, and deployed. The live demo is green at
+https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #63
+(enhance UI & gameplay) — is planned as milestone M10 and split into small
+`pi:ready` sub-issues. M10-T1 (drag-to-pan), M10-T2 (mouse-wheel zoom) and
+M10-T3 (cell selection + info/action panel) are merged/deployed; the final
+slice M10-T4 (movement: highlight reachable cells + click target to move,
+#70) is the remaining planned work.
 
 ## What's here
 
@@ -82,7 +86,7 @@ split into small `pi:ready` sub-issues.
   info for non-actionable cells, actionable items with cost for buildable cells)
   plus movement (selecting a movable unit highlights reachable cells and lets
   the human click a target to move). Splitting #63 into M10-T1..T4.
-  - [ ] M10-T1 Full-viewport drag-to-pan board navigation (#64, `pi:ready`)
-  - [ ] M10-T2 Mouse-wheel zoom in/out on the board (#65, `pi:ready`)
-  - [ ] M10-T3 Cell selection + info/action panel (#66, `pi:ready`)
-  - [ ] M10-T4 Movement: highlight reachable cells + click target to move — planned next slice
+  - [x] M10-T1 Full-viewport drag-to-pan board navigation (#64 → PR #67, merged)
+  - [x] M10-T2 Mouse-wheel zoom in/out on the board (#65 → PR #68, merged)
+  - [x] M10-T3 Cell selection + info/action panel (#66 → PR #69, merged)
+  - [ ] M10-T4 Movement: highlight reachable cells + click target to move (#70, `pi:ready`) — final slice, in progress
