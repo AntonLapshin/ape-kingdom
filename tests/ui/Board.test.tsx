@@ -61,6 +61,17 @@ describe("Board", () => {
     expect(units).toHaveLength(state.units.length);
   });
 
+  it("renders the unit badge text as '<kind> <rank>' (view-model wiring)", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    // The starting Monkey at (0,0) resolves to rank 1 via the view model.
+    const homeCell = screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.hex === "0,0");
+    const badge = homeCell!.querySelector('[data-testid="board-unit"]');
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe("Monkey 1");
+  });
+
   it("labels the current player in the board footer", () => {
     render(<Board board={board} currentPlayer="p1" />);
     expect(screen.getByText(/Turn: You \(p1\)/)).toBeInTheDocument();
