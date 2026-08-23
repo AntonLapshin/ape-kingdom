@@ -1,5 +1,7 @@
+
 import type { BoardCell } from "../viewModels/useGameSession";
 import type { PlayerId } from "../../core/game";
+import type { PanOffset } from "../viewModels/usePan";
 import { HEX_SIZE, hexToPixel } from "../presentation";
 import { Cell } from "./Cell";
 import { Content } from "./Content";
@@ -10,6 +12,12 @@ export interface BoardProps {
   board: BoardCell[];
   /** The player whose turn it is (used for a subtle highlight). */
   currentPlayer: PlayerId;
+  /**
+   * The optional pan offset ({x, y} in px) applied as a translate to the
+   * board so the map can be dragged/repositioned (M10-T1). When omitted, no
+   * transform is applied.
+   */
+  pan?: PanOffset;
 }
 
 /**
@@ -22,7 +30,7 @@ export interface BoardProps {
  * `BoardCell[]` and renders props only. No business logic, no hooks, no side
  * effects.
  */
-export function Board({ board, currentPlayer }: BoardProps) {
+export function Board({ board, currentPlayer, pan }: BoardProps) {
   // Compute the bounding box so the board is centred in its container.
   const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
   const minX = Math.min(...positions.map((p) => p.x));
@@ -33,10 +41,14 @@ export function Board({ board, currentPlayer }: BoardProps) {
   const width = maxX - minX + pad * 2;
   const height = maxY - minY + pad * 2;
 
+  const translate = pan
+    ? `translate(${pan.x}px, ${pan.y}px)`
+    : undefined;
+
   return (
     <div
       className="relative mx-auto"
-      style={{ width, height }}
+      style={{ width, height, transform: translate }}
       data-testid="board"
     >
       {board.map((cell, index) => {

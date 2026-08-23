@@ -91,10 +91,8 @@ export default function App() {
           </div>
         </main>
       ) : (
-        <main className="login-bg flex min-h-screen items-center justify-center p-6">
-          <div className="w-full">
-            <PlayableGame />
-          </div>
+        <main className="login-bg flex h-screen w-screen items-center justify-center overflow-hidden">
+          <PlayableGame />
         </main>
       )}
     </>
