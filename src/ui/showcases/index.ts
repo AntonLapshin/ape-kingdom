@@ -1,6 +1,7 @@
 import type { ShowcaseRegistry } from "../../core/showcase";
 import * as ActionControlsShowcase from "./ActionControls";
 import * as BoardShowcase from "./Board";
+import * as PlayableGameShowcase from "./PlayableGame";
 import * as StatusPanelShowcase from "./StatusPanel";
 import * as DemoPanelShowcase from "./DemoPanel";
 import * as CellShowcase from "./Cell";
@@ -37,6 +38,13 @@ export function showcaseRegistry(): ShowcaseRegistry {
       showcases: {
         Opening: BoardShowcase.Opening,
         PlayerTwoTurn: BoardShowcase.PlayerTwoTurn,
+      },
+    },
+    {
+      name: PlayableGameShowcase.name,
+      showcases: {
+        FullScreenHud: PlayableGameShowcase.FullScreenHud,
+        FullScreenHudSeedSeven: PlayableGameShowcase.FullScreenHudSeedSeven,
       },
     },
     {

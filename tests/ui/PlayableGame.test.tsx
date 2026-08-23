@@ -422,4 +422,67 @@ describe("PlayableGame", () => {
     expect(screen.getByText("Collect Income")).toBeInTheDocument();
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Polished full-screen HUD (M11-T3)                                   */
+  /* ------------------------------------------------------------------ */
+
+  it("styles each floating panel with the design-token glass-panel HUD + entry animation (M11-T3)", () => {
+    render(<PlayableGame />);
+    // Each floating panel card is a polished design-token HUD surface: it uses
+    // the `glass-panel` utility (backdrop blur + shadow) and a `menu-pop`
+    // entry animation, while staying a `pointer-events-auto` card so it
+    // remains readable and clickable over any terrain without occluding the
+    // board's interaction elsewhere.
+    for (const id of ["status-overlay", "cell-info-overlay", "actions-overlay"]) {
+      const overlay = screen.getByTestId(id);
+      const card = overlay.firstElementChild as HTMLElement;
+      // The card is the glass-panel HUD surface (backdrop blur + shadow).
+      expect(card.className).toContain("glass-panel");
+      // The HUD card animates in with the menu-pop entry animation.
+      expect(card.className).toContain("menu-pop");
+      // It is readable/clickable (pointer-events-auto) inside the
+      // non-intrusive pointer-events-none overlay.
+      expect(card.className).toContain("pointer-events-auto");
+      expect(overlay.className).toContain("pointer-events-none");
+    }
+  });
+
+  it("keeps the polished HUD non-intrusive: pan/zoom/select still work with every card styled (M11-T3)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+
+    // A drag directly on the board still pans it (the HUD cards don't swallow
+    // input outside their bounds).
+    const drag = (type: string, x: number, y: number) =>
+      act(() =>
+        game.dispatchEvent(
+          new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }),
+        ),
+      );
+    drag("pointerdown", 0, 0);
+    drag("pointermove", 30, 15);
+    drag("pointerup", 30, 15);
+    expect(board.getAttribute("style")!).toContain("translate(30px, 15px)");
+
+    // Wheel zoom still works.
+    act(() =>
+      game.dispatchEvent(
+        new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -100 }),
+      ),
+    );
+    expect(board.getAttribute("style")!).toContain("scale(1.1)");
+
+    // Click-to-select still works through the styled HUD.
+    const cells = screen.getAllByTestId("board-cell");
+    const homeCell = cells.find((c) =>
+      c
+        .querySelector('[data-testid="board-site"]')
+        ?.textContent?.includes("Home Tree"),
+    )!;
+    act(() => fireEvent.click(homeCell));
+    expect(homeCell.className).toContain("hex-selected");
+    expect(screen.getByTestId("cell-info-site")).toBeInTheDocument();
+  });
 });

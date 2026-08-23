@@ -21,8 +21,9 @@ describe("showcase registry", () => {
     const registry = showcaseRegistry();
     const names = registry.map((file) => file.name).sort();
     // The renderable atom components in src/ui/components/. The composition
-    // layers (PlayableGame, Showcase) are pages/browsers, not atoms, and are
-    // intentionally not showcased.
+    // layer (Showcase) is a browser, not an atom, and is intentionally not
+    // showcased. `PlayableGame` is showcased because issue #76 (M11-T3) asks
+    // for a full-screen board / floating HUD demo of the playable page.
     expect(names).toEqual([
       "ActionControls",
       "Board",
@@ -30,6 +31,7 @@ describe("showcase registry", () => {
       "CellInfoPanel",
       "Content",
       "DemoPanel",
+      "PlayableGame",
       "StatusPanel",
       "Unit",
     ]);

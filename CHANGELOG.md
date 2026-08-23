@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Polished the full-screen floating UI with theme styling, a full-screen /
+  floating-HUD showcase demo, and component tests (M11-T3, #76). The
+  floating HUD panel cards in `PlayableGame.tsx` (status, cell info, action
+  controls) continue to use the design-token `glass-panel` surface (backdrop
+  blur + shadow) and now also get a `menu-pop` entry animation so they read
+  as a polished, animated HUD that stays readable over any terrain while
+  never breaking pan/zoom/click-to-select/move (the overlays stay
+  `pointer-events-none` with only the cards `pointer-events-auto`). Added
+  `src/ui/showcases/PlayableGame.tsx` — a full-screen board / floating HUD
+  demo (`FullScreenHud`, `FullScreenHudSeedSeven`) rendering the complete
+  playable page — and registered it in `src/ui/showcases/index.ts`. This is
+  a thin UI styling/demo change only: no core logic changed (core stays pure
+  and 100% covered). The `showcases` registry test was updated for the new
+  `PlayableGame` showcase, and `PlayableGame` component tests were added to
+  assert every HUD card uses the `glass-panel` + `menu-pop` theme styling
+  and that pan/zoom/select still work with the polished HUD present.
+
 - Added floating overlay UI panels positioned at sensible corners of the
   full-screen map (M11-T2, #75). `PlayableGame.tsx` no longer stacks the
   info panels in a single thin side column: `StatusPanel` (with the "Ape
