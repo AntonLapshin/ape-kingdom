@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the terrain model and pure map generator engine (M9-T1, #54).
+  `src/core/mapGenerator.ts` is a new pure core module (no React/DOM)
+  defining the `Terrain` type (`"land" | "water" | "mountain"`), the
+  `GameMap` / `MapCell` model, and a `generateMap(width?, height?, config?)`
+  function that produces a playable hex map: a single contiguous island of
+  land (with mountain cells) surrounded by an all-water border, plus interior
+  lakes (water cells fully enclosed by land). The generator is configurable
+  via props (`width`, `height`, `islandSize`, `mountainDensity`, `lakeDensity`,
+  `seed`) with sensible defaults (`DEFAULT_MAP_CONFIG`, default 20x20) and is
+  fully deterministic — the same `seed` always yields the same map via a
+  mulberry32 seeded RNG. It also exposes `resolveConfig`, `terrainAt`,
+  `isWater`, `isMountain`, `landCellCount`, `isLandSurface`, the typed
+  `MapError` (with kinds `invalid-dimension` / `invalid-island-size` /
+  `invalid-density` / `invalid-seed`) for rejecting invalid dimensions/config,
+  and `MIN_MAP_DIMENSION`. Fully covered by
+  `tests/core/mapGenerator.test.ts` (28 tests: determinism, invariants,
+  validation, and lookup helpers). Core stays 100% covered.
+
 ### Changed
 
 - **Project complete (M1–M6).** All milestones implemented, merged, and
