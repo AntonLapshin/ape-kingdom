@@ -2,10 +2,7 @@
 
 > Project charter / intent.
 
-**Status: in-progress** — M1–M10 are complete and the POC is shipped. New
-unplanned work was added: M10 (enhance UI & gameplay — viewport navigation
-+ cell info/action panel + movement, from issue #63, complete) and M11
-(full-screen game UI with floating elements, from issue #72, in progress).
+**Status: in-progress** — M1–M10 are complete and the POC is shipped
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -251,10 +248,10 @@ Showcase demos.
   - Keep all logic in `src/core` (100% covered); `npm test`/`npm run build`/CI
     stay green
 
-**Sub-issues (first slice):**
-  - [ ] M11-T1 Full-screen game board fills viewport (#72)
-  - [ ] M11-T2 Floating overlay UI panels over the full-screen map (#72)
-  - [ ] M11-T3 Polish floating full-screen UI: theme, demos, tests (#72)
+**Sub-issues (first slice) — complete:**
+  - [x] M11-T1 Full-screen game board fills viewport (#72)
+  - [x] M11-T2 Floating overlay UI panels over the full-screen map (#72)
+  - [x] M11-T3 Polish floating full-screen UI: theme, demos, tests (#72)
 
 ### M6 — Hardening and demo readiness
 

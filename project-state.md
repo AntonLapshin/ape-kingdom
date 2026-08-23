@@ -4,21 +4,18 @@
 
 ## Status
 
-**M1–M10 complete (POC shipped); M11 (full-screen game UI with floating
-elements, from issue #72) in progress.**
+**COMPLETE — All milestones M1–M11 implemented, merged, tested, and deployed.**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
 hardening/demo readiness, the Showcase component browser (M7), the Atom
-component breakdown (M8), the map generator (M9), and M10 (viewport navigation
-+ cell info/action panel + movement) are all implemented, merged, tested, and
-deployed. The live demo is green at
-https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #72
-(improve the game UI: make the map full-screen with floating UI elements) — is
-planned as milestone M11 and split into three small `pi:ready` sub-issues:
-M11-T1 (full-screen game board fills viewport, #74), M11-T2 (floating overlay
-UI panels over the full-screen map, #75), and M11-T3 (polish floating
-full-screen UI: theme, demos, tests, #76).
+component breakdown (M8), the map generator (M9), M10 (viewport navigation +
+cell info/action panel + movement), and M11 (full-screen game UI with floating
+elements from issue #72) are all implemented, merged, tested, and deployed.
+The live demo is green at
+https://AntonLapshin.github.io/ape-kingdom/. No open issues and no open PRs;
+`npm test` (471 tests) and `npm run test:coverage` (100% on `src/core/**`) and
+`npm run build` all pass, and CI + Pages deployment are green on `main`.
 
 ## What's here
 
@@ -81,20 +78,18 @@ full-screen UI: theme, demos, tests, #76).
   - [x] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#54 → PR #59)
   - [x] M9-T2 New generated map per game (default 20×20) wired into setup (#53 → PR #61)
   - [x] M9-T3 Render generated terrain in the UI `Board` (#52 → PR #62)
-- [ ] M10 — Enhanced UI & gameplay (issue #63): make the game view
+- [x] M10 — Enhanced UI & gameplay (issue #63): make the game view
   viewport-filling (100% width/height, no page scroll) with drag-to-pan and
   mouse-wheel zoom, and add cell selection with an info/action panel (read-only
   info for non-actionable cells, actionable items with cost for buildable cells)
   plus movement (selecting a movable unit highlights reachable cells and lets
-  the human click a target to move). Splitting #63 into M10-T1..T4.
+  the human click a target to move). **Complete** (PRs #67, #68, #69, #71 merged).
   - [x] M10-T1 Full-viewport drag-to-pan board navigation (#64 → PR #67, merged)
   - [x] M10-T2 Mouse-wheel zoom in/out on the board (#65 → PR #68, merged)
   - [x] M10-T3 Cell selection + info/action panel (#66 → PR #69, merged)
   - [x] M10-T4 Movement: highlight reachable cells + click target to move (#70 → PR #71) — **complete**
-- [ ] M11 — Full-screen game UI with floating elements (issue #72): make the
-  board fill the viewport and render the UI panels (status/money/stats, cell
-  info, action controls incl. End Turn) as floating overlays over the map.
-  Split into three small `pi:ready` sub-issues.
-  - [ ] M11-T1 Full-screen game board fills viewport (#74, `pi:ready`)
-  - [ ] M11-T2 Floating overlay UI panels over the full-screen map (#75, `pi:ready`)
-  - [ ] M11-T3 Polish floating full-screen UI: theme, demos, tests (#76, `pi:ready`)
+- [x] M11 — Full-screen game UI with floating elements (issue #72):
+  **Complete** (PRs #77, #79, #81 merged).
+  - [x] M11-T1 Full-screen game board fills viewport (#74 → PR #77, merged)
+  - [x] M11-T2 Floating overlay UI panels over the full-screen map (#75 → PR #79, merged)
+  - [x] M11-T3 Polish floating full-screen UI: theme, demos, tests (#76 → PR #81, merged)
