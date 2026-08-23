@@ -2,9 +2,9 @@
 
 > Project charter / intent.
 
-**Status: in-progress** — M1–M7 are complete and the POC is shipped. Unplanned
-work was added: M8 (break down UI elements into Atom components, issue #47,
-in progress) and M9 (map generator, issue #48, planned). See `project-state.md`
+**Status: in-progress** — M1–M9 are complete and the POC is shipped. New
+unplanned work was added: M10 (enhance UI & gameplay — viewport navigation
++ cell info/action panel, from issue #63, in progress). See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
@@ -188,10 +188,43 @@ unplanned issue #48.
   - Render the generated terrain in the UI `Board` via the `Cell` atom variants
   - Keep all generation logic in `src/core` (100% covered); UI stays thin
 
+**Sub-issues (first slice) — complete:**
+  - [x] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#48)
+  - [x] M9-T2 New generated map per game (default 20×20) wired into setup (#48)
+  - [x] M9-T3 Render generated terrain in the UI `Board` (#48)
+
+### M10 — Enhanced UI & gameplay: viewport navigation + cell info/action panel
+
+**Goal:** Enhance the playable UI and gameplay per unplanned issue #63:
+(a) make the game view viewport-filling (100% width/height, no page scroll)
+with drag-to-pan and mouse-wheel zoom; and (b) add cell selection with an
+info/action panel (terrain/unit/cost/income for read-only cells, actionable
+items with cost for buildable cells, and movement: selecting a movable unit
+highlights its reachable cells and lets the human click a target to move).
+All presentation derives from core logic (legal moves already come from
+`src/core/legalMoves.ts`); core stays at 100% coverage.
+
+**Scope:**
+  - Viewport navigation: a full-viewport, non-scrollable game container in
+    which the map is panned by dragging and zoomed via the mouse scroll wheel,
+    with the transform state kept thin and testable
+  - Cell selection: clicking a hex selects it and shows an info panel with
+    read-only info (terrain, site, unit kind/rank, cost/income where relevant)
+  - Actionable cells: when the selected cell supports actions (e.g. recruit a
+    unit at a legal placement hex), show the available action items with their
+    cost and wire them to the existing `selectAction` flow
+  - Movement: selecting a human-owned movable unit highlights every reachable
+    target cell (from core legal moves) and lets the human click a target cell
+    to move onto it (via the existing `moveUnit` action through `selectAction`)
+  - Keep presentation thin per `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`;
+    new components in `src/ui/components` get Showcase demos; core stays 100%,
+    `npm test`/`npm run build`/CI stay green
+
 **Sub-issues (first slice):**
-  - [ ] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#48)
-  - [ ] M9-T2 New generated map per game (default 20×20) wired into setup (#48)
-  - [ ] M9-T3 Render generated terrain in the UI `Board` (#48)
+  - [ ] M10-T1 Viewport navigation: full-viewport non-scrollable board + drag-to-pan (#63)
+  - [ ] M10-T2 Mouse-scroll zoom in/out on the board (#63)
+  - [ ] M10-T3 Cell selection + info/action panel (read-only info + actionable items with cost) (#63)
+  - [ ] M10-T4 Movement: highlight reachable cells for a selected unit + click target to move (#63) — planned next slice
 
 ### M6 — Hardening and demo readiness
 

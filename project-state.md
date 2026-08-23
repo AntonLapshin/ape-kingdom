@@ -4,17 +4,16 @@
 
 ## Status
 
-**M1–M7 complete (POC shipped); M8 (break down UI elements into Atom
-components) and M9 (map generator) in progress.** Foundation (guidelines,
-core scaffold, CI, Pages), the full core game engine (all rules reducers),
-the AI opponent / Human vs AI game loop, the interactive playable client UI,
-the beautiful animated Tailwind UI polish, hardening/demo readiness, and the
-Showcase component browser (M7) are all implemented, merged, tested, and
-deployed. The live demo is green at
-https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #47
-(break down UI elements into Atom components, planned as milestone M8) and
-issue #48 (map generator, planned as milestone M9) — was added and split into
-small `pi:ready` sub-issues.
+**M1–M9 complete (POC shipped); M10 (enhance UI & gameplay — viewport
+navigation + cell info/action panel, from issue #63) in progress.** Foundation
+(guidelines, core scaffold, CI, Pages), the full core game engine (all rules
+reducers), the AI opponent / Human vs AI game loop, the interactive playable
+client UI, the beautiful animated Tailwind UI polish, hardening/demo readiness,
+the Showcase component browser (M7), the Atom component breakdown (M8), and the
+map generator (M9) are all implemented, merged, tested, and deployed. The live
+demo is green at https://AntonLapshin.github.io/ape-kingdom/. New unplanned
+work — issue #63 (enhance UI & gameplay) — is planned as milestone M10 and was
+split into small `pi:ready` sub-issues.
 
 ## What's here
 
@@ -64,17 +63,26 @@ small `pi:ready` sub-issues.
   - [x] M7-T2 `useShowcase` view model + `Showcase` component (#40 → PR #43)
   - [x] M7-T3 Showcase demos for every atom component + registration (#41 → PR #44)
   - [x] M7-T4 `/showcase` route in the app + top-right link + README update (#45 → PR #46)
-- [ ] M8 — Break down UI elements into Atom components (issue #47): extract the
+- [x] M8 — Break down UI elements into Atom components (issue #47): extract the
   inline cell/unit/content rendering from `Board.tsx` into reusable Atom
   components (`Cell`, `Unit`, `Content`) each with a registered Showcase demo.
-  - [x] #47 split into M8-T1..T3 (closed)
-  - [ ] M8-T1 `Cell` atom component + showcase (#51, `pi:ready`)
-  - [ ] M8-T2 `Unit` atom component + showcase (#49, `pi:ready`)
-  - [ ] M8-T3 `Content` atom component + showcase (#50, `pi:ready`)
-  - [ ] M8-T4 Refactor `Board` to compose atoms — planned next slice
-- [ ] M9 — Map generator (issue #48): a configurable core map generator (single
+  **Complete** (PRs #55, #56, #58 merged).
+  - [x] M8-T1 `Cell` atom component + showcase (#51 → PR #56)
+  - [x] M8-T2 `Unit` atom component + showcase (#49 → PR #55)
+  - [x] M8-T3 `Content` atom component + showcase (#50 → PR #58)
+- [x] M9 — Map generator (issue #48): a configurable core map generator (single
   island surrounded by water, with mountains and lakes) and a fresh generated
-  map per game (default 20×20). #48 split into M9-T1..T3 (closed).
-  - [ ] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#54, `pi:ready`)
-  - [ ] M9-T2 New generated map per game (default 20×20) wired into setup (#53, `pi:ready`)
-  - [ ] M9-T3 Render generated terrain in the UI `Board` (#52, `pi:blocked` until #54/#53 merge; sequence T1->T2->T3)
+  map per game (default 20×20). **Complete** (PRs #59, #61, #62 merged).
+  - [x] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#54 → PR #59)
+  - [x] M9-T2 New generated map per game (default 20×20) wired into setup (#53 → PR #61)
+  - [x] M9-T3 Render generated terrain in the UI `Board` (#52 → PR #62)
+- [ ] M10 — Enhanced UI & gameplay (issue #63): make the game view
+  viewport-filling (100% width/height, no page scroll) with drag-to-pan and
+  mouse-wheel zoom, and add cell selection with an info/action panel (read-only
+  info for non-actionable cells, actionable items with cost for buildable cells)
+  plus movement (selecting a movable unit highlights reachable cells and lets
+  the human click a target to move). Splitting #63 into M10-T1..T4.
+  - [ ] M10-T1 Full-viewport drag-to-pan board navigation (#64, `pi:ready`)
+  - [ ] M10-T2 Mouse-wheel zoom in/out on the board (#65, `pi:ready`)
+  - [ ] M10-T3 Cell selection + info/action panel (#66, `pi:ready`)
+  - [ ] M10-T4 Movement: highlight reachable cells + click target to move — planned next slice
