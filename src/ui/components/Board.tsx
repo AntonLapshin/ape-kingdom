@@ -31,6 +31,12 @@ export interface BoardProps {
    */
   selectedHex?: Hex | null;
   /**
+   * The reachable move-target hexes (M10-T4). When provided, any cell whose
+   * hex is in this list is highlighted as a reachable move target so the user
+   * can click one to move the selected unit onto it.
+   */
+  reachableHexes?: Hex[];
+  /**
    * Callback invoked with the clicked hex so the view model can select a
    * cell (M10-T3). When omitted, cells are not clickable.
    */
@@ -48,7 +54,7 @@ export interface BoardProps {
  * — it receives the already-adapted `BoardCell[]` and renders props only. No
  * business logic, no hooks, no side effects.
  */
-export function Board({ board, currentPlayer, pan, zoom, selectedHex, onSelectCell }: BoardProps) {
+export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableHexes, onSelectCell }: BoardProps) {
   // Compute the bounding box so the board is centred in its container.
   const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
   const minX = Math.min(...positions.map((p) => p.x));
@@ -76,6 +82,11 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, onSelectCe
           !!selectedHex &&
           selectedHex.q === cell.hex.q &&
           selectedHex.r === cell.hex.r;
+        const isMoveTarget =
+          !!reachableHexes &&
+          reachableHexes.some(
+            (h) => h.q === cell.hex.q && h.r === cell.hex.r,
+          );
         return (
           <Cell
             key={`${cell.hex.q},${cell.hex.r}`}
@@ -85,6 +96,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, onSelectCe
             terrain={cell.terrain}
             isCurrent={owner === currentPlayer}
             isSelected={isSelected}
+            isMoveTarget={isMoveTarget}
             x={x - minX + pad - HEX_SIZE}
             y={y - minY + pad - HEX_SIZE}
             animationDelay={index * 40}

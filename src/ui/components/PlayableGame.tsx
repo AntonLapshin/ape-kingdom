@@ -45,6 +45,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     view,
     selectedHex,
     selectedCell,
+    reachableHexes,
     selectCell,
     selectAction,
     clearActions,
@@ -143,6 +144,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
             pan={pan}
             zoom={zoom}
             selectedHex={selectedHex}
+            reachableHexes={reachableHexes}
             onSelectCell={selectCell}
           />
         </div>

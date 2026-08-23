@@ -150,6 +150,41 @@ describe("Board", () => {
     expect(others.every((c) => c.dataset.selected === "false")).toBe(true);
   });
 
+  it("highlights only the reachable move-target cells (M10-T4)", () => {
+    // Pick two real board hexes (not the p1 home hex) as the reachable targets.
+    const [targetA, targetB] = board
+      .map((c) => c.hex)
+      .filter((h) => h.q !== p1Home.q || h.r !== p1Home.r)
+      .slice(0, 2);
+    render(
+      <Board
+        board={board}
+        currentPlayer="p1"
+        selectedHex={p1Home}
+        reachableHexes={[targetA, targetB]}
+      />,
+    );
+    const cells = screen.getAllByTestId("board-cell");
+    const ta = cells.find((c) => c.dataset.hex === `${targetA.q},${targetA.r}`);
+    const tb = cells.find((c) => c.dataset.hex === `${targetB.q},${targetB.r}`);
+    // Both target cells carry the move-target flag/highlight.
+    expect(ta?.dataset.moveTarget).toBe("true");
+    expect(tb?.dataset.moveTarget).toBe("true");
+    if (ta) expect(ta.className).toContain("hex-move-target");
+    // Other cells are not move targets.
+    const nonTarget = cells.filter(
+      (c) => c.dataset.hex !== `${targetA.q},${targetA.r}` &&
+        c.dataset.hex !== `${targetB.q},${targetB.r}`,
+    );
+    expect(nonTarget.every((c) => c.dataset.moveTarget === "false")).toBe(true);
+  });
+
+  it("does not highlight any move targets when reachableHexes is omitted", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    expect(cells.every((c) => c.dataset.moveTarget === "false")).toBe(true);
+  });
+
   it("calls onSelectCell with the clicked hex when cells are selectable", () => {
     const onSelectCell = vi.fn();
     render(
