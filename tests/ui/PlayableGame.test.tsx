@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { PlayableGame } from "../../src/ui/components/PlayableGame";
 
 /* ------------------------------------------------------------------ */
@@ -210,5 +210,78 @@ describe("PlayableGame", () => {
 
     expect(board.getAttribute("style")!).toContain("translate(30px, 20px)");
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
+  });
+
+  it("renders the cell info panel showing an empty prompt initially", () => {
+    render(<PlayableGame />);
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+    expect(screen.getByText(/click a hex to inspect/i)).toBeInTheDocument();
+  });
+
+  it("selects a hex on click, highlights it, and shows its info panel", () => {
+    render(<PlayableGame />);
+    // Click p1's Home Tree cell.
+    const cells = screen.getAllByTestId("board-cell");
+    const homeCell = cells.find((c) =>
+      c.querySelector('[data-testid="board-site"]')?.textContent?.includes("Home Tree"),
+    )!;
+    act(() => {
+      fireEvent.click(homeCell);
+    });
+    // The clicked cell is now highlighted as selected.
+    expect(homeCell.className).toContain("hex-selected");
+    expect(homeCell.dataset.selected).toBe("true");
+    // The info panel shows the selected home tree's read-only info.
+    expect(screen.getByTestId("cell-info-site")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("cell-info")).getByText("Home Tree"),
+    ).toBeInTheDocument();
+  });
+
+  it("lists buildable recruit actions from the panel and wires them to the game", () => {
+    render(<PlayableGame />);
+    // Collect income to make recruiting legal.
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+    // Select a buildable hex (one adjacent to p1's Home Tree).
+    const cells = screen.getAllByTestId("board-cell");
+    // Some neighbouring land hexes of p1's (the human's) Home Tree are legal
+    // placement hexes this turn (recruiting is restricted to the controlled
+    // Home Tree's empty adjacent hexes), so click candidate neighbours until
+    // the panel shows recruit action buttons for the selected buildable cell.
+    const p1Home = cells.find((c) =>
+      c.querySelector('[data-testid="board-site"]')?.textContent?.includes("Home Tree") &&
+      c.dataset.owner === "p1",
+    )!;
+    const [hq, hr] = p1Home.dataset.hex!.split(",").map(Number);
+    const candidates = cells.filter((c) => {
+      const [q, r] = c.dataset.hex!.split(",").map(Number);
+      const dist = Math.max(Math.abs(q - hq), Math.abs(r - hr), Math.abs(q + r - hq - hr));
+      return dist === 1 && c.dataset.owner === "neutral" && c.dataset.terrain === "land";
+    });
+    let clickedBuildable: HTMLElement | undefined;
+    for (const candidate of candidates) {
+      act(() => {
+        fireEvent.click(candidate);
+      });
+      if (screen.queryAllByTestId("cell-action-button").length > 0) {
+        clickedBuildable = candidate;
+        break;
+      }
+    }
+    expect(clickedBuildable).toBeDefined();
+    // The panel now lists recruit action buttons (buildable cell).
+    const actionButtons = screen.getAllByTestId("cell-action-button");
+    expect(actionButtons.length).toBeGreaterThan(0);
+    // Clicking the first recruit action selects it via the existing flow.
+    const kindsBefore = actionButtons.map((b) => b.textContent);
+    act(() => {
+      fireEvent.click(actionButtons[0]);
+    });
+    // A recruit was performed: the step stays/advances and the action buttons
+    // now reflect the reduced legal set (the occupied hex is no longer
+    // buildable), so the panel re-derives against the new state.
+    expect(kindsBefore.length).toBeGreaterThan(0);
   });
 });

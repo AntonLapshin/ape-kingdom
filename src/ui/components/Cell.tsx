@@ -14,12 +14,16 @@ export interface CellProps {
   terrain?: Terrain;
   /** Whether this cell is the current player's territory (highlight). */
   isCurrent?: boolean;
+  /** Whether this cell is the currently selected hex (selection highlight). */
+  isSelected?: boolean;
   /** The pixel x offset of this cell from the board origin. */
   x: number;
   /** The pixel y offset of this cell from the board origin. */
   y: number;
   /** The stagger animation delay for this cell, in ms. */
   animationDelay?: number;
+  /** Callback invoked when this cell is clicked (cell selection). */
+  onSelect?: () => void;
   /** The cell content (site label, unit badge, etc.). */
   children?: ReactNode;
 }
@@ -55,21 +59,37 @@ export function Cell({
   owner,
   terrain = "land",
   isCurrent = false,
+  isSelected = false,
   x,
   y,
   animationDelay = 0,
+  onSelect,
   children,
 }: CellProps) {
   const bg = TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
   return (
     <div
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect}
+      onKeyDown={
+        onSelect
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect();
+              }
+            }
+          : undefined
+      }
       data-testid="board-cell"
       data-hex={`${q},${r}`}
       data-owner={owner ?? "neutral"}
       data-terrain={terrain}
+      data-selected={isSelected ? "true" : "false"}
       className={`hex-cell hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
         isCurrent ? "hex-current" : ""
-      }`}
+      } ${isSelected ? "hex-selected" : ""} ${onSelect ? "cursor-pointer" : ""}`}
       style={{
         width: HEX_SIZE * 2,
         height: HEX_SIZE * 2,

@@ -12,6 +12,8 @@ import type {
 import { rankOf } from "../../core/game";
 import type { MapConfig, Terrain } from "../../core/mapGenerator";
 import type { GameAction } from "../../core/ai";
+import type { CellInfo } from "../../core/cellInfo";
+import { cellInfo } from "../../core/cellInfo";
 import type { TurnStep } from "../../core/gameSession";
 import {
   createGameSession,
@@ -161,18 +163,42 @@ export function toGameSessionView(session: {
 }
 
 /**
+ * Pure presentation adaptation: derive the selected cell's display info from
+ * the current game state and the user's selected hex. This simply binds the
+ * core `cellInfo` derivation to the view — no business logic lives here.
+ *
+ * `null` is returned when no hex is selected, so the info panel can show its
+ * empty prompt.
+ */
+export function selectedCellInfo(
+  state: GameState,
+  hex: Hex | null,
+): CellInfo | null {
+  if (!hex) return null;
+  return cellInfo(state, hex);
+}
+
+/**
  * The `useGameSession` view model.
  *
- * Holds a core `GameSession` in React state and exposes:
+ * Holds a core `GameSession` and the currently selected hex in React state and
+ * exposes:
  *  - `view` — the plain UI-state shape for the components to render;
+ *  - `selectedHex` — the hex the user has clicked (or null);
+ *  - `selectedCell` — the core-derived display info for the selected hex (or
+ *    null when none is selected);
+ *  - `selectCell(hex)` — selects a hex so the info/action panel can show it;
  *  - `selectAction(action)` — selects one legal action (delegates to core);
  *  - `clearActions()` — discards this turn's selections (delegates to core);
  *  - `submitTurn()` — ends the human's turn and runs the AI (delegates to core).
  *
- * No game rules live here; every operation delegates to `src/core`.
+ * No game rules live here; every operation/derivation delegates to `src/core`.
  */
 export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   view: GameSessionView;
+  selectedHex: Hex | null;
+  selectedCell: CellInfo | null;
+  selectCell: (hex: Hex) => void;
   selectAction: (action: GameAction) => void;
   clearActions: () => void;
   submitTurn: () => void;
@@ -180,8 +206,14 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   const [session, setSession] = useState(() =>
     createGameSession(aiSeed, {}, mapConfig),
   );
+  const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
 
   const view = useMemo(() => toGameSessionView(session), [session]);
+
+  const selectedCell = useMemo(
+    () => selectedCellInfo(session.state, selectedHex),
+    [session, selectedHex],
+  );
 
   const select = useCallback((action: GameAction) => {
     setSession((current) => selectAction(current, action));
@@ -195,8 +227,15 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
     setSession((current) => submitTurn(current));
   }, []);
 
+  const selectCell = useCallback((hex: Hex) => {
+    setSelectedHex(hex);
+  }, []);
+
   return {
     view,
+    selectedHex,
+    selectedCell,
+    selectCell,
     selectAction: select,
     clearActions: clear,
     submitTurn: submit,

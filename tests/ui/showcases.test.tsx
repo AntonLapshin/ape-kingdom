@@ -27,6 +27,7 @@ describe("showcase registry", () => {
       "ActionControls",
       "Board",
       "Cell",
+      "CellInfoPanel",
       "Content",
       "DemoPanel",
       "StatusPanel",

@@ -1,6 +1,6 @@
 
 import type { BoardCell } from "../viewModels/useGameSession";
-import type { PlayerId } from "../../core/game";
+import type { Hex, PlayerId } from "../../core/game";
 import type { PanOffset } from "../viewModels/usePan";
 import { HEX_SIZE, hexToPixel } from "../presentation";
 import { boardTransform } from "../viewModels/useZoom";
@@ -25,19 +25,30 @@ export interface BoardProps {
    * its centre (M10-T2). When omitted, no scaling is applied.
    */
   zoom?: number;
+  /**
+   * The hex currently selected by the user, or null. The matching cell is
+   * highlighted. When omitted, no cell is highlighted as selected.
+   */
+  selectedHex?: Hex | null;
+  /**
+   * Callback invoked with the clicked hex so the view model can select a
+   * cell (M10-T3). When omitted, cells are not clickable.
+   */
+  onSelectCell?: (hex: Hex) => void;
 }
 
 /**
- * Thin, dumb board component (M4-T3).
+ * Thin, dumb board component (M4-T3, extended for M10-T3).
  *
  * Renders the hex map from the view-model `board` cells: each cell is drawn
  * as a hexagon coloured by its terrain (land / water / mountain, M9-T3), with
  * the unit (ape kind + rank) shown as a badge and the site label shown when
- * present. It is purely presentational — it receives the already-adapted
- * `BoardCell[]` and renders props only. No business logic, no hooks, no side
- * effects.
+ * present. When `onSelectCell` / `selectedHex` are provided, cells become
+ * clickable and the selected hex is highlighted. It is purely presentational
+ * — it receives the already-adapted `BoardCell[]` and renders props only. No
+ * business logic, no hooks, no side effects.
  */
-export function Board({ board, currentPlayer, pan, zoom }: BoardProps) {
+export function Board({ board, currentPlayer, pan, zoom, selectedHex, onSelectCell }: BoardProps) {
   // Compute the bounding box so the board is centred in its container.
   const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
   const minX = Math.min(...positions.map((p) => p.x));
@@ -61,6 +72,10 @@ export function Board({ board, currentPlayer, pan, zoom }: BoardProps) {
       {board.map((cell, index) => {
         const { x, y } = hexToPixel(cell.hex.q, cell.hex.r);
         const owner = cell.site?.owner ?? cell.unit?.owner ?? null;
+        const isSelected =
+          !!selectedHex &&
+          selectedHex.q === cell.hex.q &&
+          selectedHex.r === cell.hex.r;
         return (
           <Cell
             key={`${cell.hex.q},${cell.hex.r}`}
@@ -69,9 +84,15 @@ export function Board({ board, currentPlayer, pan, zoom }: BoardProps) {
             owner={owner}
             terrain={cell.terrain}
             isCurrent={owner === currentPlayer}
+            isSelected={isSelected}
             x={x - minX + pad - HEX_SIZE}
             y={y - minY + pad - HEX_SIZE}
             animationDelay={index * 40}
+            onSelect={
+              onSelectCell
+                ? () => onSelectCell({ q: cell.hex.q, r: cell.hex.r })
+                : undefined
+            }
           >
             {cell.site && <Content kind={cell.site.kind} />}
             {cell.unit && (

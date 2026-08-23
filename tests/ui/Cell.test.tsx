@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Cell } from "../../src/ui/components/Cell";
 import { HEX_SIZE } from "../../src/ui/presentation";
 
@@ -68,6 +68,42 @@ describe("Cell", () => {
   it("adds the hex-current highlight when marked as current territory", () => {
     render(<Cell q={0} r={0} owner="p1" isCurrent x={0} y={0} />);
     expect(screen.getByTestId("board-cell").className).toContain("hex-current");
+  });
+
+  it("adds the hex-selected highlight and data flag when selected", () => {
+    render(<Cell q={0} r={0} owner="p1" isSelected x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.className).toContain("hex-selected");
+    expect(cell.dataset.selected).toBe("true");
+  });
+
+  it("marks unselected cells as not selected", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    expect(screen.getByTestId("board-cell").dataset.selected).toBe("false");
+  });
+
+  it("combines current and selected highlights on the same cell", () => {
+    render(<Cell q={0} r={0} owner="p1" isCurrent isSelected x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.className).toContain("hex-current");
+    expect(cell.className).toContain("hex-selected");
+  });
+
+  it("invokes onSelect when clicked and is keyboard-accessible via role button", () => {
+    const onSelect = vi.fn();
+    render(<Cell q={3} r={4} owner={null} x={0} y={0} onSelect={onSelect} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell).toHaveAttribute("role", "button");
+    fireEvent.click(cell);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    // Enter key also triggers selection for keyboard access.
+    fireEvent.keyDown(cell, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it("is not clickable (no role button) when no onSelect is provided", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    expect(screen.getByTestId("board-cell")).not.toHaveAttribute("role", "button");
   });
 
   it("renders its children content", () => {

@@ -5,6 +5,7 @@ import {
   boardCells,
   playerViews,
   toGameSessionView,
+  selectedCellInfo,
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
@@ -161,6 +162,44 @@ describe("toGameSessionView", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* selectedCellInfo (pure presentation derivation)                     */
+/* ------------------------------------------------------------------ */
+
+describe("selectedCellInfo", () => {
+  it("returns null when no hex is selected", () => {
+    const state = standardSetup();
+    expect(selectedCellInfo(state, null)).toBeNull();
+  });
+
+  it("derives the core cell info for a selected hex", () => {
+    const state = standardSetup();
+    const home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!.hex;
+    const info = selectedCellInfo(state, home);
+    expect(info).not.toBeNull();
+    expect(info!.hex).toEqual(home);
+    expect(info!.site?.kind).toBe("HomeTree");
+    expect(info!.unit?.kind).toBe("Monkey");
+  });
+
+  it("re-derives from a fresh state so info tracks the game", () => {
+    // A pre-selected hex resolved against a different state reflects that state.
+    const a = standardSetup();
+    const b = standardSetup();
+    const homeA = a.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!.hex;
+    const homeB = b.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!.hex;
+    // Both derive a Home Tree site regardless of map.
+    expect(selectedCellInfo(a, homeA)?.site?.kind).toBe("HomeTree");
+    expect(selectedCellInfo(b, homeB)?.site?.kind).toBe("HomeTree");
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* useGameSession hook                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -221,6 +260,35 @@ describe("useGameSession", () => {
     expect(result.current.view.step).toBe("income");
     expect(result.current.view.isDone).toBe(false);
     expect(result.current.view.currentPlayer).toBe("p1");
+  });
+
+  it("starts with no cell selected", () => {
+    const { result } = renderHook(() => useGameSession());
+    expect(result.current.selectedHex).toBeNull();
+    expect(result.current.selectedCell).toBeNull();
+  });
+
+  it("selects a cell and derives its info from core data", () => {
+    const { result } = renderHook(() => useGameSession());
+    const home = result.current.view.board.find((c) => c.site?.kind === "HomeTree")!
+      .hex;
+    act(() => {
+      result.current.selectCell(home);
+    });
+    expect(result.current.selectedHex).toEqual(home);
+    expect(result.current.selectedCell).not.toBeNull();
+    expect(result.current.selectedCell!.hex).toEqual(home);
+    // The derived info reflects the board's site/unit at that hex.
+    expect(result.current.selectedCell!.site?.kind).toBe("HomeTree");
+  });
+
+  it("exposes selectCell so the board can wire clicks", () => {
+    const { result } = renderHook(() => useGameSession());
+    const someHex = result.current.view.board[0].hex;
+    act(() => {
+      result.current.selectCell(someHex);
+    });
+    expect(result.current.selectedHex).toEqual(someHex);
   });
 
   it("marks the view done with a winner when the game ends", () => {

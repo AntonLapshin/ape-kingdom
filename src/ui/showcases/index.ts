@@ -6,6 +6,7 @@ import * as DemoPanelShowcase from "./DemoPanel";
 import * as CellShowcase from "./Cell";
 import * as ContentShowcase from "./Content";
 import * as UnitShowcase from "./Unit";
+import * as CellInfoPanelShowcase from "./CellInfoPanel";
 
 /**
  * Showcase index / registration (M7-T3).
@@ -79,6 +80,15 @@ export function showcaseRegistry(): ShowcaseRegistry {
       showcases: {
         PlayerOneKinds: UnitShowcase.PlayerOneKinds,
         PlayerTwoKinds: UnitShowcase.PlayerTwoKinds,
+      },
+    },
+    {
+      name: CellInfoPanelShowcase.name,
+      showcases: {
+        Empty: CellInfoPanelShowcase.Empty,
+        HomeTree: CellInfoPanelShowcase.HomeTree,
+        BuildableRecruit: CellInfoPanelShowcase.BuildableRecruit,
+        NeutralGrove: CellInfoPanelShowcase.NeutralGrove,
       },
     },
   ];

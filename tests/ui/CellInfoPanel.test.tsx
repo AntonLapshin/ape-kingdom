@@ -1,0 +1,143 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { CellInfoPanel } from "../../src/ui/components/CellInfoPanel";
+import { cellInfo } from "../../src/core/cellInfo";
+import {
+  createGameSession,
+  selectAction,
+  standardSetup,
+} from "../../src/core/gameSession";
+import { sameHex, type GameState, type Hex } from "../../src/core/game";
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+function p1Home(state: GameState): Hex {
+  return state.sites.find(
+    (s) => s.kind === "HomeTree" && s.owner === "p1",
+  )!.hex;
+}
+
+/** A session advanced to the recruit step (recruit actions legal). */
+function recruitSession() {
+  let session = createGameSession();
+  session = selectAction(session, { type: "collectIncome" });
+  return session;
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty state                                                         */
+/* ------------------------------------------------------------------ */
+
+describe("CellInfoPanel empty", () => {
+  it("shows a click-to-inspect prompt when no hex is selected", () => {
+    render(<CellInfoPanel info={null} onSelectAction={vi.fn()} />);
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+    expect(screen.getByText(/click a hex to inspect/i)).toBeInTheDocument();
+    // No site/unit/action rows when nothing is selected.
+    expect(screen.queryByTestId("cell-info-site")).toBeNull();
+    expect(screen.queryByTestId("cell-info-unit")).toBeNull();
+    expect(screen.queryByTestId("cell-action-button")).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Read-only rendering                                                 */
+/* ------------------------------------------------------------------ */
+
+describe("CellInfoPanel read-only", () => {
+  it("renders terrain and hex coordinates for a selected cell", () => {
+    const state = standardSetup();
+    const info = cellInfo(state, p1Home(state));
+    render(<CellInfoPanel info={info} onSelectAction={vi.fn()} />);
+    expect(screen.getByText(/Hex \(.*\)/)).toBeInTheDocument();
+    expect(screen.getByText("land")).toBeInTheDocument();
+  });
+
+  it("renders site info (label, neutral marker, income) for a sited hex", () => {
+    const state = standardSetup();
+    const home = p1Home(state);
+    render(<CellInfoPanel info={cellInfo(state, home)} onSelectAction={vi.fn()} />);
+    const row = screen.getByTestId("cell-info-site");
+    expect(row).toBeInTheDocument();
+    expect(screen.getByText("Home Tree")).toBeInTheDocument();
+    expect(screen.getByText(/\+3\/turn/)).toBeInTheDocument();
+    // A p1-owned Home Tree is not marked neutral.
+    expect(screen.queryByText("neutral")).toBeNull();
+  });
+
+  it("marks a neutral site as neutral", () => {
+    const state = standardSetup();
+    const grove = state.sites.find((s) => s.kind === "Grove")!;
+    render(
+      <CellInfoPanel info={cellInfo(state, grove.hex)} onSelectAction={vi.fn()} />,
+    );
+    expect(screen.getByText("neutral")).toBeInTheDocument();
+  });
+
+  it("renders unit info (kind, rank, cost) for an occupied hex", () => {
+    const state = standardSetup();
+    const home = p1Home(state);
+    render(<CellInfoPanel info={cellInfo(state, home)} onSelectAction={vi.fn()} />);
+    const row = screen.getByTestId("cell-info-unit");
+    expect(row).toBeInTheDocument();
+    expect(screen.getByText("Monkey (rank 1)")).toBeInTheDocument();
+    expect(screen.getByText("🍌 2")).toBeInTheDocument();
+  });
+
+  it("shows no action buttons for a read-only cell", () => {
+    // On the income step no recruit is legal, so the Home Tree is read-only.
+    const state = standardSetup();
+    render(
+      <CellInfoPanel info={cellInfo(state, p1Home(state))} onSelectAction={vi.fn()} />,
+    );
+    expect(screen.queryByTestId("cell-action-button")).toBeNull();
+    expect(screen.queryByText(/Recruit here/i)).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Actionable rendering + wiring                                       */
+/* ------------------------------------------------------------------ */
+
+describe("CellInfoPanel actionable", () => {
+  it("lists recruit action items with cost for a buildable hex", () => {
+    const session = recruitSession();
+    const recruit = session.legalMoves.find((a) => a.type === "recruit");
+    if (!recruit || recruit.type !== "recruit") {
+      throw new Error("expected a legal recruit action");
+    }
+    render(
+      <CellInfoPanel
+        info={cellInfo(session.state, recruit.hex)}
+        onSelectAction={vi.fn()}
+      />,
+    );
+    // At least one recruit item labelled with its kind and banana cost.
+    expect(screen.getAllByTestId("cell-action-button").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Recruit here/i)).toBeInTheDocument();
+  });
+
+  it("wires each recruit button to the selectAction flow", () => {
+    const session = recruitSession();
+    const recruit = session.legalMoves.find((a) => a.type === "recruit");
+    if (!recruit || recruit.type !== "recruit") {
+      throw new Error("expected a legal recruit action");
+    }
+    const onSelectAction = vi.fn();
+    render(
+      <CellInfoPanel
+        info={cellInfo(session.state, recruit.hex)}
+        onSelectAction={onSelectAction}
+      />,
+    );
+    // Click the first item; it should dispatch the matching recruit action.
+    const first = screen.getAllByTestId("cell-action-button")[0];
+    fireEvent.click(first);
+    expect(onSelectAction).toHaveBeenCalledTimes(1);
+    const action = onSelectAction.mock.calls[0][0] as { type: string; kind: string; hex: Hex };
+    expect(action.type).toBe("recruit");
+    expect(sameHex(action.hex, recruit.hex)).toBe(true);
+  });
+});
