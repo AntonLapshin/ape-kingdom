@@ -484,4 +484,168 @@ describe("PlayableGame", () => {
     );
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Click-vs-drag selection on the full-screen board (M12-T1 / #84)    */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Helpers to drive a realistic pointer gesture (pointer-down → move → up)
+   * and, where a browser would, the follow-up synthetic `click`. dispatching
+   * real pointer/mouse events (not `fireEvent.click` on a cell) exercises the
+   * viewport's `onPointerDown`/`setPointerCapture` wiring that regressed in
+   * #83, so these tests reproduce the bug through the real event path.
+   */
+  const pointerEvent = (
+    game: HTMLElement | Element,
+    type: string,
+    coords?: { x: number; y: number },
+    opts: { pointerId?: number } = {},
+  ) => {
+    const init: Record<string, unknown> = {
+      bubbles: true,
+      cancelable: true,
+      pointerId: opts.pointerId ?? 1,
+    };
+    if (coords) {
+      init.clientX = coords.x;
+      init.clientY = coords.y;
+    }
+    act(() => game.dispatchEvent(new MouseEvent(type, init)));
+  };
+
+  /** Press, release, then emit the browser's synthetic click on `el` with no
+   *  drag — the realistic static-click event sequence. */
+  const staticClick = (el: Element) => {
+    pointerEvent(el, "pointerdown", { x: 0, y: 0 });
+    pointerEvent(el, "pointerup", { x: 0, y: 0 });
+    act(() => fireEvent.click(el));
+  };
+
+  it("selects a hex on a static pointer click (down→up) via the real pointer path (M12-T1)", () => {
+    render(<PlayableGame />);
+    const cells = screen.getAllByTestId("board-cell");
+    const homeCell = cells.find((c) =>
+      c
+        .querySelector('[data-testid="board-site"]')
+        ?.textContent?.includes("Home Tree"),
+    )!;
+
+    // A genuine static click: pointer-down → pointer-up at the same spot, then
+    // the browser's synthetic click. Because nothing is captured for a static
+    // gesture, the click reaches the cell and selects it.
+    staticClick(homeCell);
+
+    expect(homeCell.className).toContain("hex-selected");
+    expect(homeCell.dataset.selected).toBe("true");
+    // The cell-info panel shows the selected home tree.
+    expect(screen.getByTestId("cell-info-site")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("cell-info")).getByText("Home Tree"),
+    ).toBeInTheDocument();
+  });
+
+  it("selects a movable unit via a static pointer click, highlights reachable targets, and pointer-clicking a target moves it (M12-T1)", () => {
+    render(<PlayableGame />);
+
+    // Move actions only become legal after collecting income (turn step A), so
+    // click Collect Income first to make the human's units movable this turn.
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+
+    const cells = screen.getAllByTestId("board-cell");
+
+    // Find a human-owned (p1) unit cell that has at least one legal move this
+    // turn (post-income the units are movable).
+    const unitCell = cells.find(
+      (c) => c.dataset.owner === "p1" && !!c.querySelector("[data-testid='board-unit']"),
+    );
+    expect(unitCell).toBeDefined();
+
+    // Static-click the movable unit to select it (real pointer path).
+    staticClick(unitCell!);
+    expect(unitCell!.className).toContain("hex-selected");
+
+    // Its reachable move-target cells are highlighted.
+    const targets = screen
+      .getAllByTestId("board-cell")
+      .filter((c) => c.dataset.moveTarget === "true");
+    expect(targets.length).toBeGreaterThan(0);
+    expect(unitCell!.dataset.moveTarget).toBe("false");
+
+    // Pointer-clicking a reachable target issues the move: the unit is now on
+    // the target cell and no longer on the original cell.
+    const targetHex = targets[0].dataset.hex!;
+    staticClick(targets[0]);
+    screen.getAllByTestId("board-cell");
+    expect(
+      screen
+        .getAllByTestId("board-cell")
+        .find((c) => c.dataset.hex === unitCell!.dataset.hex)!
+        .querySelector("[data-testid='board-unit']"),
+    ).toBeNull();
+    expect(
+      screen
+        .getAllByTestId("board-cell")
+        .find((c) => c.dataset.hex === targetHex)!
+        .querySelector("[data-testid='board-unit']"),
+    ).not.toBeNull();
+  });
+
+  it("a drag beyond the threshold pans the board WITHOUT selecting a cell (M12-T1)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+    const startStyle = board.getAttribute("style");
+
+    // A genuine drag: pointer-down then a pointer-move well beyond the 5px
+    // threshold, then pointer-up. The board pans.
+    const cell = screen.getAllByTestId("board-cell")[0];
+    pointerEvent(game, "pointerdown", { x: 0, y: 0 });
+    pointerEvent(game, "pointermove", { x: 60, y: 75 });
+    pointerEvent(game, "pointerup", { x: 60, y: 75 });
+
+    // The board translated by the accumulated drag delta.
+    expect(board.getAttribute("style")).not.toBe(startStyle);
+    expect(board.getAttribute("style")!).toContain("translate(60px, 75px)");
+
+    // A real browser fires a synthetic click after the drag. Because the
+    // pointer was captured for the drag, that click is retargeted to this
+    // capturing viewport (not the cell) and must be suppressed — a drag is not
+    // a click, so no cell may become selected.
+    act(() => fireEvent.click(game));
+    expect(cell.className).not.toContain("hex-selected");
+    expect(cell.dataset.selected).toBe("false");
+    // No board cell is selected after the drag.
+    for (const b of screen.getAllByTestId("board-cell")) {
+      expect(b.dataset.selected).toBe("false");
+    }
+  });
+
+  it("a sub-threshold wiggle is still a click: does not pan but does select (M12-T1)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+    const startStyle = board.getAttribute("style");
+    const cells = screen.getAllByTestId("board-cell");
+    const homeCell = cells.find((c) =>
+      c
+        .querySelector('[data-testid="board-site"]')
+        ?.textContent?.includes("Home Tree"),
+    )!;
+
+    // Press, wiggle a couple of pixels (below the drag threshold), release,
+    // and emit the browser's synthetic click on the cell.
+    pointerEvent(game, "pointerdown", { x: 0, y: 0 });
+    pointerEvent(game, "pointermove", { x: 2, y: 3 });
+    pointerEvent(game, "pointerup", { x: 2, y: 3 });
+    act(() => fireEvent.click(homeCell));
+
+    // The tiny wiggle did not pan the board...
+    expect(board.getAttribute("style")).toBe(startStyle);
+    // ...and the static click still selected the cell.
+    expect(homeCell.className).toContain("hex-selected");
+    expect(homeCell.dataset.selected).toBe("true");
+  });
 });
