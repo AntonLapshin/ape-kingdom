@@ -2,9 +2,11 @@
 
 > Project charter / intent.
 
-**Status: in-progress** — M1–M9 are complete and the POC is shipped. New
+**Status: in-progress** — M1–M10 are complete and the POC is shipped. New
 unplanned work was added: M10 (enhance UI & gameplay — viewport navigation
-+ cell info/action panel, from issue #63, in progress). See `project-state.md`
++ cell info/action panel + movement, from issue #63, complete) and M11
+(full-screen game UI with floating elements, from issue #72, in progress).
+See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
@@ -221,10 +223,38 @@ All presentation derives from core logic (legal moves already come from
     `npm test`/`npm run build`/CI stay green
 
 **Sub-issues (first slice):**
-  - [ ] M10-T1 Viewport navigation: full-viewport non-scrollable board + drag-to-pan (#63)
-  - [ ] M10-T2 Mouse-scroll zoom in/out on the board (#63)
-  - [ ] M10-T3 Cell selection + info/action panel (read-only info + actionable items with cost) (#63)
-  - [ ] M10-T4 Movement: highlight reachable cells for a selected unit + click target to move (#63) — planned next slice
+  - [x] M10-T1 Viewport navigation: full-viewport non-scrollable board + drag-to-pan (#63)
+  - [x] M10-T2 Mouse-scroll zoom in/out on the board (#63)
+  - [x] M10-T3 Cell selection + info/action panel (read-only info + actionable items with cost) (#63)
+  - [x] M10-T4 Movement: highlight reachable cells for a selected unit + click target to move (#63)
+
+### M11 — Full-screen game UI with floating elements
+
+**Goal:** Make the game a full-screen (not container-bound) experience per
+unplanned issue #72: the map/board fills the entire viewport and the UI panels
+(status/money/stats, cell info, and action controls incl. End Turn) become
+floating overlay elements on top of the map rather than a side column. All
+derivation stays in `src/core` (100% covered); the UI stays thin per
+`guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`, and changed components get
+Showcase demos.
+
+**Scope:**
+  - Full-screen board layout: remove the `max-w-5xl` container + glass-panel
+    wrapper so the map fills `h-screen w-screen` (no page scroll), preserving
+    drag-to-pan, zoom, and cell selection
+  - Floating overlay panels: render `StatusPanel`, `CellInfoPanel`, and
+    `ActionControls` as absolutely-positioned, `z-index`-layered floating
+    elements at the screen corners/edges over the map, unchanged props/wiring
+  - Polish + demos: apply design-token HUD styling (backdrop blur/shadow/
+    animation), add Showcase demos for the full-screen board + floating HUD,
+    and cover the new layout with component tests
+  - Keep all logic in `src/core` (100% covered); `npm test`/`npm run build`/CI
+    stay green
+
+**Sub-issues (first slice):**
+  - [ ] M11-T1 Full-screen game board fills viewport (#72)
+  - [ ] M11-T2 Floating overlay UI panels over the full-screen map (#72)
+  - [ ] M11-T3 Polish floating full-screen UI: theme, demos, tests (#72)
 
 ### M6 — Hardening and demo readiness
 

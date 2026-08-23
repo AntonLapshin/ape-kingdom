@@ -4,20 +4,21 @@
 
 ## Status
 
-**M1–M9 complete (POC shipped); M10 (enhance UI & gameplay — viewport
-navigation + cell info/action panel + movement, from issue #63) in progress.**
+**M1–M10 complete (POC shipped); M11 (full-screen game UI with floating
+elements, from issue #72) in progress.**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
 hardening/demo readiness, the Showcase component browser (M7), the Atom
-component breakdown (M8), and the map generator (M9) are all implemented,
-merged, tested, and deployed. The live demo is green at
-https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #63
-(enhance UI & gameplay) — is planned as milestone M10 and split into small
-`pi:ready` sub-issues. M10-T1 (drag-to-pan), M10-T2 (mouse-wheel zoom) and
-M10-T3 (cell selection + info/action panel) are merged/deployed; the final
-slice M10-T4 (movement: highlight reachable cells + click target to move,
-#70) is the remaining planned work.
+component breakdown (M8), the map generator (M9), and M10 (viewport navigation
++ cell info/action panel + movement) are all implemented, merged, tested, and
+deployed. The live demo is green at
+https://AntonLapshin.github.io/ape-kingdom/. New unplanned work — issue #72
+(improve the game UI: make the map full-screen with floating UI elements) — is
+planned as milestone M11 and split into three small `pi:ready` sub-issues:
+M11-T1 (full-screen game board fills viewport, #74), M11-T2 (floating overlay
+UI panels over the full-screen map, #75), and M11-T3 (polish floating
+full-screen UI: theme, demos, tests, #76).
 
 ## What's here
 
@@ -89,4 +90,11 @@ slice M10-T4 (movement: highlight reachable cells + click target to move,
   - [x] M10-T1 Full-viewport drag-to-pan board navigation (#64 → PR #67, merged)
   - [x] M10-T2 Mouse-wheel zoom in/out on the board (#65 → PR #68, merged)
   - [x] M10-T3 Cell selection + info/action panel (#66 → PR #69, merged)
-  - [ ] M10-T4 Movement: highlight reachable cells + click target to move (#70, `pi:ready`) — final slice, in progress
+  - [x] M10-T4 Movement: highlight reachable cells + click target to move (#70 → PR #71) — **complete**
+- [ ] M11 — Full-screen game UI with floating elements (issue #72): make the
+  board fill the viewport and render the UI panels (status/money/stats, cell
+  info, action controls incl. End Turn) as floating overlays over the map.
+  Split into three small `pi:ready` sub-issues.
+  - [ ] M11-T1 Full-screen game board fills viewport (#74, `pi:ready`)
+  - [ ] M11-T2 Floating overlay UI panels over the full-screen map (#75, `pi:ready`)
+  - [ ] M11-T3 Polish floating full-screen UI: theme, demos, tests (#76, `pi:ready`)
