@@ -8,19 +8,31 @@ import {
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
-import { sameHex, createUnit } from "../../src/core/game";
+import { sameHex, createUnit, type GameState, type Hex } from "../../src/core/game";
 
 /* ------------------------------------------------------------------ */
 /* boardCells (pure presentation adaptation)                           */
 /* ------------------------------------------------------------------ */
 
 describe("boardCells", () => {
+  /** p1's Home Tree hex on the generated board (map-agnostic). */
+  function p1Home(state: GameState): Hex {
+    const home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    );
+    if (!home) throw new Error("expected a p1 Home Tree");
+    return home.hex;
+  }
+
   it("produces one cell per unique hex across sites and units", () => {
     const state = standardSetup();
     const cells = boardCells(state);
-    // The standard setup has 12 sites plus 8 starting units; 4 of the units
-    // sit on non-site hexes, so there are 16 unique hexes in total.
-    expect(cells).toHaveLength(16);
+    // The unique hexes are the union of site hexes and unit hexes.
+    const unique = new Set([
+      ...state.sites.map((s) => `${s.hex.q},${s.hex.r}`),
+      ...state.units.map((u) => `${u.hex.q},${u.hex.r}`),
+    ]);
+    expect(cells).toHaveLength(unique.size);
     // Every site hex and every unit hex is represented exactly once.
     const hexKeys = cells.map((c) => `${c.hex.q},${c.hex.r}`);
     expect(new Set(hexKeys).size).toBe(hexKeys.length);
@@ -32,8 +44,8 @@ describe("boardCells", () => {
   it("attaches the site and unit that occupy the same hex", () => {
     const state = standardSetup();
     const cells = boardCells(state);
-    // p1's Home Tree at (0,0) is occupied by a starting Monkey.
-    const home = cells.find((c) => sameHex(c.hex, { q: 0, r: 0 }));
+    // p1's Home Tree is occupied by a starting Monkey.
+    const home = cells.find((c) => sameHex(c.hex, p1Home(state)));
     expect(home).toBeDefined();
     expect(home!.site?.kind).toBe("HomeTree");
     expect(home!.site?.owner).toBe("p1");
@@ -44,19 +56,19 @@ describe("boardCells", () => {
   it("derives each unit's rank from its kind on the view", () => {
     const state = standardSetup();
     // Starting Monkeys resolve to rank 1 (not a hardcoded stub).
-    const home = boardCells(state).find((c) => sameHex(c.hex, { q: 0, r: 0 }));
+    const home = boardCells(state).find((c) => sameHex(c.hex, p1Home(state)));
     expect(home?.unit?.kind).toBe("Monkey");
     expect(home?.unit?.rank).toBe(1);
-    // A Gorilla placed at an empty Grassland resolves to rank 4.
+    // A Gorilla placed at an empty hex resolves to rank 4.
+    const emptyHex = state.map.cells
+      .map((c) => c.hex)
+      .find((h) => !state.units.some((u) => sameHex(u.hex, h)))!;
     const withGorilla = {
       ...state,
-      units: [
-        ...state.units,
-        createUnit("Gorilla", "p1", { q: 5, r: 5 }),
-      ],
+      units: [...state.units, createUnit("Gorilla", "p1", emptyHex)],
     };
     const gorillaCell = boardCells(withGorilla).find((c) =>
-      sameHex(c.hex, { q: 5, r: 5 }),
+      sameHex(c.hex, emptyHex),
     );
     expect(gorillaCell?.unit?.kind).toBe("Gorilla");
     expect(gorillaCell?.unit?.rank).toBe(4);
@@ -66,15 +78,11 @@ describe("boardCells", () => {
     const state = standardSetup();
     const cells = boardCells(state);
     // A neutral Grove with no unit on it.
-    const grove = cells.find(
-      (c) => sameHex(c.hex, { q: 1, r: -1 }) && c.site?.kind === "Grove",
-    );
+    const grove = cells.find((c) => c.site?.kind === "Grove" && !c.unit);
     expect(grove).toBeDefined();
     expect(grove!.unit).toBeNull();
-    // A unit not on a site (a Monkey at (0,1) has no site).
-    const unitOnly = cells.find(
-      (c) => c.unit && c.unit.owner === "p1" && sameHex(c.hex, { q: 0, r: 1 }),
-    );
+    // A unit not on a site (an occupied hex with no site).
+    const unitOnly = cells.find((c) => c.unit && !c.site);
     expect(unitOnly).toBeDefined();
     expect(unitOnly!.site).toBeNull();
   });
@@ -203,7 +211,10 @@ describe("useGameSession", () => {
   });
 
   it("marks the view done with a winner when the game ends", () => {
-    const { result } = renderHook(() => useGameSession());
+    // Use a small map so a full (greedy) human-vs-AI game reliably terminates.
+    const { result } = renderHook(() =>
+      useGameSession(0, { width: 7, height: 7, seed: 0 }),
+    );
     // Force a win by selecting income, then submit with p1 controlling all
     // Home Trees — the core session resolves victory and marks the turn done.
     act(() => {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { GameState, ApeUnit, Site, Player } from "../../src/core/game";
+import { generateMap } from "../../src/core/mapGenerator";
 import {
   createUnit,
   createSite,
@@ -34,6 +35,7 @@ function gameState(opts: {
     currentPlayer: opts.currentPlayer ?? "p1",
     turnOrder: opts.turnOrder ?? ["p1", "p2"],
     winner: opts.winner ?? null,
+    map: generateMap({ width: 7, height: 7, seed: 0 }),
   };
 }
 

@@ -7,6 +7,12 @@
  * dependencies, so it can be tested exhaustively and reused by the UI layer.
  */
 
+// Type-only import of the generated-board model so a `GameState` can carry
+// the board built by `standardSetup`. `mapGenerator.ts` imports runtime
+// helpers from this module; this type-only import is erased at compile time,
+// so the runtime dependency stays one-directional.
+import type { GameMap } from "./mapGenerator";
+
 /* ------------------------------------------------------------------ */
 /* Ape units                                                           */
 /* ------------------------------------------------------------------ */
@@ -148,6 +154,8 @@ export interface GameState {
   turnOrder: PlayerId[];
   /** The winning player, or null while the game is still in progress. */
   winner: PlayerId | null;
+  /** The generated board the game is played on. */
+  map: GameMap;
 }
 
 /* ------------------------------------------------------------------ */
