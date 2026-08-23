@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Wired the map generator into game setup so each game starts on a freshly
+  generated board (M9-T2, #53). `standardSetup` / `createGameSession` now use
+  `generateMap` (M9-T1) to build a new 20×20 board by default (configurable via
+  a `MapConfig`, e.g. a `seed`, for deterministic reproduction), instead of the
+  fixed small board. Each player's Home Tree is placed on opposite sides of the
+  generated island with the 6 neutral Groves and 4 Nests between them, all on
+  land cells only, and no starting unit is placed in the sea. The generated
+  board is carried on the new `GameState.map` field (a type-only import keeps
+  the runtime dependency one-directional), so it flows through every reducer
+  and is available to the UI later for terrain rendering (M9-T3). The
+  `useGameSession` view model now accepts an optional `mapConfig`. A defensive
+  `no-suitable-home` error guards against degenerate maps. Core stays decoupled
+  and 100% covered.
+
 - Added a `Board` component test asserting the unit badge renders the
   view-model-driven text `<kind> <rank>` (M9-T4, #57). The test verifies the
   starting Monkey at (0,0) renders as "Monkey 1", wiring the core `rankOf()`

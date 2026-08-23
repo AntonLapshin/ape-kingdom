@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { legalActions } from "../../src/core/ai";
 import { sameHex } from "../../src/core/game";
 import { createUnit, createSite, createPlayer } from "../../src/core/game";
+import { generateMap, terrainAt, type GameMap } from "../../src/core/mapGenerator";
 import type { GameSession } from "../../src/core/gameSession";
 import {
   createGameSession,
@@ -9,11 +10,45 @@ import {
   submitTurn,
   resetTurn,
   standardSetup,
+  chooseHomeHexes,
   GameSessionError,
 } from "../../src/core/gameSession";
 
-/** The standard setup's legal recruit placement hex for p1 (empty, adjacent). */
-const RECRUIT_HEX = { q: 0, r: -1 };
+/**
+ * A small 7×7 map config used by full-game simulation tests. On maps this
+ * small the players' Home Trees start close together, so full games reliably
+ * terminate quickly (the default 20×20 board is too large for a greedy
+ * legal-move picker to reach victory in a bounded number of turns).
+ */
+const SIM_MAP = { width: 7, height: 7, seed: 0 };
+
+/* ------------------------------------------------------------------ */
+/* Map-agnostic test helpers                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Return a legal `recruit` action from the session's current legal set.
+ * Used instead of hard-coded hexes so tests hold on any generated map.
+ */
+function firstRecruit(session: GameSession) {
+  const action = session.legalMoves.find((a) => a.type === "recruit");
+  if (!action || action.type !== "recruit") {
+    throw new Error("expected a legal recruit action");
+  }
+  return action;
+}
+
+/**
+ * Return a legal `move` action from the session's current legal set.
+ * Used instead of hard-coded hexes so tests hold on any generated map.
+ */
+function firstMove(session: GameSession) {
+  const action = session.legalMoves.find((a) => a.type === "move");
+  if (!action || action.type !== "move") {
+    throw new Error("expected a legal move action");
+  }
+  return action;
+}
 
 /* ------------------------------------------------------------------ */
 /* standardSetup                                                       */
@@ -46,6 +81,94 @@ describe("standardSetup", () => {
       expect(units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
       expect(state.players[id].bananas).toBe(2);
     }
+  });
+
+  it("generates a fresh 20x20 map by default and carries it on the state", () => {
+    const state = standardSetup();
+    expect(state.map.width).toBe(20);
+    expect(state.map.height).toBe(20);
+    expect(state.map.cells).toHaveLength(400);
+  });
+
+  it("places a different map per seed (fresh map per game)", () => {
+    const a = standardSetup({ seed: 1 });
+    const b = standardSetup({ seed: 2 });
+    expect(a.map.cells).not.toEqual(b.map.cells);
+  });
+
+  it("reproduces the same map for the same seed", () => {
+    expect(standardSetup({ seed: 7 }).map.cells).toEqual(
+      standardSetup({ seed: 7 }).map.cells,
+    );
+  });
+
+  it("honours a custom map config (non-default dimensions)", () => {
+    const state = standardSetup({ width: 9, height: 7, seed: 3 });
+    expect(state.map.width).toBe(9);
+    expect(state.map.height).toBe(7);
+    expect(state.map.cells).toHaveLength(9 * 7);
+  });
+
+  it("places the two Home Trees on opposite sides of the island", () => {
+    const state = standardSetup();
+    const homes = state.sites.filter((s) => s.kind === "HomeTree");
+    const p1Home = homes.find((s) => s.owner === "p1")!.hex;
+    const p2Home = homes.find((s) => s.owner === "p2")!.hex;
+    // Opposite sides: p1 leftmost, p2 rightmost, clearly separated.
+    expect(p1Home.q).toBeLessThan(p2Home.q);
+    const distance = Math.max(
+      Math.abs(p1Home.q - p2Home.q),
+      Math.abs(p1Home.r - p2Home.r),
+    );
+    expect(distance).toBeGreaterThan(5);
+  });
+
+  it("places every site on a land cell only", () => {
+    const state = standardSetup();
+    for (const site of state.sites) {
+      expect(terrainAt(state.map, site.hex)).toBe("land");
+    }
+  });
+
+  it("places no starting unit in the sea remainders", () => {
+    const state = standardSetup();
+    for (const unit of state.units) {
+      const terrain = terrainAt(state.map, unit.hex);
+      expect(terrain).not.toBe("water");
+      expect(terrain).not.toBeNull();
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* chooseHomeHexes                                                     */
+/* ------------------------------------------------------------------ */
+
+describe("chooseHomeHexes", () => {
+  it("returns two distinct home hexes from a generated map", () => {
+    const { p1, p2 } = chooseHomeHexes(standardSetup().map);
+    expect(sameHex(p1, p2)).toBe(false);
+  });
+
+  it("throws no-suitable-home when the map has too few suitable land cells", () => {
+    // A degenerate map with a single isolated land cell (no land neighbours)
+    // cannot fit two Home Trees, so setup must reject it rather than crash.
+    const base = generateMap({ width: 5, height: 5, seed: 0 });
+    const degenerate: GameMap = {
+      width: base.width,
+      height: base.height,
+      cells: base.cells.map((c, i) =>
+        i === 0 ? { hex: c.hex, terrain: "land" } : { hex: c.hex, terrain: "water" },
+      ),
+    };
+    let err: unknown;
+    try {
+      chooseHomeHexes(degenerate);
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(GameSessionError);
+    expect((err as GameSessionError).kind).toBe("no-suitable-home");
   });
 });
 
@@ -82,6 +205,13 @@ describe("createGameSession", () => {
     expect(session.aiSeed).toBe(42);
     expect(session.aiOptions).toEqual({ difficulty: 1, preferRecruit: true });
   });
+
+  it("passes a mapConfig through to the generated board", () => {
+    const session = createGameSession(0, {}, { width: 9, height: 7, seed: 4 });
+    const state = session.baseState;
+    expect(state.map.width).toBe(9);
+    expect(state.map.height).toBe(7);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -107,27 +237,25 @@ describe("selectAction", () => {
     const session = createGameSession();
     // On the income step, recruiting is not yet legal.
     expect(() =>
-      selectAction(session, { type: "recruit", kind: "Monkey", hex: RECRUIT_HEX }),
+      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
     ).toThrow(GameSessionError);
     expect(() =>
-      selectAction(session, { type: "recruit", kind: "Monkey", hex: RECRUIT_HEX }),
+      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
     ).toThrow(/not a legal move/);
   });
 
   it("appends a recruit action and stays in the recruit step", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
-    session = selectAction(session, {
-      type: "recruit",
-      kind: "Monkey",
-      hex: RECRUIT_HEX,
-    });
+    const recruit = firstRecruit(session);
+    session = selectAction(session, recruit);
     expect(session.step).toBe("recruit");
     expect(session.moves).toHaveLength(2);
     // The recruited unit appears in the projected state.
     expect(
       session.state.units.some(
-        (u) => u.owner === "p1" && u.kind === "Monkey" && sameHex(u.hex, RECRUIT_HEX),
+        (u) =>
+          u.owner === "p1" && u.kind === recruit.kind && sameHex(u.hex, recruit.hex),
       ),
     ).toBe(true);
   });
@@ -135,12 +263,8 @@ describe("selectAction", () => {
   it("moves to the movefight step after a move or attack", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
-    // p1's starting units are at (0,0),(1,0),(-1,0),(0,1); (1,0) can move to (2,0).
-    session = selectAction(session, {
-      type: "move",
-      unitHex: { q: 1, r: 0 },
-      targetHex: { q: 2, r: 0 },
-    });
+    const move = firstMove(session);
+    session = selectAction(session, move);
     expect(session.step).toBe("movefight");
     // Recruiting is no longer legal once the human has moved/fought.
     expect(
@@ -154,41 +278,25 @@ describe("selectAction", () => {
   it("allows skipping recruiting by moving straight to the movefight step", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
-    session = selectAction(session, {
-      type: "move",
-      unitHex: { q: 1, r: 0 },
-      targetHex: { q: 2, r: 0 },
-    });
+    session = selectAction(session, firstMove(session));
     expect(session.step).toBe("movefight");
   });
 
   it("rejects a recruit after the human has moved/fought", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
-    session = selectAction(session, {
-      type: "move",
-      unitHex: { q: 1, r: 0 },
-      targetHex: { q: 2, r: 0 },
-    });
+    // A recruit action that was legal before moving.
+    const recruit = firstRecruit(session);
+    session = selectAction(session, firstMove(session));
     // After a move, recruiting is no longer in legalMoves.
-    expect(() =>
-      selectAction(session, {
-        type: "recruit",
-        kind: "Monkey",
-        hex: RECRUIT_HEX,
-      }),
-    ).toThrow(GameSessionError);
+    expect(() => selectAction(session, recruit)).toThrow(GameSessionError);
   });
 
   it("shrinks legalMoves as units act", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
     const before = session.legalMoves.filter((a) => a.type === "move").length;
-    session = selectAction(session, {
-      type: "move",
-      unitHex: { q: 1, r: 0 },
-      targetHex: { q: 2, r: 0 },
-    });
+    session = selectAction(session, firstMove(session));
     const after = session.legalMoves.filter((a) => a.type === "move").length;
     // The moved unit is no longer selectable, so the move count drops.
     expect(after).toBeLessThan(before);
@@ -209,6 +317,7 @@ describe("selectAction", () => {
       currentPlayer: "p1",
       turnOrder: ["p1", "p2"],
       winner: null,
+      map: generateMap({ width: 7, height: 7, seed: 0 }),
     };
     let session: GameSession = {
       baseState,
@@ -302,16 +411,14 @@ describe("submitTurn", () => {
   it("applies the human's selected moves before the AI reply", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
-    session = selectAction(session, {
-      type: "recruit",
-      kind: "Monkey",
-      hex: RECRUIT_HEX,
-    });
+    const recruit = firstRecruit(session);
+    session = selectAction(session, recruit);
     const next = submitTurn(session);
-    // The recruited Monkey remains on the map after the turn.
+    // The recruited ape remains on the map after the turn.
     expect(
       next.state.units.some(
-        (u) => u.owner === "p1" && u.kind === "Monkey" && sameHex(u.hex, RECRUIT_HEX),
+        (u) =>
+          u.owner === "p1" && u.kind === recruit.kind && sameHex(u.hex, recruit.hex),
       ),
     ).toBe(true);
   });
@@ -372,11 +479,7 @@ describe("resetTurn", () => {
   it("discards this turn's selections and returns to the income step", () => {
     let session = createGameSession();
     session = selectAction(session, { type: "collectIncome" });
-    session = selectAction(session, {
-      type: "recruit",
-      kind: "Monkey",
-      hex: RECRUIT_HEX,
-    });
+    session = selectAction(session, firstRecruit(session));
     expect(session.step).toBe("recruit");
     expect(session.moves).toHaveLength(2);
 
@@ -423,7 +526,7 @@ describe("resetTurn", () => {
 describe("full-game simulation via session", () => {
   it("completes many seeded games with a winner and no illegal moves", () => {
     for (let gameSeed = 0; gameSeed < 10; gameSeed++) {
-      let session = createGameSession(gameSeed);
+      let session = createGameSession(gameSeed, {}, SIM_MAP);
       let guard = 0;
       while (session.step !== "done" && guard < 200) {
         // Build the human's turn by selecting legal moves until none remain

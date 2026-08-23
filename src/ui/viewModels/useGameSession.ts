@@ -10,6 +10,7 @@ import type {
   ApeRank,
 } from "../../core/game";
 import { rankOf } from "../../core/game";
+import type { MapConfig } from "../../core/mapGenerator";
 import type { GameAction } from "../../core/ai";
 import type { TurnStep } from "../../core/gameSession";
 import {
@@ -169,13 +170,15 @@ export function toGameSessionView(session: {
  *
  * No game rules live here; every operation delegates to `src/core`.
  */
-export function useGameSession(aiSeed = 0): {
+export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   view: GameSessionView;
   selectAction: (action: GameAction) => void;
   clearActions: () => void;
   submitTurn: () => void;
 } {
-  const [session, setSession] = useState(() => createGameSession(aiSeed));
+  const [session, setSession] = useState(() =>
+    createGameSession(aiSeed, {}, mapConfig),
+  );
 
   const view = useMemo(() => toGameSessionView(session), [session]);
 

@@ -43,13 +43,18 @@ describe("SITE_LABELS", () => {
 describe("Board", () => {
   const state = standardSetup();
   const board = boardCells(state);
+  // p1's Home Tree hex on the generated board (map-agnostic).
+  const p1Home = state.sites.find(
+    (s) => s.kind === "HomeTree" && s.owner === "p1",
+  )!.hex;
+  const p1HomeKey = `${p1Home.q},${p1Home.r}`;
 
   it("renders one cell per board cell with owner colouring", () => {
     render(<Board board={board} currentPlayer="p1" />);
     const cells = screen.getAllByTestId("board-cell");
     expect(cells).toHaveLength(board.length);
     // The p1 Home Tree cell is owned by p1.
-    const home = cells.find((c) => c.dataset.hex === "0,0");
+    const home = cells.find((c) => c.dataset.hex === p1HomeKey);
     expect(home).toBeDefined();
     expect(home!.dataset.owner).toBe("p1");
   });
@@ -63,10 +68,10 @@ describe("Board", () => {
 
   it("renders the unit badge text as '<kind> <rank>' (view-model wiring)", () => {
     render(<Board board={board} currentPlayer="p1" />);
-    // The starting Monkey at (0,0) resolves to rank 1 via the view model.
+    // The starting Monkey at p1's Home Tree resolves to rank 1 via the view model.
     const homeCell = screen
       .getAllByTestId("board-cell")
-      .find((c) => c.dataset.hex === "0,0");
+      .find((c) => c.dataset.hex === p1HomeKey);
     const badge = homeCell!.querySelector('[data-testid="board-unit"]');
     expect(badge).not.toBeNull();
     expect(badge!.textContent).toBe("Monkey 1");

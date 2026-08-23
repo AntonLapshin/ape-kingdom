@@ -28,13 +28,22 @@
  * business logic operating on the `GameState` from `src/core/game.ts`.
  */
 
-import type { GameState, PlayerId } from "./game";
+import type { GameState, PlayerId, Hex, Site } from "./game";
 import {
   sameHex,
   createSite,
   startingForce,
   collectIncome,
+  adjacentHexes,
+  hexDistance,
 } from "./game";
+import {
+  generateMap,
+  terrainAt,
+  isLandSurface,
+  type GameMap,
+  type MapConfig,
+} from "./mapGenerator";
 import { legalActions, type GameAction, type AiOptions } from "./ai";
 import { applyHumanMoves, playTurn } from "./gameLoop";
 
@@ -69,7 +78,9 @@ export type SessionErrorKind =
   /** The game has already ended; no further actions may be selected. */
   | "turn-already-ended"
   /** The human tried to end their turn before collecting income (step A). */
-  | "income-not-collected";
+  | "income-not-collected"
+  /** No suitable land cell was found to place both Home Trees on. */
+  | "no-suitable-home";
 
 /** A typed error describing why a session operation was rejected. */
 export class GameSessionError extends Error {
@@ -107,33 +118,129 @@ export interface GameSession {
 }
 
 /* ------------------------------------------------------------------ */
+/* Generated-map setup helpers                                         */
+/* ------------------------------------------------------------------ */
+
+/** A stable key for a hex. */
+function hexKey(hex: Hex): string {
+  return `${hex.q},${hex.r}`;
+}
+
+/**
+ * The three neighbour hexes the standard `startingForce` occupies around a
+ * Home Tree (origin, and the first three of `adjacentHexes(origin)`). Used to
+ * guarantee those hexes are land so no starting unit is placed in the sea.
+ */
+function forceHexes(home: Hex): Hex[] {
+  const [n1, n2, n3] = adjacentHexes(home);
+  return [home, n1, n2, n3];
+}
+/**
+ * Whether the hex is a solid land surface (land or mountain) on the map.
+ * Out-of-bounds hexes are treated as not land surface.
+ */
+function isLandAt(map: GameMap, hex: Hex): boolean {
+  const terrain = terrainAt(map, hex);
+  return terrain !== null && isLandSurface(terrain);
+}
+
+/**
+ * Choose one Home Tree hex per player on opposite sides of the generated
+ * island.
+ *
+ * A candidate hex must be plain `land` (not mountain) and its starting-force
+ * neighbourhood (the home plus the three neighbouring hexes the rules'
+ * starting force occupies) must be entirely land surface, so the Home Tree
+ * sits on land and no starting unit is placed in the sea or outside the map.
+ * Among those candidates, `p1` takes the leftmost (smallest `q`) and `p2`
+ * the rightmost (largest `q`), placing them on opposite sides of the island.
+ *
+ * Throws a typed `GameSessionError` (`no-suitable-home`) when the map is too
+ * small / degenerate to fit two such Home Trees.
+ */
+export function chooseHomeHexes(map: GameMap): { p1: Hex; p2: Hex } {
+  const candidates = map.cells
+    .filter((cell) => cell.terrain === "land")
+    .map((cell) => cell.hex)
+    .filter((hex) => forceHexes(hex).every((h) => isLandAt(map, h)));
+
+  if (candidates.length < 2) {
+    throw new GameSessionError(
+      "no-suitable-home",
+      "Cannot place two Home Trees on opposite sides of the generated map: " +
+        "not enough suitable land cells",
+    );
+  }
+
+  const byQ = [...candidates].sort((a, b) => a.q - b.q || a.r - b.r);
+  return { p1: byQ[0], p2: byQ[byQ.length - 1] };
+}
+
+/**
+ * Place the 6 neutral Groves and 4 neutral Nests on land cells between the
+ * two Home Trees.
+ *
+ * The sites are placed on plain `land` cells (not mountains, not water) that
+ * are not already occupied by a Home Tree or a starting unit, chosen to lie
+ * closest to the midpoint between the two Home Trees so the neutral sites sit
+ * "between" the players. Returns 6 Groves followed by 4 Nests.
+ */
+function placeNeutralSites(map: GameMap, p1Home: Hex, p2Home: Hex): Site[] {
+  const used = new Set<string>([
+    ...forceHexes(p1Home).map(hexKey),
+    ...forceHexes(p2Home).map(hexKey),
+  ]);
+  const mid = { q: (p1Home.q + p2Home.q) / 2, r: (p1Home.r + p2Home.r) / 2 };
+
+  const available = map.cells
+    .filter((cell) => cell.terrain === "land")
+    .map((cell) => cell.hex)
+    .filter((hex) => !used.has(hexKey(hex)))
+    .sort((a, b) => hexDistance(a, mid) - hexDistance(b, mid))
+    .slice(0, 10);
+
+  return [
+    ...available.slice(0, 6).map((h) => createSite("Grove", h.q, h.r)),
+    ...available.slice(6, 10).map((h) => createSite("Nest", h.q, h.r)),
+  ];
+}
+
+/* ------------------------------------------------------------------ */
 /* Standard two-player setup                                           */
 /* ------------------------------------------------------------------ */
 
 /**
- * Build the standard two-player setup from the rules: each player places one
- * Home Tree on opposite sides of the map with neutral Groves/Nests between
- * them, and each player starts with the standard `startingForce` (3 Monkeys,
- * 1 Gibbon, 2 bananas). Returns the initial `GameState` with `p1` as the
- * current player.
+ * Build the standard two-player setup from the rules on a freshly generated
+ * map.
+ *
+ * A new playable map is generated via `generateMap` (M9-T1) each time setup
+ * runs — by default 20×20 with the default generation props — so every game
+ * starts on a fresh board instead of a fixed small one. Pass an optional
+ * `MapConfig` (e.g. a `seed`) to reproduce a specific map deterministically.
+ *
+ * Per the rules each player places one Home Tree on opposite sides of the
+ * island, with 6 neutral Groves and 4 Nests between them, and starts with the
+ * standard `startingForce` (3 Monkeys, 1 Gibbon, 2 bananas). Both Home Trees
+ * and every site are placed on land cells, and no starting unit is placed in
+ * the sea. The generated board is carried on the returned state's `map`.
+ *
+ * The returned state has `p1` as the current player. Throws a typed
+ * `GameSessionError` (`no-suitable-home`) if the map is too degenerate to
+ * place both Home Trees on land.
  */
-export function standardSetup(): GameState {
-  const p1 = startingForce("p1", { q: 0, r: 0 });
-  const p2 = startingForce("p2", { q: 5, r: 0 });
+export function standardSetup(config?: MapConfig): GameState {
+  const map = generateMap(config);
+  const { p1: p1Home, p2: p2Home } = chooseHomeHexes(map);
+
+  const p1 = startingForce("p1", p1Home);
+  const p2 = startingForce("p2", p2Home);
+
   return {
+    map,
     sites: [
-      createSite("HomeTree", 0, 0, "p1"),
-      createSite("HomeTree", 5, 0, "p2"),
-      createSite("Grove", 1, 0),
-      createSite("Grove", 2, 0),
-      createSite("Grove", 3, 0),
-      createSite("Grove", 4, 0),
-      createSite("Grove", 1, -1),
-      createSite("Grove", 4, -1),
-      createSite("Nest", 2, -1),
-      createSite("Nest", 3, -1),
-      createSite("Nest", 2, 1),
-      createSite("Nest", 3, 1),
+      createSite("HomeTree", p1Home.q, p1Home.r, "p1"),
+      createSite("HomeTree", p2Home.q, p2Home.r, "p2"),
+      ...placeNeutralSites(map, p1Home, p2Home),
     ],
     units: [...p1.units, ...p2.units],
     players: { p1: p1.player, p2: p2.player },
@@ -240,13 +347,15 @@ function sameAction(a: GameAction, b: GameAction): boolean {
  *
  * The AI's reply is driven by `aiSeed` (deterministic for a given seed) and
  * `aiOptions` (behavior knobs), both of which are carried through to
- * `submitTurn`.
+ * `submitTurn`. An optional `mapConfig` is passed to `standardSetup` to
+ * reproduce a specific generated board deterministically (default 20×20).
  */
 export function createGameSession(
   aiSeed = 0,
   aiOptions: AiOptions = {},
+  mapConfig?: MapConfig,
 ): GameSession {
-  const baseState = standardSetup();
+  const baseState = standardSetup(mapConfig);
   const state = resetUnitsForTurn(baseState, baseState.currentPlayer);
   return {
     baseState,
