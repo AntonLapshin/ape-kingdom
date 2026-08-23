@@ -58,7 +58,9 @@ export function showcaseRegistry(): ShowcaseRegistry {
     {
       name: CellShowcase.name,
       showcases: {
-        Neutral: CellShowcase.Neutral,
+        Land: CellShowcase.Land,
+        Water: CellShowcase.Water,
+        Mountain: CellShowcase.Mountain,
         PlayerOne: CellShowcase.PlayerOne,
         PlayerTwo: CellShowcase.PlayerTwo,
         PlayerOneCurrent: CellShowcase.PlayerOneCurrent,

@@ -1,7 +1,7 @@
 import { Cell } from "../components/Cell";
 
 /**
- * Showcase demos for the `Cell` atom component (M8-T1).
+ * Showcase demos for the `Cell` atom component (M8-T1, M9-T3).
  *
  * Each named export is a tiny render function showing the component in one
  * state. There is no component implementation or business logic here — only
@@ -18,30 +18,44 @@ const Stage = ({ children }: { children: React.ReactNode }) => (
   <div className="relative h-24 w-24">{children}</div>
 );
 
-/** A neutral (unowned) terrain cell. */
-export const Neutral = () => (
+/** A land terrain cell (the default). */
+export const Land = () => (
   <Stage>
-    <Cell q={0} r={0} owner={null} x={0} y={0} />
+    <Cell q={0} r={0} owner={null} terrain="land" x={0} y={0} />
   </Stage>
 );
 
-/** A p1-owned cell. */
+/** A water terrain cell. */
+export const Water = () => (
+  <Stage>
+    <Cell q={0} r={0} owner={null} terrain="water" x={0} y={0} />
+  </Stage>
+);
+
+/** A mountain terrain cell. */
+export const Mountain = () => (
+  <Stage>
+    <Cell q={0} r={0} owner={null} terrain="mountain" x={0} y={0} />
+  </Stage>
+);
+
+/** A p1-owned land cell. */
 export const PlayerOne = () => (
   <Stage>
-    <Cell q={0} r={0} owner="p1" x={0} y={0} />
+    <Cell q={0} r={0} owner="p1" terrain="land" x={0} y={0} />
   </Stage>
 );
 
-/** A p2-owned cell. */
+/** A p2-owned land cell. */
 export const PlayerTwo = () => (
   <Stage>
-    <Cell q={0} r={0} owner="p2" x={0} y={0} />
+    <Cell q={0} r={0} owner="p2" terrain="land" x={0} y={0} />
   </Stage>
 );
 
-/** A p1-owned cell highlighted as the current player's territory. */
+/** A p1-owned land cell highlighted as the current player's territory. */
 export const PlayerOneCurrent = () => (
   <Stage>
-    <Cell q={0} r={0} owner="p1" isCurrent x={0} y={0} />
+    <Cell q={0} r={0} owner="p1" terrain="land" isCurrent x={0} y={0} />
   </Stage>
 );

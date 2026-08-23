@@ -21,16 +21,40 @@ describe("Cell", () => {
     expect(cell.dataset.owner).toBe("p2");
   });
 
-  it("uses the rose token background for p1 and violet for p2", () => {
-    const { rerender } = render(<Cell q={0} r={0} owner="p1" x={0} y={0} />);
-    expect(screen.getByTestId("board-cell").className).toContain("bg-brand-rose");
-    rerender(<Cell q={0} r={0} owner="p2" x={0} y={0} />);
-    expect(screen.getByTestId("board-cell").className).toContain("bg-brand-violet");
+  it("defaults terrain to land", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.dataset.terrain).toBe("land");
+    expect(cell.className).toContain("bg-terrain-land");
   });
 
-  it("uses the amber-soft token background for neutral terrain", () => {
+  it("renders a distinct token background per terrain (land/water/mountain)", () => {
+    const { rerender } = render(
+      <Cell q={0} r={0} owner={null} terrain="land" x={0} y={0} />,
+    );
+    expect(screen.getByTestId("board-cell").dataset.terrain).toBe("land");
+    expect(screen.getByTestId("board-cell").className).toContain(
+      "bg-terrain-land",
+    );
+
+    rerender(<Cell q={0} r={0} owner={null} terrain="water" x={0} y={0} />);
+    expect(screen.getByTestId("board-cell").dataset.terrain).toBe("water");
+    expect(screen.getByTestId("board-cell").className).toContain(
+      "bg-terrain-water",
+    );
+
+    rerender(<Cell q={0} r={0} owner={null} terrain="mountain" x={0} y={0} />);
+    expect(screen.getByTestId("board-cell").dataset.terrain).toBe("mountain");
+    expect(screen.getByTestId("board-cell").className).toContain(
+      "bg-terrain-mountain",
+    );
+  });
+
+  it("keeps land terrain (and styling) when terrain prop is omitted", () => {
     render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
-    expect(screen.getByTestId("board-cell").className).toContain("bg-brand-amber-soft");
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.dataset.terrain).toBe("land");
+    expect(cell.className).toContain("bg-terrain-land");
   });
 
   it("applies the hex-cell/hex-pop classes and clip-path", () => {

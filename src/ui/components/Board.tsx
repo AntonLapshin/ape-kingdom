@@ -16,10 +16,11 @@ export interface BoardProps {
  * Thin, dumb board component (M4-T3).
  *
  * Renders the hex map from the view-model `board` cells: each cell is drawn
- * as a hexagon coloured by the site/unit owner, with the unit (ape kind +
- * rank) shown as a badge when present. It is purely presentational — it
- * receives the already-adapted `BoardCell[]` and renders props only. No
- * business logic, no hooks, no side effects.
+ * as a hexagon coloured by its terrain (land / water / mountain, M9-T3), with
+ * the unit (ape kind + rank) shown as a badge and the site label shown when
+ * present. It is purely presentational — it receives the already-adapted
+ * `BoardCell[]` and renders props only. No business logic, no hooks, no side
+ * effects.
  */
 export function Board({ board, currentPlayer }: BoardProps) {
   // Compute the bounding box so the board is centred in its container.
@@ -47,6 +48,7 @@ export function Board({ board, currentPlayer }: BoardProps) {
             q={cell.hex.q}
             r={cell.hex.r}
             owner={owner}
+            terrain={cell.terrain}
             isCurrent={owner === currentPlayer}
             x={x - minX + pad - HEX_SIZE}
             y={y - minY + pad - HEX_SIZE}

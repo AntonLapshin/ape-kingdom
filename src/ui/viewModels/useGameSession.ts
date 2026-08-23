@@ -10,7 +10,7 @@ import type {
   ApeRank,
 } from "../../core/game";
 import { rankOf } from "../../core/game";
-import type { MapConfig } from "../../core/mapGenerator";
+import type { MapConfig, Terrain } from "../../core/mapGenerator";
 import type { GameAction } from "../../core/ai";
 import type { TurnStep } from "../../core/gameSession";
 import {
@@ -37,10 +37,12 @@ import {
  * without mounting the hook.
  */
 
-/** A single renderable board cell: a hex plus the site and/or unit on it. */
+/** A single renderable board cell: a hex, its terrain, and the site/unit on it. */
 export interface BoardCell {
   /** The hex this cell represents. */
   hex: Hex;
+  /** The terrain (land / water / mountain) of this hex from the generated map. */
+  terrain: Terrain;
   /** The site on this hex, or null if there is none. */
   site: Site | null;
   /** The unit on this hex, or null if there is none. */
@@ -90,9 +92,11 @@ export interface GameSessionView {
 }
 
 /**
- * Pure presentation adaptation: flatten a `GameState`'s sites and units into
- * one renderable cell per unique hex. Not game logic — just arranging the
- * core state into the shape the board renders.
+ * Pure presentation adaptation: flatten a `GameState`'s generated map into one
+ * renderable cell per map hex, attaching the site and/or unit that occupy each
+ * hex (if any) and the hex's terrain. Every hex of the generated map is
+ * represented so the board can render the full terrain. Not game logic — just
+ * arranging the core state into the shape the board renders.
  */
 export function boardCells(state: GameState): BoardCell[] {
   const siteByHex = new Map<string, Site>();
@@ -103,21 +107,18 @@ export function boardCells(state: GameState): BoardCell[] {
   for (const unit of state.units) {
     unitByHex.set(`${unit.hex.q},${unit.hex.r}`, unit);
   }
-  const hexKeys = new Set<string>([...siteByHex.keys(), ...unitByHex.keys()]);
-  return [...hexKeys]
-    .sort()
-    .map((key) => {
-      const [q, r] = key.split(",").map(Number);
-      const hex: Hex = { q, r };
+  const cellKey = (hex: Hex) => `${hex.q},${hex.r}`;
+  return [...state.map.cells]
+    .sort((a, b) => cellKey(a.hex).localeCompare(cellKey(b.hex)))
+    .map(({ hex, terrain }) => {
+      const key = cellKey(hex);
+      const unit = unitByHex.get(key);
       return {
         hex,
+        terrain,
         site: siteByHex.get(key) ?? null,
-        unit: unitByHex.get(key)
-          ? {
-              kind: unitByHex.get(key)!.kind,
-              rank: rankOf(unitByHex.get(key)!.kind),
-              owner: unitByHex.get(key)!.owner,
-            }
+        unit: unit
+          ? { kind: unit.kind, rank: rankOf(unit.kind), owner: unit.owner }
           : null,
       };
     });

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rendered the generated map's terrain (land / water / mountain) in the UI
+  `Board` component (M9-T3, #52). The `Cell` atom now accepts a `terrain` prop
+  (defaulting to `land`) and styles each hex with a distinct semantic theme
+  token — `bg-terrain-land` / `bg-terrain-water` / `bg-terrain-mountain` —
+  defined in `src/theme.css` and re-exposed to Tailwind via `@theme inline`
+  (per GUIDELINES-WEB-THEME.md, no raw Tailwind palettes). The `boardCells`
+  view model now renders **every** hex of the generated `GameState.map` (one
+  `BoardCell` per map cell, carrying its `terrain` from the core map data and
+  attaching the site/unit where present) so the playable board reflects the
+  generated map, and `Board.tsx` passes each cell's terrain through to `Cell`.
+  Ownership stays visible via the `hex-current` highlight and the
+  owner-coloured `Unit` / `Content` badges, and sites + units continue to
+  render on their (land) cells. The `Cell` showcase now demos Land / Water /
+  Mountain alongside the owner states. UI tests updated/added for terrain
+  variants and full-map rendering; `src/core/**` stays at 100% coverage.
+
 - Wired the map generator into game setup so each game starts on a freshly
   generated board (M9-T2, #53). `standardSetup` / `createGameSession` now use
   `generateMap` (M9-T1) to build a new 20×20 board by default (configurable via

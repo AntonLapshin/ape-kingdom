@@ -77,6 +77,11 @@
   --color-glass-dark: rgba(77, 58, 42, 0.55);
   --color-glass-panel: rgba(251, 247, 244, 0.9);
 
+  /* Board terrain roles (M9-T3) */
+  --color-terrain-land: #e6cfa3;
+  --color-terrain-water: #9fc4d8;
+  --color-terrain-mountain: #b8a99a;
+
   /* Stage (backdrop) and dark gradient stops */
   --color-stage: #ffd7ae;
   --color-stage-dark-start: #b85c6e;
@@ -138,6 +143,10 @@
   --color-glass-soft: var(--color-glass-soft);
   --color-glass-dark: var(--color-glass-dark);
   --color-glass-panel: var(--color-glass-panel);
+
+  --color-terrain-land: var(--color-terrain-land);
+  --color-terrain-water: var(--color-terrain-water);
+  --color-terrain-mountain: var(--color-terrain-mountain);
 
   --color-stage: var(--color-stage);
   --color-stage-dark-start: var(--color-stage-dark-start);
