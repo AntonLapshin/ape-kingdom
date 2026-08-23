@@ -5,6 +5,7 @@ import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
 import { Board } from "./Board";
 import { ActionControls } from "./ActionControls";
 import { StatusPanel } from "./StatusPanel";
+import { CellInfoPanel } from "./CellInfoPanel";
 
 export interface PlayableGameProps {
   /** The deterministic AI seed used for the session (defaults to 0). */
@@ -40,7 +41,15 @@ export interface PlayableGameProps {
  * models), not game logic.
  */
 export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
-  const { view, selectAction, clearActions, submitTurn } = useGameSession(aiSeed);
+  const {
+    view,
+    selectedHex,
+    selectedCell,
+    selectCell,
+    selectAction,
+    clearActions,
+    submitTurn,
+  } = useGameSession(aiSeed);
   const { pan, panBy } = usePan();
   const { zoom, zoomBy } = useZoom();
 
@@ -128,7 +137,14 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
           <h2 className="mb-3 text-lg font-bold text-text-primary">
             Ape Kingdom
           </h2>
-          <Board board={view.board} currentPlayer={view.currentPlayer} pan={pan} zoom={zoom} />
+          <Board
+            board={view.board}
+            currentPlayer={view.currentPlayer}
+            pan={pan}
+            zoom={zoom}
+            selectedHex={selectedHex}
+            onSelectCell={selectCell}
+          />
         </div>
 
         <div className="space-y-4">
@@ -140,6 +156,9 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
               winner={view.winner}
               isDone={view.isDone}
             />
+          </div>
+          <div className="glass-panel rounded-2xl p-4">
+            <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
           </div>
           <div className="glass-panel rounded-2xl p-4">
             <ActionControls

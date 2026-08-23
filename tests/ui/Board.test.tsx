@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Board } from "../../src/ui/components/Board";
 import { hexToPixel, SITE_LABELS } from "../../src/ui/presentation";
 import { boardCells } from "../../src/ui/viewModels/useGameSession";
@@ -135,5 +135,37 @@ describe("Board", () => {
     const boardEl = container.querySelector('[data-testid="board"]')!;
     // Without a pan offset no scale is applied (transform stays unset).
     expect(boardEl).not.toHaveStyle({ transform: "scale(0.5)" });
+  });
+
+  it("highlights the selected hex cell via the view-model data", () => {
+    render(
+      <Board board={board} currentPlayer="p1" selectedHex={p1Home} />,
+    );
+    const cells = screen.getAllByTestId("board-cell");
+    const selected = cells.find((c) => c.dataset.hex === p1HomeKey)!;
+    // Only the selected cell carries the selected flag/highlight.
+    expect(selected.dataset.selected).toBe("true");
+    expect(selected.className).toContain("hex-selected");
+    const others = cells.filter((c) => c.dataset.hex !== p1HomeKey);
+    expect(others.every((c) => c.dataset.selected === "false")).toBe(true);
+  });
+
+  it("calls onSelectCell with the clicked hex when cells are selectable", () => {
+    const onSelectCell = vi.fn();
+    render(
+      <Board board={board} currentPlayer="p1" onSelectCell={onSelectCell} />,
+    );
+    const cell = screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.hex === p1HomeKey)!;
+    fireEvent.click(cell);
+    expect(onSelectCell).toHaveBeenCalledTimes(1);
+    expect(onSelectCell).toHaveBeenCalledWith(p1Home);
+  });
+
+  it("renders cells as clickable only when onSelectCell is provided", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    expect(cells[0]).not.toHaveAttribute("role", "button");
   });
 });

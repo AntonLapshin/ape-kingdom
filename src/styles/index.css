@@ -191,6 +191,26 @@
     0 6px 16px var(--color-shadow-accent);
 }
 
+/* The user-selected hex gets a bright, elevated highlight ring (M10-T3). */
+.hex-cell.hex-selected {
+  box-shadow:
+    inset 0 1px 0 var(--color-glass-inner),
+    0 0 0 3px var(--color-brand-amber),
+    0 0 0 6px var(--color-brand-amber-soft),
+    0 8px 20px var(--color-shadow-accent);
+  filter: brightness(1.05) saturate(1.05);
+  z-index: 1;
+}
+
+.hex-cell.hex-current.hex-selected {
+  box-shadow:
+    inset 0 1px 0 var(--color-glass-inner),
+    0 0 0 3px var(--color-brand-amber),
+    0 0 0 6px var(--color-brand-amber-soft),
+    0 0 0 9px var(--color-accent),
+    0 8px 20px var(--color-shadow-accent);
+}
+
 .hex-cell:hover {
   filter: brightness(1.06) saturate(1.05);
   transform: translateY(-2px);

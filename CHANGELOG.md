@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added cell selection with an info/action panel (M10-T3, #66). Clicking any
+  hex on the board now selects it: the matched `Cell` is visually highlighted
+  (`hex-selected` state, composable with the existing `hex-current` ring) and
+  `PlayableGame` shows a new thin `CellInfoPanel` component for the selected
+  cell. A pure core derivation `cellInfo`
+  (`src/core/cellInfo.ts`, 100% covered) builds the display info from the
+  current `GameState` — the generated terrain (land/water/mountain), the site
+  (Grove/Nest/Home Tree with its owner and banana income from the static
+  `siteType` table), the unit (kind/rank/owner and its recruit cost from
+  `APE_TYPES`), and the actionable recruit items. The selected hex is
+  actionable when the current player has a legal `recruit` action targeting it
+  this turn; for those hexes the panel lists each recruit item with its banana
+  cost as a button wired through the existing `selectAction` flow, while
+  read-only hexes show only read-only info (terrain/site/unit/cost/income)
+  with no action buttons. The thin `useGameSession` view model exposes
+  `selectedHex` / `selectedCell` / `selectCell` (via a pure `selectedCellInfo`
+  helper) and the dumb `Board`/`Cell` atoms accept `selectedHex` /
+  `onSelectCell` / `isSelected` props (clickable + keyboard-accessible with
+  `role="button"`). A `CellInfoPanel` Showcase demo was added per the atomic
+  design guidelines. Core stays pure and 100% covered; new UI tests cover the
+  core derivation, the view-model selection, the panel's read-only and
+  actionable states, cell highlighting/click wiring, and the Showcase
+  registration.
+
 - Added mouse-wheel zoom in/out on the board (M10-T2, #65). A new thin
   `useZoom` view model (`src/ui/viewModels/useZoom.ts`) tracks the board's
   zoom scale (default `1`, clamped to `[ZOOM_MIN, ZOOM_MAX]`) and exposes
