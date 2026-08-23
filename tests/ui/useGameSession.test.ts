@@ -6,9 +6,11 @@ import {
   playerViews,
   toGameSessionView,
   selectedCellInfo,
+  selectedMovement,
+  isMoveTarget,
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
-import { standardSetup } from "../../src/core/gameSession";
+import { standardSetup, createGameSession } from "../../src/core/gameSession";
 import { sameHex, createUnit, type GameState, type Hex } from "../../src/core/game";
 
 /* ------------------------------------------------------------------ */
@@ -200,6 +202,39 @@ describe("selectedCellInfo", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* selectedMovement / isMoveTarget (pure presentation derivation)      */
+/* ------------------------------------------------------------------ */
+
+describe("selectedMovement / isMoveTarget", () => {
+  it("isMoveTarget matches a hex against a reachable list", () => {
+    const hex = { q: 1, r: 2 };
+    expect(isMoveTarget(hex, { q: 1, r: 2 }, [{ q: 1, r: 2 }])).toBe(true);
+    expect(isMoveTarget(hex, { q: 9, r: 9 }, [{ q: 1, r: 2 }])).toBe(false);
+  });
+
+  it("isMoveTarget is false when no hex / target is selected", () => {
+    expect(isMoveTarget(null, { q: 1, r: 2 }, [{ q: 1, r: 2 }])).toBe(false);
+    expect(isMoveTarget({ q: 1, r: 2 }, { q: 1, r: 2 }, [])).toBe(false);
+  });
+
+  it("selectedMovement forwards the core derivation", () => {
+    const state = standardSetup();
+    const home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!.hex;
+    const noSel = selectedMovement(state, null);
+    expect(noSel.movable).toBe(false);
+    expect(noSel.reachable).toEqual([]);
+    // A fresh session (units reset to act) makes the p1 unit movable.
+    const session = createGameSession();
+    const info = selectedMovement(session.state, home);
+    expect(info.unit).not.toBeNull();
+    expect(info.movable).toBe(true);
+    expect(info.reachable.length).toBeGreaterThan(0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* useGameSession hook                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -289,6 +324,92 @@ describe("useGameSession", () => {
       result.current.selectCell(someHex);
     });
     expect(result.current.selectedHex).toEqual(someHex);
+  });
+
+  it("exposes movement/reachableHexes for a selected movable unit", () => {
+    const { result } = renderHook(() => useGameSession());
+    // Find a p1 starting unit hex from the board.
+    const unitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    )!.hex;
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    expect(result.current.movement.movable).toBe(true);
+    expect(result.current.movement.unit).not.toBeNull();
+    expect(result.current.reachableHexes.length).toBeGreaterThan(0);
+  });
+
+  it("clicking a reachable target issues a move action and clears the selection", () => {
+    const { result } = renderHook(() => useGameSession());
+    // Advance to the recruit step so moves are legal.
+    act(() => {
+      result.current.selectAction({ type: "collectIncome" });
+    });
+    const unitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    )!.hex;
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    const target = result.current.reachableHexes[0];
+    expect(target).toBeDefined();
+    act(() => {
+      result.current.selectCell(target);
+    });
+    // The selection is cleared (no highlight) and the unit moved onto target.
+    expect(result.current.selectedHex).toBeNull();
+    const moved = result.current.view.board.find(
+      (c) => c.hex.q === target.q && c.hex.r === target.r,
+    );
+    expect(moved).toBeDefined();
+    expect(moved!.unit?.owner).toBe("p1");
+  });
+
+  it("clicking a non-reachable cell does not issue a move (no illegal move)", () => {
+    const { result } = renderHook(() => useGameSession());
+    act(() => {
+      result.current.selectAction({ type: "collectIncome" });
+    });
+    const unitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    )!.hex;
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    const targets = result.current.reachableHexes;
+    // Pick a p1 unit hex that is not a reachable target of a different unit.
+    const otherUnitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1" && !isMoveTarget(unitHex, c.hex, targets),
+    )!.hex;
+    act(() => {
+      result.current.selectCell(otherUnitHex);
+    });
+    // No move was issued: selecting simply selects that cell instead.
+    expect(result.current.selectedHex).toEqual(otherUnitHex);
+    // The originally selected unit still sits on its own hex (not moved).
+    const original = result.current.view.board.find(
+      (c) => c.hex.q === unitHex.q && c.hex.r === unitHex.r,
+    );
+    expect(original?.unit?.owner).toBe("p1");
+  });
+
+  it("does not issue a move on the income step (move not legal yet)", () => {
+    const { result } = renderHook(() => useGameSession());
+    const unitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    )!.hex;
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    const target = result.current.reachableHexes[0];
+    act(() => {
+      result.current.selectCell(target);
+    });
+    // Move isn't legal on the income step, so no move is issued — the target
+    // is simply selected and the session stays on income.
+    expect(result.current.view.step).toBe("income");
+    expect(result.current.selectedHex).toEqual(target);
   });
 
   it("marks the view done with a winner when the game ends", () => {
