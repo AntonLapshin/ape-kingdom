@@ -1,0 +1,31 @@
+import { Unit } from "../components/Unit";
+
+/**
+ * Showcase demos for the `Unit` atom component (M8-T2).
+ *
+ * Each named export is a tiny render function showing the component in one
+ * state. There is no component implementation or business logic here — only
+ * imports plus the scene-setting render functions. The `name` constant is the
+ * display name shown in the Showcase sidebar.
+ */
+export const name = "Unit";
+
+/** The four ape kinds, each owned by p1 (rose badge). */
+export const PlayerOneKinds = () => (
+  <div className="flex flex-wrap gap-2">
+    <Unit kind="Monkey" rank={1} owner="p1" />
+    <Unit kind="Gibbon" rank={2} owner="p1" />
+    <Unit kind="Chimpanzee" rank={3} owner="p1" />
+    <Unit kind="Gorilla" rank={4} owner="p1" />
+  </div>
+);
+
+/** The four ape kinds, each owned by p2 (violet badge). */
+export const PlayerTwoKinds = () => (
+  <div className="flex flex-wrap gap-2">
+    <Unit kind="Monkey" rank={1} owner="p2" />
+    <Unit kind="Gibbon" rank={2} owner="p2" />
+    <Unit kind="Chimpanzee" rank={3} owner="p2" />
+    <Unit kind="Gorilla" rank={4} owner="p2" />
+  </div>
+);

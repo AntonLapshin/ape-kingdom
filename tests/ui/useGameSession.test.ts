@@ -8,7 +8,7 @@ import {
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
-import { sameHex } from "../../src/core/game";
+import { sameHex, createUnit } from "../../src/core/game";
 
 /* ------------------------------------------------------------------ */
 /* boardCells (pure presentation adaptation)                           */
@@ -39,6 +39,27 @@ describe("boardCells", () => {
     expect(home!.site?.owner).toBe("p1");
     expect(home!.unit?.kind).toBe("Monkey");
     expect(home!.unit?.owner).toBe("p1");
+  });
+
+  it("derives each unit's rank from its kind on the view", () => {
+    const state = standardSetup();
+    // Starting Monkeys resolve to rank 1 (not a hardcoded stub).
+    const home = boardCells(state).find((c) => sameHex(c.hex, { q: 0, r: 0 }));
+    expect(home?.unit?.kind).toBe("Monkey");
+    expect(home?.unit?.rank).toBe(1);
+    // A Gorilla placed at an empty Grassland resolves to rank 4.
+    const withGorilla = {
+      ...state,
+      units: [
+        ...state.units,
+        createUnit("Gorilla", "p1", { q: 5, r: 5 }),
+      ],
+    };
+    const gorillaCell = boardCells(withGorilla).find((c) =>
+      sameHex(c.hex, { q: 5, r: 5 }),
+    );
+    expect(gorillaCell?.unit?.kind).toBe("Gorilla");
+    expect(gorillaCell?.unit?.rank).toBe(4);
   });
 
   it("marks a cell site or unit as null when absent", () => {
