@@ -20,9 +20,10 @@ describe("showcase registry", () => {
   it("registers a showcase for every atom component in src/ui/components", () => {
     const registry = showcaseRegistry();
     const names = registry.map((file) => file.name).sort();
-    // The renderable atom components in src/ui/components/. The composition
-    // layers (PlayableGame, Showcase) are pages/browsers, not atoms, and are
-    // intentionally not showcased.
+    // The renderable atom components in src/ui/components/ plus the full-screen
+    // playable composition (`PlayableGame`), which is showcased as a floating
+    // HUD demo (M11-T3 / #76). The Showcase browser itself is the page that
+    // hosts the gallery and is intentionally not showcased.
     expect(names).toEqual([
       "ActionControls",
       "Board",
@@ -30,6 +31,7 @@ describe("showcase registry", () => {
       "CellInfoPanel",
       "Content",
       "DemoPanel",
+      "PlayableGame",
       "StatusPanel",
       "Unit",
     ]);
