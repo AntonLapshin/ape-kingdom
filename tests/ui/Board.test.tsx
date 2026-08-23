@@ -72,6 +72,29 @@ describe("Board", () => {
     expect(terrains).toEqual(new Set(["land", "water", "mountain"]));
   });
 
+  it("tints owned land cells by their owner and keeps neutral terrain colour (M13-T2/#89)", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    // Owned cells (p1/p2 Home Trees and their territories) carry their owner
+    // tint token; neutral cells keep their terrain background.
+    const p1Owned = cells.filter((c) => c.dataset.owner === "p1");
+    const p2Owned = cells.filter((c) => c.dataset.owner === "p2");
+    const neutral = cells.filter((c) => c.dataset.owner === "neutral");
+    expect(p1Owned.length).toBeGreaterThan(0);
+    expect(p2Owned.length).toBeGreaterThan(0);
+    for (const cell of p1Owned) {
+      expect(cell.className).toContain("bg-owner-p1");
+      expect(cell.className).not.toContain("bg-terrain-");
+    }
+    for (const cell of p2Owned) {
+      expect(cell.className).toContain("bg-owner-p2");
+      expect(cell.className).not.toContain("bg-terrain-");
+    }
+    for (const cell of neutral) {
+      expect(cell.className).toMatch(/bg-terrain-(land|water|mountain)/);
+    }
+  });
+
   it("renders a unit badge for occupied cells", () => {
     render(<Board board={board} currentPlayer="p1" />);
     // The standard setup has 8 starting units.

@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import {
   useGameSession,
   boardCells,
+  ownerBackground,
   playerViews,
   toGameSessionView,
   selectedCellInfo,
@@ -105,6 +106,24 @@ describe("boardCells", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* ownerBackground (pure presentation adaptation, M13-T2 / #89)         */
+/* ------------------------------------------------------------------ */
+
+describe("ownerBackground", () => {
+  it("returns the p1 territory tint token for a p1-owned cell", () => {
+    expect(ownerBackground("p1")).toBe("bg-owner-p1");
+  });
+
+  it("returns the p2 territory tint token for a p2-owned cell", () => {
+    expect(ownerBackground("p2")).toBe("bg-owner-p2");
+  });
+
+  it("returns null for a neutral (unowned) cell so terrain colour is kept", () => {
+    expect(ownerBackground(null)).toBeNull();
+  });
+});
+
 /* playerViews (pure presentation adaptation)                          */
 /* ------------------------------------------------------------------ */
 

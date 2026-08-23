@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Color each land cell by its owner (M13-T2, #89). A rendered board cell whose
+  site or unit is owned by p1 or p2 now shows a distinct soft owner territory
+  tint in addition to the existing owner-coloured unit badge and the
+  `hex-current` glow, so territory is visually distinct at a glance; neutral
+  land keeps its terrain colour. The owner→colour mapping lives in the view
+  model (`ownerBackground` in `src/ui/viewModels/useGameSession.ts`) as a pure
+  presentation helper — the dumb `Cell` stays presentational and receives the
+  resolved tint (`ownerBg` prop) as a plain class string, with no raw
+  owner→colour logic in the component. Two new theme tokens
+  (`--color-owner-p1` soft rose / `--color-owner-p2` soft violet) were added to
+  `src/theme.css` and re-exposed via `@theme inline` so the tinted land cells
+  use token-backed `bg-owner-p1` / `bg-owner-p2` utilities (no raw palettes).
+  The Cell Showcase gained `PlayerOneTint` / `PlayerTwoTint` demos. Added unit
+  tests for the `ownerBackground` helper, the `Cell` `ownerBg` prop, and the
+  `Board` owner-tint wiring. Thin UI-only change: no core business logic
+  altered (core stays pure and 100% covered).
+
 - Added a dedicated regression test suite for the click-vs-drag selection
   interaction on the full-screen board (M12-T2, #85). These tests reproduce
   the #83 selection bug through the real pointer event path (pointerdown →

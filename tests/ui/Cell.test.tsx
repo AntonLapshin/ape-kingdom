@@ -70,6 +70,23 @@ describe("Cell", () => {
     expect(screen.getByTestId("board-cell").className).toContain("hex-current");
   });
 
+  it("uses the owner territory tint background when provided (M13-T2/#89)", () => {
+    render(<Cell q={0} r={0} owner="p1" ownerBg="bg-owner-p1" x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    // The view-model-derived owner tint replaces the terrain background for an
+    // owned territory cell.
+    expect(cell.className).toContain("bg-owner-p1");
+    expect(cell.className).not.toContain("bg-terrain-land");
+  });
+
+  it("keeps the terrain background when no owner tint is provided (neutral)", () => {
+    render(
+      <Cell q={0} r={0} owner={null} ownerBg={null} terrain="water" x={0} y={0} />,
+    );
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.className).toContain("bg-terrain-water");
+  });
+
   it("adds the hex-selected highlight and data flag when selected", () => {
     render(<Cell q={0} r={0} owner="p1" isSelected x={0} y={0} />);
     const cell = screen.getByTestId("board-cell");

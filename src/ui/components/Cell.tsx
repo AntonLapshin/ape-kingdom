@@ -10,6 +10,14 @@ export interface CellProps {
   r: number;
   /** The owner of this cell (site/unit), or null for neutral terrain. */
   owner: PlayerId | null;
+  /**
+   * The resolved owner territory background token class (M13-T2, #89), e.g.
+   * `bg-owner-p1` / `bg-owner-p2` for owned land cells, or `null` for neutral
+   * cells (which then keep their terrain colour). Derived by the view model's
+   * `ownerBackground` helper so the dumb `Cell` holds no owner→colour logic —
+   * the owner-adapted tint is passed down as a plain class string.
+   */
+  ownerBg?: string | null;
   /** The terrain of this cell (land / water / mountain). Defaults to land. */
   terrain?: Terrain;
   /** Whether this cell is the current player's territory (highlight). */
@@ -37,8 +45,8 @@ export interface CellProps {
  * Token-backed background classes used to colour a hex by its terrain. Each
  * terrain maps to a semantic theme token (`terrain-land` / `terrain-water` /
  * `terrain-mountain`) per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
- * Ownership is conveyed separately (via `hex-current` highlight and the
- * owner-coloured site/unit badges), so terrain and territory stay distinct.
+ * An owned cell's background may instead be overridden by the owner tint
+ * token class passed via the `ownerBg` prop (derived by the view model).
  */
 const TERRAIN_BG: Record<Terrain, string> = {
   land: "bg-terrain-land",
@@ -62,6 +70,7 @@ export function Cell({
   q,
   r,
   owner,
+  ownerBg = null,
   terrain = "land",
   isCurrent = false,
   isSelected = false,
@@ -72,7 +81,9 @@ export function Cell({
   onSelect,
   children,
 }: CellProps) {
-  const bg = TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
+  // The view-model-derived owner tint overrides the terrain background for
+  // owned territories; neutral cells keep their terrain colour.
+  const bg = ownerBg ?? TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
   return (
     <div
       role={onSelect ? "button" : undefined}

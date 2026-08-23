@@ -82,6 +82,12 @@
   --color-terrain-water: #9fc4d8;
   --color-terrain-mountain: #b8a99a;
 
+  /* Owner territory tints (M13-T2, #89) — soft rose (p1) / violet (p2)
+     land fills so territories are distinct at a glance while the unit badge
+     keeps the deep owner colours. Mirrors the Unit badge owner palette. */
+  --color-owner-p1: #ecd0c6;
+  --color-owner-p2: #d8cbec;
+
   /* Stage (backdrop) and dark gradient stops */
   --color-stage: #ffd7ae;
   --color-stage-dark-start: #b85c6e;
@@ -147,6 +153,10 @@
   --color-terrain-land: var(--color-terrain-land);
   --color-terrain-water: var(--color-terrain-water);
   --color-terrain-mountain: var(--color-terrain-mountain);
+
+  /* Owner territory tints */
+  --color-owner-p1: var(--color-owner-p1);
+  --color-owner-p2: var(--color-owner-p2);
 
   --color-stage: var(--color-stage);
   --color-stage-dark-start: var(--color-stage-dark-start);
