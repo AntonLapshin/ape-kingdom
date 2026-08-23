@@ -1,6 +1,7 @@
 import type { BoardCell } from "../viewModels/useGameSession";
 import type { PlayerId } from "../../core/game";
 import { HEX_SIZE, hexToPixel, SITE_LABELS } from "../presentation";
+import { Cell } from "./Cell";
 import { Unit } from "./Unit";
 
 export interface BoardProps {
@@ -9,21 +10,6 @@ export interface BoardProps {
   /** The player whose turn it is (used for a subtle highlight). */
   currentPlayer: PlayerId;
 }
-
-/** A CSS clip-path polygon that draws a pointy-top hexagon. */
-const HEX_CLIP =
-  "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)";
-
-/**
- * Token-backed background classes used to colour a hex by its controller.
- * Player/site/unit colours map to the brand palette tokens (rose → violet
- * brand family), per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
- */
-const OWNER_BG: Record<string, string> = {
-  p1: "bg-brand-rose",
-  p2: "bg-brand-violet",
-  neutral: "bg-brand-amber-soft",
-};
 
 /**
  * Thin, dumb board component (M4-T3).
@@ -54,25 +40,16 @@ export function Board({ board, currentPlayer }: BoardProps) {
       {board.map((cell, index) => {
         const { x, y } = hexToPixel(cell.hex.q, cell.hex.r);
         const owner = cell.site?.owner ?? cell.unit?.owner ?? null;
-        const bg = owner ? OWNER_BG[owner] ?? OWNER_BG.neutral : OWNER_BG.neutral;
-        const isCurrentTerritory = owner === currentPlayer;
         return (
-          <div
+          <Cell
             key={`${cell.hex.q},${cell.hex.r}`}
-            data-testid="board-cell"
-            data-hex={`${cell.hex.q},${cell.hex.r}`}
-            data-owner={owner ?? "neutral"}
-            className={`hex-cell hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
-              isCurrentTerritory ? "hex-current" : ""
-            }`}
-            style={{
-              width: HEX_SIZE * 2,
-              height: HEX_SIZE * 2,
-              left: x - minX + pad - HEX_SIZE,
-              top: y - minY + pad - HEX_SIZE,
-              clipPath: HEX_CLIP,
-              animationDelay: `${index * 40}ms`,
-            }}
+            q={cell.hex.q}
+            r={cell.hex.r}
+            owner={owner}
+            isCurrent={owner === currentPlayer}
+            x={x - minX + pad - HEX_SIZE}
+            y={y - minY + pad - HEX_SIZE}
+            animationDelay={index * 40}
           >
             {cell.site && (
               <span className="text-[10px] font-semibold leading-none text-text-body">
@@ -86,7 +63,7 @@ export function Board({ board, currentPlayer }: BoardProps) {
                 owner={cell.unit.owner}
               />
             )}
-          </div>
+          </Cell>
         );
       })}
       <div className="pointer-events-none absolute bottom-0 right-0 text-xs text-text-muted">

@@ -19,6 +19,22 @@ project-state.md + this changelog reflect the shipped POC.
 
 ### Added
 
+- Added the `Cell` atom component and its showcase (M8-T1, #51).
+  `src/ui/components/Cell.tsx` is a pure, dumb atom that renders a pointy-top
+  hexagon board cell (hex clip-path, `bg-brand-*` token colours,
+  `hex-cell`/`hex-pop`/`hex-current` classes, `data-testid="board-cell"` /
+  `data-hex` / `data-owner` attributes), extracted from the inline hex
+  rendering previously in `Board.tsx`. It exposes props for the cell's hex
+  coords, owner, current-territory highlight, pixel position, and animation
+  delay, with a `children` slot for the site/unit content. `Board.tsx` now
+  composes `Cell`; the `HEX_CLIP` constant moved to `src/ui/presentation.ts`
+  so both can share it. A showcase demo `src/ui/showcases/Cell.tsx` demos the
+  neutral/p1/p2/current variants and is registered in
+  `src/ui/showcases/index.ts` per rule 7 of
+  `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`. Covered by
+  `tests/ui/Cell.test.tsx` (7 tests) and the extended showcase-registry test;
+  the M5 polish test now asserts the hex classes on `Cell` (where they now
+  live). Core stays 100% covered.
 - Added the `Unit` atom component and its showcase (M8-T2, #49).
   `src/ui/components/Unit.tsx` is a pure, dumb atom that renders an ape unit
   badge (kind + rank) coloured by owner (`data-testid="board-unit"`,

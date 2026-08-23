@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const STYLES = readFileSync(resolve(ROOT, "src/styles/index.css"), "utf8");
 const BOARD = readFileSync(resolve(ROOT, "src/ui/components/Board.tsx"), "utf8");
+const CELL = readFileSync(resolve(ROOT, "src/ui/components/Cell.tsx"), "utf8");
 const STATUS = readFileSync(
   resolve(ROOT, "src/ui/components/StatusPanel.tsx"),
   "utf8",
@@ -68,10 +69,10 @@ describe("src/styles/index.css — playable UI polish (issue #33)", () => {
 });
 
 describe("thin components reference the polish classes (issue #33)", () => {
-  it("Board uses hex-cell / hex-pop / hex-current classes", () => {
-    expect(BOARD).toContain("hex-cell");
-    expect(BOARD).toContain("hex-pop");
-    expect(BOARD).toContain("hex-current");
+  it("Cell uses hex-cell / hex-pop / hex-current classes (extracted from Board)", () => {
+    expect(CELL).toContain("hex-cell");
+    expect(CELL).toContain("hex-pop");
+    expect(CELL).toContain("hex-current");
   });
 
   it("StatusPanel animates the current-player highlight and the result", () => {
