@@ -13,7 +13,7 @@ export interface PlayableGameProps {
 }
 
 /**
- * Playable game screen (M4-T3, extended for M10-T1).
+ * Playable game screen (M4-T3, extended for M10 & M11-T1).
  *
  * The thin composition layer that wires the `useGameSession` view model to
  * the dumb board / action / status components. It owns no game rules — every
@@ -34,6 +34,13 @@ export interface PlayableGameProps {
  *  - uses the thin `useZoom` view model to track the map's zoom scale; and
  *  - mounts a `wheel` listener on the viewport that updates the zoom scale
  *    and prevents the default page scroll while interacting with the board.
+ *
+ * For the full-screen game UI (M11-T1):
+ *  - the board is no longer a contained UI element. The former `max-w-5xl`
+ *    grid container and the `glass-panel` that wrapped the `Board` are
+ *    removed so the map fills the entire viewport. The info panels (status,
+ *    cell info, actions) are floated over the board as a thin overlay so
+ *    they no longer constrain the map.
  *
  * This is the only "stateful" layer in the UI (it calls the view-model hooks);
  * the components it renders stay pure and dumb. The pointer/wheel wiring here
@@ -127,53 +134,56 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     <div
       data-testid="playable-game"
       ref={viewportRef}
-      className="h-screen w-screen overflow-hidden"
+      className="relative h-screen w-screen overflow-hidden"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <section className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_300px] py-6">
+      {/* Full-screen map: fills the whole viewport, no longer constrained by
+          a max-width container or a glass panel wrapper (M11-T1). */}
+      <div data-testid="board-layer" className="absolute inset-0">
+        <Board
+          board={view.board}
+          currentPlayer={view.currentPlayer}
+          pan={pan}
+          zoom={zoom}
+          selectedHex={selectedHex}
+          reachableHexes={reachableHexes}
+          onSelectCell={selectCell}
+        />
+      </div>
+
+      {/* Floating info panels overlay the full-screen map so they don't
+          constrain it (M11-T1). Kept as a thin absolute overlay; polished
+          into floating panels in M11-T2. */}
+      <aside className="absolute right-4 top-4 z-10 flex w-72 flex-col gap-4">
         <div className="glass-panel rounded-2xl p-4">
-          <h2 className="mb-3 text-lg font-bold text-text-primary">
+          <h2 className="mb-2 text-lg font-bold text-text-primary">
             Ape Kingdom
           </h2>
-          <Board
-            board={view.board}
+          <StatusPanel
+            players={view.players}
             currentPlayer={view.currentPlayer}
-            pan={pan}
-            zoom={zoom}
-            selectedHex={selectedHex}
-            reachableHexes={reachableHexes}
-            onSelectCell={selectCell}
+            step={view.step}
+            winner={view.winner}
+            isDone={view.isDone}
           />
         </div>
-
-        <div className="space-y-4">
-          <div className="glass-panel rounded-2xl p-4">
-            <StatusPanel
-              players={view.players}
-              currentPlayer={view.currentPlayer}
-              step={view.step}
-              winner={view.winner}
-              isDone={view.isDone}
-            />
-          </div>
-          <div className="glass-panel rounded-2xl p-4">
-            <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
-          </div>
-          <div className="glass-panel rounded-2xl p-4">
-            <ActionControls
-              legalActions={view.legalActions}
-              step={view.step}
-              isDone={view.isDone}
-              onSelect={selectAction}
-              onClear={clearActions}
-              onSubmit={submitTurn}
-            />
-          </div>
+        <div className="glass-panel rounded-2xl p-4">
+          <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
         </div>
-      </section>
+        <div className="glass-panel rounded-2xl p-4">
+          <ActionControls
+            legalActions={view.legalActions}
+            step={view.step}
+            isDone={view.isDone}
+            onSelect={selectAction}
+            onClear={clearActions}
+            onSubmit={submitTurn}
+          />
+        </div>
+      </aside>
     </div>
   );
 }
