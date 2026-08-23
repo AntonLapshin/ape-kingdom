@@ -648,4 +648,152 @@ describe("PlayableGame", () => {
     expect(homeCell.className).toContain("hex-selected");
     expect(homeCell.dataset.selected).toBe("true");
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Regression tests: click-vs-drag selection interaction (M12-T2, #85) */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Dedicated regression suite for #85: reproduces the #83 selection bug
+   * through the real pointer event path (pointerdown → pointerup / pointermove
+   * → the viewport's pointer wiring), independent of any single fix commit,
+   * so a static click still selects/highlights a hex and drives the info +
+   * movement flows while a drag still pans without selecting. These tests
+   * exercise the viewport `onPointerDown`/`setPointerCapture` path that
+   * `fireEvent.click` alone bypasses.
+   */
+
+  it("regression: a static pointer click on a hex selects it and updates the info panel (M12-T2)", () => {
+    render(<PlayableGame />);
+    const cells = screen.getAllByTestId("board-cell");
+    const homeCell = cells.find((c) =>
+      c
+        .querySelector("[data-testid='board-site']")
+        ?.textContent?.includes("Home Tree"),
+    )!;
+
+    // Realistic static click: pointer-down → pointer-up at the same spot (no
+    // move), then the browser's synthetic click on the cell underneath. This
+    // is the exact sequence that regressed in #83 — the pointer must NOT be
+    // captured here, so the click reaches the cell.
+    staticClick(homeCell);
+
+    // The cell is selected/highlighted...
+    expect(homeCell.className).toContain("hex-selected");
+    expect(homeCell.dataset.selected).toBe("true");
+    // ...and the info panel updates to the selected hex.
+    expect(screen.getByTestId("cell-info-site")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("cell-info")).getByText("Home Tree"),
+    ).toBeInTheDocument();
+
+    // No drag happened, so the board did not pan (zero pan offset).
+    expect(screen.getByTestId("board").getAttribute("style")!).toContain(
+      "translate(0px, 0px)",
+    );
+  });
+
+  it("regression: selecting a movable unit highlights reachable targets and pointer-clicking one moves it, updating the info panel (M12-T2)", () => {
+    render(<PlayableGame />);
+
+    // Make the human's units movable (move actions are only legal after
+    // collecting income).
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+
+    const cells = screen.getAllByTestId("board-cell");
+    const unitCell = cells.find(
+      (c) =>
+        c.dataset.owner === "p1" &&
+        !!c.querySelector("[data-testid='board-unit']"),
+    );
+    expect(unitCell).toBeDefined();
+
+    // Select the movable unit via the real pointer path (static click).
+    staticClick(unitCell!);
+
+    // The unit is selected and the info panel now shows the unit details.
+    expect(unitCell!.className).toContain("hex-selected");
+    expect(unitCell!.dataset.selected).toBe("true");
+    expect(screen.getByTestId("cell-info-unit")).toBeInTheDocument();
+
+    // Its reachable move-target cells are highlighted.
+    const targets = screen
+      .getAllByTestId("board-cell")
+      .filter((c) => c.dataset.moveTarget === "true");
+    expect(targets.length).toBeGreaterThan(0);
+
+    // Pointer-clicking a reachable target issues the move through the
+    // selectCell flow: the unit leaves the original hex and appears on the
+    // target hex.
+    const targetHex = targets[0].dataset.hex!;
+    const unitHex = unitCell!.dataset.hex!;
+    staticClick(targets[0]);
+
+    expect(
+      screen
+        .getAllByTestId("board-cell")
+        .find((c) => c.dataset.hex === unitHex)!
+        .querySelector("[data-testid='board-unit']"),
+    ).toBeNull();
+    expect(
+      screen
+        .getAllByTestId("board-cell")
+        .find((c) => c.dataset.hex === targetHex)!
+        .querySelector("[data-testid='board-unit']"),
+    ).not.toBeNull();
+  });
+
+  it("regression: a genuine drag pans the board without selecting any cell or leaving selection artifacts (M12-T2)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+    const startStyle = board.getAttribute("style");
+
+    // Genuine drag: pointer-down then moves well beyond the 5px threshold,
+    // then pointer-up. Only the drag path runs — no static click.
+    pointerEvent(game, "pointerdown", { x: 0, y: 0 });
+    pointerEvent(game, "pointermove", { x: 40, y: 30 });
+    pointerEvent(game, "pointermove", { x: 80, y: 60 });
+    pointerEvent(game, "pointerup", { x: 80, y: 60 });
+
+    // The board panned by the accumulated drag deltas (40,30) then (40,30).
+    expect(board.getAttribute("style")).not.toBe(startStyle);
+    expect(board.getAttribute("style")!).toContain("translate(80px, 60px)");
+
+    // The browser's follow-up synthetic click is retargeted to the capturing
+    // viewport and must be suppressed: a drag is not a click, so no cell is
+    // selected and no move-target highlights appear.
+    act(() => fireEvent.click(game));
+    for (const b of screen.getAllByTestId("board-cell")) {
+      expect(b.dataset.selected).toBe("false");
+      expect(b.dataset.moveTarget).toBe("false");
+      expect(b.className).not.toContain("hex-selected");
+    }
+  });
+
+  it("regression: a static click still selects after a previous drag (suppressClick resets on pointer-down) (M12-T2)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const cells = screen.getAllByTestId("board-cell");
+    const homeCell = cells.find((c) =>
+      c
+        .querySelector("[data-testid='board-site']")
+        ?.textContent?.includes("Home Tree"),
+    )!;
+
+    // First perform a genuine drag that pans and must not select.
+    pointerEvent(game, "pointerdown", { x: 0, y: 0 });
+    pointerEvent(game, "pointermove", { x: 50, y: 0 });
+    pointerEvent(game, "pointerup", { x: 50, y: 0 });
+    act(() => fireEvent.click(game));
+    expect(homeCell.dataset.selected).toBe("false");
+
+    // Then a fresh static click on a hex: the drag's suppression must have
+    // been reset by the new pointer-down, so this click selects the cell.
+    staticClick(homeCell);
+    expect(homeCell.className).toContain("hex-selected");
+    expect(homeCell.dataset.selected).toBe("true");
+  });
 });
