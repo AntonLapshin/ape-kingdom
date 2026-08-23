@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added mouse-wheel zoom in/out on the board (M10-T2, #65). A new thin
+  `useZoom` view model (`src/ui/viewModels/useZoom.ts`) tracks the board's
+  zoom scale (default `1`, clamped to `[ZOOM_MIN, ZOOM_MAX]`) and exposes
+  `zoomBy(delta)` / `setZoom(scale)`, with pure, unit-tested `clampZoom` /
+  `zoomBy` helpers and a `boardTransform(zoom, pan)` summary helper that
+  builds the combined CSS transform. `PlayableGame` mounts a `wheel` listener
+  on the game viewport that converts each notch of the wheel into a zoom
+  step and `preventDefault()`s, so scroll-wheel gestures zoom the map in/out
+  instead of scrolling the page (which is already non-scrolling). The dumb
+  `Board` component accepts an optional `zoom` prop and applies it as a
+  `scale(...)` combined with the M10-T1 pan translate so zoom and pan combine
+  correctly (scaled + translated around the board's centre) without losing
+  the map. Core stays pure and 100% covered; new UI tests cover the view
+  model, the board transform, the wheel gesture, default-scroll prevention,
+  and the zoom bounds.
+
 - Added full-viewport drag-to-pan board navigation (M10-T1, #64). The
   `PlayableGame` now mounts inside a full-viewport, non-scrolling container
   (`h-screen w-screen overflow-hidden`), and the `App` game route renders it
