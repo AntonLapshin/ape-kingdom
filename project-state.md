@@ -4,7 +4,7 @@
 
 ## Status
 
-**COMPLETE — All milestones M1–M11 implemented, merged, tested, and deployed.**
+**M1–M11 COMPLETE and shipped; M13 (UI adjustments, #88) IN PROGRESS.**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
@@ -13,9 +13,12 @@ component breakdown (M8), the map generator (M9), M10 (viewport navigation +
 cell info/action panel + movement), and M11 (full-screen game UI with floating
 elements from issue #72) are all implemented, merged, tested, and deployed.
 The live demo is green at
-https://AntonLapshin.github.io/ape-kingdom/. No open issues and no open PRs;
-`npm test` (471 tests) and `npm run test:coverage` (100% on `src/core/**`) and
-`npm run build` all pass, and CI + Pages deployment are green on `main`.
+https://AntonLapshin.github.io/ape-kingdom/. Post-ship issue #88 requested
+further UI adjustments, now planned as milestone M13 (planned 2026-08-23:
+T1 automatic income, T2 land-ownership colors, T3 blue selection border are
+`pi:ready`; T4 dark background, T5 hide AI money, T6 right-bottom End Turn only
+are the next PM slice). `npm test` (471 tests), `npm run test:coverage` (100%
+on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
 
 ## What's here
 
@@ -93,3 +96,14 @@ https://AntonLapshin.github.io/ape-kingdom/. No open issues and no open PRs;
   - [x] M11-T1 Full-screen game board fills viewport (#74 → PR #77, merged)
   - [x] M11-T2 Floating overlay UI panels over the full-screen map (#75 → PR #79, merged)
   - [x] M11-T3 Polish floating full-screen UI: theme, demos, tests (#76 → PR #81, merged)
+- [ ] M13 — UI adjustments and fixes (issue #88, planned 2026-08-23). Post-ship
+  polish of the full-screen playable UI per #88: automatic income (no manual
+  step), land-ownership colors, blue selection border, dark non-gradient
+  background, hide AI's banana count, and right-bottom panel reduced to End
+  Turn only (all other actions via interactive board clicking).
+  - [ ] M13-T1 Automatic income collection at turn start (core) (#91) — `pi:ready`
+  - [ ] M13-T2 Color land cells by owner (UI) (#89) — `pi:ready`
+  - [ ] M13-T3 Blue border for the selected cell (UI) (#90) — `pi:ready`
+  - [ ] M13-T4 Dark non-gradient background (UI) — planned next slice
+  - [ ] M13-T5 Hide the AI's banana count (UI) — planned next slice
+  - [ ] M13-T6 Right-bottom panel → only End Turn (UI) — planned next slice

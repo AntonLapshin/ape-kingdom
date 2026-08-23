@@ -2,8 +2,9 @@
 
 > Project charter / intent.
 
-**Status: done** — completed_at: 2026-08-23T21:41:10Z. All milestones M1–M11
-are complete and the POC is shipped
+**Status: in-progress (M13)** — milestones M1–M11 are complete and the POC is
+shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
+(issue #88) are planned under milestone M13.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -264,3 +265,46 @@ Showcase demos.
   - [x] Confirm the /guidelines folder is complete and referenced so all personas follow the rules
   - [x] Deploy the final build to GitHub Pages and verify the live demo
   - [x] Update manifest.md, project-state.md, and CHANGELOG.md to reflect the shipped POC
+
+### M13 — UI adjustments and fixes (#88)
+
+**Goal:** Apply the set of UI/gameplay adjustments requested in issue #88 to the
+shipped full-screen playable UI: automatic income collection (no manual step), a
+clear indication of land ownership (colored territory), a blue border for the
+selected cell, a dark non-gradient background, hiding the AI's banana count,
+and reducing the right-bottom floating panel to only an End Turn button (all
+other actions done via interactive board clicking). All changes keep the
+core/UI split intact; `src/core` stays pure and 100% covered.
+
+**Scope:**
+  - **Automatic income (core, #88 item 2):** Income applies automatically at the
+    start of each player's turn per the rules ("collect bananas from all sites
+    you control"), removing the manual `income` turn step and `collectIncome`
+    legal action from `src/core/gameSession.ts` (and any `gameLoop` wiring).
+    The core stays 100% covered; the UI no longer shows a Collect Income step.
+  - **Land ownership coloring (UI, #88 item 3):** Color each land cell's
+    background by its owner (player 1 / player 2 / neutral) so territory is
+    visually distinct at a glance, in addition to the existing owner badges. The
+    derived owner-colour mapping stays in the view model / core (no raw logic
+    in dumb components).
+  - **Selected-cell blue border (UI, #88 item 1):** Change the selected-hex
+    highlight from the amber token to a blue token border in `src/styles`
+    (`hex-selected`), keeping the rest of the selection styling intact.
+  - **Dark non-gradient background (UI, #88 item 4):** Replace the gradient
+    `.login-bg` backdrop on the game route with a plain dark background so the
+    board reads clearly.
+  - **Hide AI banana count (UI, #88 item 5):** The `StatusPanel` shows the
+    human's banana count but not the AI's (per the rules, the human should not
+    know the AI's resources).
+  - **Right-bottom panel → only End Turn (UI, #88 item 6):** The floating
+    right-bottom `ActionControls` panel is reduced to just the End Turn button;
+    legal recruit/move/attack actions are performed entirely via interactive
+    board clicking (cell info / movement), not buttons.
+
+**Sub-issues (first slice):**
+  - [ ] M13-T1 Automatic income collection at turn start (core) (#88 item 2)
+  - [ ] M13-T2 Color land cells by owner (UI) (#88 item 3)
+  - [ ] M13-T3 Blue border for the selected cell (UI) (#88 item 1)
+  - [ ] M13-T4 Dark non-gradient background for the game viewport (UI) (#88 item 4) — planned next slice
+  - [ ] M13-T5 Hide the AI's banana count (UI) (#88 item 5) — planned next slice
+  - [ ] M13-T6 Right-bottom panel reduced to only End Turn (UI) (#88 item 6) — planned next slice
