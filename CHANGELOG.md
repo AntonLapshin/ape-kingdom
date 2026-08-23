@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a `Board` component test asserting the unit badge renders the
+  view-model-driven text `<kind> <rank>` (M9-T4, #57). The test verifies the
+  starting Monkey at (0,0) renders as "Monkey 1", wiring the core `rankOf()`
+  rank through the `boardCells` view model into the `Unit` atom badge
+  (introduced in PR #55). Core stays 100% covered.
+
 - Added the terrain model and pure map generator engine (M9-T1, #54).
   `src/core/mapGenerator.ts` is a new pure core module (no React/DOM)
   defining the `Terrain` type (`"land" | "water" | "mountain"`), the
