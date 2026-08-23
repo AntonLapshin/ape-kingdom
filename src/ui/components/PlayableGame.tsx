@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useGameSession } from "../viewModels/useGameSession";
 import { usePan } from "../viewModels/usePan";
 import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
+import { exceedsDragThreshold } from "../viewModels/usePointer";
 import { Board } from "./Board";
 import { ActionControls } from "./ActionControls";
 import { StatusPanel } from "./StatusPanel";
@@ -85,20 +86,40 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
   const { pan, panBy } = usePan();
   const { zoom, zoomBy } = useZoom();
 
-  // Drag state: the pointer id we are currently dragging with, plus the last
-  // known pointer position so we can compute deltas on each move.
-  const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(
-    null,
-  );
+  // Drag state (M12-T1): the pointer we are tracking, the gesture's start
+  // position (to decide click-vs-drag), and the last known pointer position
+  // (to compute per-move pan deltas). A gesture is NOT captured/treated as a
+  // drag until it exceeds the drag threshold, so a static click is left
+  // uncaptured and the browser dispatches the native `click` to the board
+  // cell underneath (which drives hex selection). Only once a real drag is
+  // detected do we claim the pointer (so panning stays smooth beyond the
+  // viewport) and remember to suppress the drag's synthetic click.
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    isDragging: boolean;
+  } | null>(null);
+
+  // Set true after a drag so the post-drag synthetic `click` (which is
+  // retargeted to this capturing viewport) is suppressed and never reaches the
+  // board cells — a drag must not select a cell. Reset on the next
+  // pointer-down so a fresh static click is never suppressed.
+  const suppressClick = useRef(false);
 
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      suppressClick.current = false;
       drag.current = {
         pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
         lastX: event.clientX,
         lastY: event.clientY,
+        isDragging: false,
       };
-      event.currentTarget.setPointerCapture?.(event.pointerId);
     },
     [],
   );
@@ -107,6 +128,24 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     (event: React.PointerEvent<HTMLDivElement>) => {
       const current = drag.current;
       if (!current || current.pointerId !== event.pointerId) return;
+
+      // Once the gesture crosses the drag threshold it is a drag, not a static
+      // click: claim the pointer (so subsequent moves keep panning even after
+      // the pointer leaves the viewport) and mark that this drag must not
+      // select a cell on release.
+      if (
+        !current.isDragging &&
+        exceedsDragThreshold(current.startX, current.startY, event.clientX, event.clientY)
+      ) {
+        current.isDragging = true;
+        suppressClick.current = true;
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      }
+
+      // Only pan the board once the gesture is confirmed as a drag; static
+      // clicks (with minor jitter) must not translate the board.
+      if (!current.isDragging) return;
+
       const dx = event.clientX - current.lastX;
       const dy = event.clientY - current.lastY;
       current.lastX = event.clientX;
@@ -122,11 +161,26 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
   const onPointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (drag.current?.pointerId === event.pointerId) {
+        // Whether or not this was a drag, the gesture is over: clear the drag
+        // state. `suppressClick` is left set if it was a drag so the following
+        // synthetic click on the capturing viewport is suppressed.
         drag.current = null;
       }
     },
     [],
   );
+
+  // A click bubbles up to this capturing viewport after a drag (the pointer
+  // was captured, so the synthetic click is retargeted here instead of the
+  // board cell). If that drag already panned the board, suppress the click so
+  // it must not also select a cell. For static clicks nothing is captured, so
+  // the click reaches the board cell and is never suppressed at this level.
+  const onClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressClick.current) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, []);
 
   // Mount a wheel listener on the game viewport so a scroll-wheel gesture
   // zooms the board in/out instead of scrolling the page (M10-T2). The
@@ -163,6 +217,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onClick={onClick}
     >
       {/* Full-screen map: fills the whole viewport, no longer constrained by
           a max-width container or a glass panel wrapper (M11-T1). */}

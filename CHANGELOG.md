@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed click selection on the full-screen board (M12-T1, #84). The viewport
+  no longer calls `setPointerCapture` on the full-screen div during every
+  pointer-down. In a real browser, pointer capture retargeted the synthetic
+  `click` (and the token `hex-selected` / `data-selected="true"` state) to the
+  capturing viewport, so the board cell's `onSelectCell` never fired and
+  clicking a hex showed no cell info or movement highlights (bug #83).
+  `PlayableGame.tsx` now distinguishes a static click from a drag via a small
+  drag-threshold helper (`exceedsDragThreshold` / `DRAG_THRESHOLD` in the new
+  `src/ui/viewModels/usePointer.ts`): a static click (pointer never moving
+  beyond 5px) is left uncaptured so the native `click` reaches the board cell
+  and selects it; a genuine drag (beyond the threshold) claims the pointer for
+  smooth panning and suppresses its follow-up synthetic click so a drag never
+  accidentally selects a hex. Wheel zoom and the floating overlay panels are
+  unchanged. Added regression tests that drive the real pointer-down →
+  pointer-up → click event sequence (plus the pure threshold helper tests).
+  Thin UI-only change: no core logic changed (core stays pure and 100%
+  covered).
+
 ### Added
 
 - Polished the floating full-screen game UI (M11-T3, #76). The floating
