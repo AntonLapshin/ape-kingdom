@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a dedicated regression test suite for the click-vs-drag selection
+  interaction on the full-screen board (M12-T2, #85). These tests reproduce
+  the #83 selection bug through the real pointer event path (pointerdown →
+  pointerup / pointermove → the viewport's `onPointerDown`/`setPointerCapture`
+  wiring) rather than the synthetic `fireEvent.click` that bypasses it: a
+  static pointer click on a hex selects/highlights it (`hex-selected` /
+  `data-selected="true"`) and updates the info panel; selecting a movable
+  human-owned unit via the pointer sequence highlights its reachable
+  move-target cells and pointer-clicking a reachable target moves the unit
+  through the `selectCell` flow; a genuine drag pans the board without
+  selecting any cell or leaving selection artifacts; and a static click still
+  selects after a previous drag (the drag's click suppression resets on the
+  next pointer-down). Thin UI-only test change: no core business logic altered
+  (core stays pure and 100% covered).
+
 ### Fixed
 
 - Fixed click selection on the full-screen board (M12-T1, #84). The viewport
