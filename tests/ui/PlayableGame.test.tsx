@@ -61,6 +61,49 @@ describe("PlayableGame", () => {
     expect(game.className).toContain("overflow-hidden");
   });
 
+  it("renders the board full-bleed with no contained max-w-5xl / grid wrapper (M11-T1)", () => {
+    const { container } = render(<PlayableGame />);
+    // The full-screen container is the single viewport root.
+    const game = screen.getByTestId("playable-game");
+    // The map is no longer a contained UI element: the `max-w-5xl` grid and
+    // the glass-card that previously wrapped the Board are gone.
+    expect(
+      container.querySelector(
+        '[class*="max-w-5xl"], [class*="lg:grid-cols"]',
+      ),
+    ).toBeNull();
+    // The board is a descendant of the full-screen root, placed inside a
+    // full-viewport flex wrapper (absolute inset-0) directly under it — no
+    // glass-panel/card sits between the board and the viewport.
+    const board = screen.getByTestId("board");
+    expect(game.contains(board)).toBe(true);
+    const boardWrapper = board.parentElement;
+    expect(boardWrapper!.className).toContain("absolute");
+    expect(boardWrapper!.className).toContain("inset-0");
+    expect(boardWrapper!.className).toContain("items-center");
+    expect(boardWrapper!.className).toContain("justify-center");
+    expect(boardWrapper!.parentElement).toBe(game);
+  });
+
+  it("floats the side panels as overlay cards over the full-screen map (M11-T1)", () => {
+    render(<PlayableGame />);
+    // The full-screen game root spans the whole viewport.
+    const game = screen.getByTestId("playable-game");
+    expect(game).toBeInTheDocument();
+    // The status / actions / cell-info panels are still rendered and usable.
+    expect(screen.getByTestId("status")).toBeInTheDocument();
+    expect(screen.getByTestId("actions")).toBeInTheDocument();
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+    // They live inside a right-anchored overlay column (absolute, full-height)
+    // floating over the full-screen board, not in a side grid column.
+    const overlay = screen.getByTestId("actions").closest(
+      '[class*="absolute inset-y-0 right-0"]',
+    );
+    expect(overlay).not.toBeNull();
+    // All gameplay remains reachable from the full-screen layout.
+    expect(screen.getByText("Collect Income")).toBeInTheDocument();
+  });
+
   it("drags across the viewport to pan the board", () => {
     render(<PlayableGame />);
     const game = screen.getByTestId("playable-game") as HTMLElement;

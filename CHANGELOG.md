@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Made the game board full-screen so the map fills the entire viewport
+  (M11-T1, #74). The `PlayableGame` layout no longer contains the `Board` in
+  a `max-w-5xl` grid column inside a `glass-panel` card: the map is rendered
+  directly against the full-viewport screen (`h-screen w-screen
+  overflow-hidden`, no page scroll) via a full-bleed `absolute inset-0`
+  flex-centering wrapper, so the board spans the whole viewport as a
+  full-screen game experience. The status / cell-info / action panels float
+  over the full-screen map as right-anchored overlay cards
+  (`pointer-events-auto` so their controls stay usable while the rest of the
+  viewport remains draggable), and a small floating "Ape Kingdom" title
+  badge keeps the game identity (pointer-events-none so it never blocks
+  input). Drag-to-pan (M10-T1), mouse-wheel zoom (M10-T2), and cell selection
+  (M10-T3) all continue to work unchanged over the full-screen board. This is
+  a thin composition/layout change in `src/ui/components/PlayableGame.tsx`
+  with no business logic; `src/core` stays pure and 100% covered. New UI
+  tests cover the full-bleed board (no contained max-w/grid wrapper, board
+  wrapped directly under the viewport root) and the floating overlay panels.
+
 - Added movement: highlight reachable cells + click a target to move
   (M10-T4, #70). Selecting a human-owned unit that has not yet acted now
   highlights every reachable, unoccupied target hex it may legally move onto

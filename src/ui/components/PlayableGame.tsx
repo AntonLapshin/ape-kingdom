@@ -35,6 +35,16 @@ export interface PlayableGameProps {
  *  - mounts a `wheel` listener on the viewport that updates the zoom scale
  *    and prevents the default page scroll while interacting with the board.
  *
+ * For the full-screen board (M11-T1, #74) the map fills the entire viewport:
+ *  - the previous `max-w-5xl` grid container and the `glass-panel` that
+ *    wrapped the `Board` are removed, so the map is no longer a contained UI
+ *    element inside a constrained card;
+ *  - the `Board` is rendered directly against a full-viewport flex wrapper
+ *    (`absolute inset-0`), so the hex map spans the whole screen;
+ *  - the side panels (status / cell info / actions) float over the map as
+ *    overlay cards on the right, so the full-screen board stays fully
+ *    playable (pan / zoom / selection / actions all still work).
+ *
  * This is the only "stateful" layer in the UI (it calls the view-model hooks);
  * the components it renders stay pure and dumb. The pointer/wheel wiring here
  * is thin view glue (accumulating drag deltas / wheel deltas into the view
@@ -127,53 +137,61 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     <div
       data-testid="playable-game"
       ref={viewportRef}
-      className="h-screen w-screen overflow-hidden"
+      className="relative h-screen w-screen overflow-hidden"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <section className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_300px] py-6">
-        <div className="glass-panel rounded-2xl p-4">
-          <h2 className="mb-3 text-lg font-bold text-text-primary">
-            Ape Kingdom
-          </h2>
-          <Board
-            board={view.board}
+      {/* A small floating title so the game's identity survives the full-bleed
+          map (M11-T1). pointer-events-none so it never blocks board input. */}
+      <div className="pointer-events-none absolute left-4 top-4 z-20">
+        <span className="inline-flex items-center rounded-full bg-panel-strong px-4 py-1.5 text-base font-bold text-text-primary shadow-sm">
+          Ape Kingdom
+        </span>
+      </div>
+
+      {/* The map fills the entire viewport (M11-T1): the full-screen board is
+          no longer a contained card inside a max-w grid / glass-panel. */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Board
+          board={view.board}
+          currentPlayer={view.currentPlayer}
+          pan={pan}
+          zoom={zoom}
+          selectedHex={selectedHex}
+          reachableHexes={reachableHexes}
+          onSelectCell={selectCell}
+        />
+      </div>
+
+      {/* Floating side panels over the full-screen map (M11-T1; formalized as
+          overlays in M11-T2). pointer-events-auto on each card keeps the
+          controls usable while the rest of the viewport stays draggable. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-72 flex-col gap-4 overflow-y-auto p-4">
+        <div className="pointer-events-auto glass-panel rounded-2xl p-4">
+          <StatusPanel
+            players={view.players}
             currentPlayer={view.currentPlayer}
-            pan={pan}
-            zoom={zoom}
-            selectedHex={selectedHex}
-            reachableHexes={reachableHexes}
-            onSelectCell={selectCell}
+            step={view.step}
+            winner={view.winner}
+            isDone={view.isDone}
           />
         </div>
-
-        <div className="space-y-4">
-          <div className="glass-panel rounded-2xl p-4">
-            <StatusPanel
-              players={view.players}
-              currentPlayer={view.currentPlayer}
-              step={view.step}
-              winner={view.winner}
-              isDone={view.isDone}
-            />
-          </div>
-          <div className="glass-panel rounded-2xl p-4">
-            <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
-          </div>
-          <div className="glass-panel rounded-2xl p-4">
-            <ActionControls
-              legalActions={view.legalActions}
-              step={view.step}
-              isDone={view.isDone}
-              onSelect={selectAction}
-              onClear={clearActions}
-              onSubmit={submitTurn}
-            />
-          </div>
+        <div className="pointer-events-auto glass-panel rounded-2xl p-4">
+          <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
         </div>
-      </section>
+        <div className="pointer-events-auto glass-panel rounded-2xl p-4">
+          <ActionControls
+            legalActions={view.legalActions}
+            step={view.step}
+            isDone={view.isDone}
+            onSelect={selectAction}
+            onClear={clearActions}
+            onSubmit={submitTurn}
+          />
+        </div>
+      </div>
     </div>
   );
 }
