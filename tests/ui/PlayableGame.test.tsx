@@ -84,9 +84,9 @@ describe("PlayableGame", () => {
     expect(boardLayer!.className).toContain("absolute");
     expect(boardLayer!.className).toContain("inset-0");
 
-    // The info panels float over the map as an absolute overlay instead of
+    // The info panels float over the map as absolute overlays instead of
     // constraining it in a side column.
-    const overlay = container.querySelector("aside");
+    const overlay = container.querySelector("[data-testid='status-overlay']");
     expect(overlay).toBeDefined();
     expect(overlay!.className).toContain("absolute");
   });
@@ -313,5 +313,113 @@ describe("PlayableGame", () => {
     // now reflect the reduced legal set (the occupied hex is no longer
     // buildable), so the panel re-derives against the new state.
     expect(kindsBefore.length).toBeGreaterThan(0);
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* Floating overlay panels (M11-T2)                                   */
+  /* ------------------------------------------------------------------ */
+
+  it("floats the three panels as distinct absolutely-positioned overlays at corners (M11-T2)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game");
+    const board = screen.getByTestId("board");
+
+    // Three distinct floating overlays, one per panel.
+    const status = screen.getByTestId("status-overlay");
+    const cellInfo = screen.getByTestId("cell-info-overlay");
+    const actions = screen.getByTestId("actions-overlay");
+    expect(status).not.toBe(cellInfo);
+    expect(status).not.toBe(actions);
+    expect(cellInfo).not.toBe(actions);
+
+    // Each overlay is absolutely positioned above the board in the viewport.
+    for (const overlay of [status, cellInfo, actions]) {
+      expect(overlay.className).toContain("absolute");
+      expect(overlay.className).toContain("z-10");
+      // The board layer is a sibling rendered beneath the overlays.
+      expect(board.closest("[data-testid='board-layer']")).toBeDefined();
+      expect(overlay.closest("[data-testid='playable-game']")).toBe(game);
+    }
+
+    // Status floats top-left, cell info bottom-left, actions bottom-right.
+    expect(status.className).toContain("left-4");
+    expect(status.className).toContain("top-4");
+    expect(cellInfo.className).toContain("bottom-4");
+    expect(cellInfo.className).toContain("left-4");
+    expect(actions.className).toContain("bottom-4");
+    expect(actions.className).toContain("right-4");
+  });
+
+  it("keeps the board interactive outside the floating panels (only panels intercept pointer input) (M11-T2)", () => {
+    render(<PlayableGame />);
+    // The overlay containers are pointer-events-none so the surrounding space
+    // never intercepts the board; only the panel card inside is auto.
+    const overlays = [
+      screen.getByTestId("status-overlay"),
+      screen.getByTestId("cell-info-overlay"),
+      screen.getByTestId("actions-overlay"),
+    ];
+    for (const overlay of overlays) {
+      expect(overlay.className).toContain("pointer-events-none");
+      const card = overlay.firstElementChild as HTMLElement;
+      expect(card.className).toContain("pointer-events-auto");
+    }
+
+    // Panning still works while the floating panels are present: dragging
+    // across the viewport translates the board.
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+    const pointer = (type: string, coords?: { x: number; y: number }) => {
+      const init: Record<string, unknown> = { bubbles: true, cancelable: true };
+      if (coords) {
+        init.clientX = coords.x;
+        init.clientY = coords.y;
+      }
+      game.dispatchEvent(new MouseEvent(type, init));
+    };
+    act(() => pointer("pointerdown", { x: 0, y: 0 }));
+    act(() => pointer("pointermove", { x: 20, y: 10 }));
+    act(() => pointer("pointerup"));
+    expect(board.getAttribute("style")!).toContain("translate(20px, 10px)");
+
+    // Zooming still works too.
+    act(() =>
+      game.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          deltaY: -100,
+        }),
+      ),
+    );
+    expect(board.getAttribute("style")!).toContain("scale(1.1)");
+  });
+
+  it("renders all three floating panels' content (status, cell info, actions) (M11-T2)", () => {
+    render(<PlayableGame />);
+    // Each of the three panels is present and shows its content.
+    const status = within(screen.getByTestId("status-overlay"));
+    expect(status.getByTestId("status")).toBeInTheDocument();
+    expect(status.getByText(/Current: You/)).toBeInTheDocument();
+
+    const cellInfo = within(screen.getByTestId("cell-info-overlay"));
+    expect(cellInfo.getByTestId("cell-info")).toBeInTheDocument();
+    expect(cellInfo.getByText(/click a hex to inspect/i)).toBeInTheDocument();
+
+    const actions = within(screen.getByTestId("actions-overlay"));
+    expect(actions.getByTestId("actions")).toBeInTheDocument();
+    expect(actions.getByText("Collect Income")).toBeInTheDocument();
+  });
+
+  it("wires the floating actions overlay to the game: collect income then End Turn and the AI replies (M11-T2)", () => {
+    render(<PlayableGame />);
+    const actions = within(screen.getByTestId("actions-overlay"));
+    // Collect income from the floating actions panel, then End Turn — the AI
+    // replies and the next human turn starts back on the income step.
+    act(() => actions.getByText("Collect Income").click());
+    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
+    act(() => actions.getByTestId("submit-turn").click());
+    expect(screen.getByText("Collect Income")).toBeInTheDocument();
+    expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
 });

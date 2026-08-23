@@ -42,6 +42,22 @@ export interface PlayableGameProps {
  *    cell info, actions) are floated over the board as a thin overlay so
  *    they no longer constrain the map.
  *
+ * For floating overlay panels (M11-T2):
+ *  - `StatusPanel`, `CellInfoPanel` and `ActionControls` are each rendered
+ *    as a distinct floating (absolutely-positioned, `z-10` above the board)
+ *    overlay element fixed at a sensible corner/edge of the viewport: the
+ *    status/score panel at the top-left, the cell-info inspector at the
+ *    bottom-left, and the action controls at the bottom-right. They are no
+ *    longer stacked in a single side column, so each floats independently
+ *    over the full-screen map.
+ *  - Each floating overlay container is `pointer-events-none`, and only the
+ *    panel card inside it is `pointer-events-auto`. That way the small gaps
+ *    and surrounding space between panels never intercept pointer input, so
+ *    the board's pan/zoom/click-to-select/move interactions are not occluded
+ *    anywhere except on the panels themselves (which are meant to be
+ *    clickable). This keeps the panels non-intrusive yet fully fixed at
+ *    their corners.
+ *
  * This is the only "stateful" layer in the UI (it calls the view-model hooks);
  * the components it renders stay pure and dumb. The pointer/wheel wiring here
  * is thin view glue (accumulating drag deltas / wheel deltas into the view
@@ -154,11 +170,16 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         />
       </div>
 
-      {/* Floating info panels overlay the full-screen map so they don't
-          constrain it (M11-T1). Kept as a thin absolute overlay; polished
-          into floating panels in M11-T2. */}
-      <aside className="absolute right-4 top-4 z-10 flex w-72 flex-col gap-4">
-        <div className="glass-panel rounded-2xl p-4">
+      {/* Floating overlay UI panels (M11-T2): each panel is a distinct,
+          absolutely-positioned, z-10 floating element fixed at a sensible
+          corner so it never constrains the map. Each overlay container is
+          pointer-events-none so the board's pan/zoom/click-to-select/move
+          stay fully interactive everywhere except on a panel itself. */}
+      <div
+        data-testid="status-overlay"
+        className="pointer-events-none absolute left-4 top-4 z-10"
+      >
+        <div className="glass-panel pointer-events-auto rounded-2xl p-4">
           <h2 className="mb-2 text-lg font-bold text-text-primary">
             Ape Kingdom
           </h2>
@@ -170,10 +191,22 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
             isDone={view.isDone}
           />
         </div>
-        <div className="glass-panel rounded-2xl p-4">
+      </div>
+
+      <div
+        data-testid="cell-info-overlay"
+        className="pointer-events-none absolute bottom-4 left-4 z-10"
+      >
+        <div className="glass-panel pointer-events-auto w-72 rounded-2xl p-4">
           <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
         </div>
-        <div className="glass-panel rounded-2xl p-4">
+      </div>
+
+      <div
+        data-testid="actions-overlay"
+        className="pointer-events-none absolute bottom-4 right-4 z-10"
+      >
+        <div className="glass-panel pointer-events-auto w-72 rounded-2xl p-4">
           <ActionControls
             legalActions={view.legalActions}
             step={view.step}
@@ -183,7 +216,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
             onSubmit={submitTurn}
           />
         </div>
-      </aside>
+      </div>
     </div>
   );
 }
