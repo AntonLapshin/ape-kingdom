@@ -36,6 +36,12 @@
   --color-danger-soft: #f5ddda;
   --color-premium: #b8860b;
 
+  /* Selection highlight family (M13-T3, #90) — a blue ring used for the
+     user-selected hex so it reads clearly apart from the amber brand and
+     the accent (current-territory) highlight. */
+  --color-selection: #4a90c2;
+  --color-selection-soft: #cfe4f4;
+
   /* Pure neutrals */
   --color-white: #ffffff;
   --color-black: #000000;
@@ -120,6 +126,9 @@
   --color-danger: var(--color-danger);
   --color-danger-soft: var(--color-danger-soft);
   --color-premium: var(--color-premium);
+
+  --color-selection: var(--color-selection);
+  --color-selection-soft: var(--color-selection-soft);
 
   --color-white: var(--color-white);
   --color-black: var(--color-black);
