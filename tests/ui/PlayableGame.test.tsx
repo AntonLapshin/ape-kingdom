@@ -84,11 +84,142 @@ describe("PlayableGame", () => {
     expect(boardLayer!.className).toContain("absolute");
     expect(boardLayer!.className).toContain("inset-0");
 
-    // The info panels float over the map as an absolute overlay instead of
-    // constraining it in a side column.
-    const overlay = container.querySelector("aside");
-    expect(overlay).toBeDefined();
-    expect(overlay!.className).toContain("absolute");
+    // The info panels float over the map as each-of-their-own absolute
+    // overlays (no side column / aside wrapper) anchored to viewport corners.
+    const floatingPanels = container.querySelectorAll(
+      "[data-testid='floating-panel']",
+    );
+    expect(floatingPanels.length).toBe(3);
+    floatingPanels.forEach((p) => {
+      expect(p.className).toContain("absolute");
+      expect(p.className).toContain("z-10");
+    });
+  });
+
+  it("floats each panel at a viewport corner above the board, preserving the game wiring (M11-T2)", () => {
+    const { container } = render(<PlayableGame />);
+    // Status, cell info, and action controls are each their own floating
+    // overlay (absolutely positioned, z-index above the board) rather than a
+    // single side column.
+    const panels = Array.from(
+      container.querySelectorAll("[data-testid='floating-panel']"),
+    );
+    expect(panels).toHaveLength(3);
+
+    // Each panel is anchored to a sensible viewport corner/edge and carries a
+    // draggable header.
+    const anchors = panels.map((p) => p.getAttribute("data-anchor"));
+    expect(new Set(anchors)).toEqual(
+      new Set(["top-left", "top-right", "bottom-right"]),
+    );
+    panels.forEach((p) => {
+      expect(
+        p.querySelector("[data-testid='floating-panel-header']"),
+      ).toBeDefined();
+      expect(p.className).toContain("absolute");
+      expect(p.className).toContain("z-10");
+    });
+
+    // The status panel floats top-left and still renders the game wiring.
+    expect(screen.getByTestId("status")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("status").closest("[data-testid='floating-panel']"),
+    ).toBeDefined();
+    // The cell info panel floats top-right and still renders its prompt.
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+    expect(screen.getByText(/click a hex to inspect/i)).toBeInTheDocument();
+    // The action controls float bottom-right and still wire End Turn / Clear.
+    expect(screen.getByTestId("actions")).toBeInTheDocument();
+    expect(screen.getByTestId("submit-turn")).toBeInTheDocument();
+    expect(screen.getByTestId("clear-actions")).toBeInTheDocument();
+  });
+
+  it("drags a floating panel header to move it without panning the board (M11-T2)", () => {
+    render(<PlayableGame />);
+    const board = screen.getByTestId("board");
+    // The status panel is anchored top-left.
+    const status = screen
+      .getByTestId("status")
+      .closest("[data-testid='floating-panel']") as HTMLElement;
+    const header = status.querySelector(
+      "[data-testid='floating-panel-header']",
+    ) as HTMLElement;
+    const startStyle = status.getAttribute("style");
+
+    const pointer = (node: HTMLElement, type: string, x: number, y: number) =>
+      node.dispatchEvent(
+        new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }),
+      );
+
+    // Drag the status panel header from (100,100) to (160, 80): a +60 dx (the
+    // panel is left-anchored, so a positive dx translates right) and a -20 dy
+    // (up). The board must not pan.
+    act(() => pointer(header, "pointerdown", 100, 100));
+    act(() => pointer(header, "pointermove", 160, 100));
+    act(() => pointer(header, "pointermove", 160, 80));
+    act(() => pointer(header, "pointerup", 160, 80));
+
+    const newStyle = status.getAttribute("style")!;
+    expect(newStyle).toContain("translate(60px, -20px)");
+    expect(newStyle).not.toBe(startStyle);
+    // Because dragging is stopped at the header, the board underneath does not
+    // pan: its translate stays at the initial origin (0px, 0px).
+    expect(board.getAttribute("style")!).toContain("translate(0px, 0px)");
+  });
+
+  it("tracks drag deltas from a bottom-anchored panel's own header, not the board's pan (M11-T2)", () => {
+    render(<PlayableGame />);
+    const board = screen.getByTestId("board");
+    // Actions panel is anchored bottom-right.
+    const actions = screen
+      .getByTestId("actions")
+      .closest("[data-testid='floating-panel']") as HTMLElement;
+    const header = actions.querySelector(
+      "[data-testid='floating-panel-header']",
+    ) as HTMLElement;
+
+    const pointer = (node: HTMLElement, type: string, x: number, y: number) =>
+      node.dispatchEvent(
+        new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }),
+      );
+
+    // Drag the bottom-right panel's header left/up by (-40, -30): a
+    // bottom/right anchor inverts the +dx/+dy so the panel follows the pointer.
+    // The board doesn't pan.
+    act(() => pointer(header, "pointerdown", 200, 200));
+    act(() => pointer(header, "pointermove", 160, 200));
+    act(() => pointer(header, "pointermove", 160, 170));
+    act(() => pointer(header, "pointerup", 160, 170));
+
+    expect(actions.getAttribute("style")!).toContain("translate(40px, 30px)");
+    // The board underneath doesn't pan (stays at the initial origin).
+    expect(board.getAttribute("style")!).toContain("translate(0px, 0px)");
+  });
+
+  it("keeps board pan/zoom working over the full-screen map with the floating panels (M11-T2)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+
+    // A zoom gesture over the board still works.
+    act(() =>
+      game.dispatchEvent(
+        new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: -100 }),
+      ),
+    );
+    expect(board.getAttribute("style")!).toContain("scale(1.1)");
+
+    // A drag directly on the board (not on a panel header) still pans it.
+    const drag = (type: string, x: number, y: number) =>
+      act(() =>
+        game.dispatchEvent(
+          new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }),
+        ),
+      );
+    drag("pointerdown", 0, 0);
+    drag("pointermove", 20, 10);
+    drag("pointerup", 20, 10);
+    expect(board.getAttribute("style")!).toContain("translate(20px, 10px)");
   });
 
   it("drags across the viewport to pan the board", () => {

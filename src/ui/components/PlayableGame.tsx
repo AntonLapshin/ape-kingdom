@@ -3,9 +3,11 @@ import { useGameSession } from "../viewModels/useGameSession";
 import { usePan } from "../viewModels/usePan";
 import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
 import { Board } from "./Board";
+import { FloatingPanel } from "./FloatingPanel";
 import { ActionControls } from "./ActionControls";
 import { StatusPanel } from "./StatusPanel";
 import { CellInfoPanel } from "./CellInfoPanel";
+import { useFloatingPanel } from "../viewModels/useFloatingPanel";
 
 export interface PlayableGameProps {
   /** The deterministic AI seed used for the session (defaults to 0). */
@@ -35,12 +37,16 @@ export interface PlayableGameProps {
  *  - mounts a `wheel` listener on the viewport that updates the zoom scale
  *    and prevents the default page scroll while interacting with the board.
  *
- * For the full-screen game UI (M11-T1):
+ * For the full-screen game UI (M11-T1 & M11-T2):
  *  - the board is no longer a contained UI element. The former `max-w-5xl`
  *    grid container and the `glass-panel` that wrapped the `Board` are
- *    removed so the map fills the entire viewport. The info panels (status,
- *    cell info, actions) are floated over the board as a thin overlay so
- *    they no longer constrain the map.
+ *    removed so the map fills the entire viewport; and
+ *  - the info panels (status, cell info, actions) are each rendered as their
+ *    own floating, absolutely-positioned, `z-index`-above-the-board overlay
+ *    pinned to a viewport corner/edge. Each floating panel is draggable by
+ *    its header (via the thin `useFloatingPanel` view model) so a panel never
+ *    occludes the board's pan/zoom/select/move interaction except where
+ *    intended. Their props / `useGameSession` wiring stay unchanged.
  *
  * This is the only "stateful" layer in the UI (it calls the view-model hooks);
  * the components it renders stay pure and dumb. The pointer/wheel wiring here
@@ -60,6 +66,13 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
   } = useGameSession(aiSeed);
   const { pan, panBy } = usePan();
   const { zoom, zoomBy } = useZoom();
+
+  // Each floating HUD panel tracks its own drag offset (M11-T2) so it can be
+  // dragged around the full-screen map without occluding the board beneath
+  // more than intended. The offsets are pure presentation state.
+  const statusPanel = useFloatingPanel();
+  const cellPanel = useFloatingPanel();
+  const actionPanel = useFloatingPanel();
 
   // Drag state: the pointer id we are currently dragging with, plus the last
   // known pointer position so we can compute deltas on each move.
@@ -154,36 +167,51 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         />
       </div>
 
-      {/* Floating info panels overlay the full-screen map so they don't
-          constrain it (M11-T1). Kept as a thin absolute overlay; polished
-          into floating panels in M11-T2. */}
-      <aside className="absolute right-4 top-4 z-10 flex w-72 flex-col gap-4">
-        <div className="glass-panel rounded-2xl p-4">
-          <h2 className="mb-2 text-lg font-bold text-text-primary">
-            Ape Kingdom
-          </h2>
-          <StatusPanel
-            players={view.players}
-            currentPlayer={view.currentPlayer}
-            step={view.step}
-            winner={view.winner}
-            isDone={view.isDone}
-          />
-        </div>
-        <div className="glass-panel rounded-2xl p-4">
-          <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
-        </div>
-        <div className="glass-panel rounded-2xl p-4">
-          <ActionControls
-            legalActions={view.legalActions}
-            step={view.step}
-            isDone={view.isDone}
-            onSelect={selectAction}
-            onClear={clearActions}
-            onSubmit={submitTurn}
-          />
-        </div>
-      </aside>
+      {/* Floating HUD panels overlay the full-screen map (M11-T2). Each panel
+          is its own floating, absolutely-positioned, z-index-above-the-board
+          overlay pinned to a corner/edge, and each is draggable via its header
+          so it never occludes the board's interaction (pan/zoom/select/move)
+          except where intended. They keep the same props / useGameSession
+          wiring and behaviour as the former side column. */}
+      <FloatingPanel
+        title="Ape Kingdom"
+        anchor="top-left"
+        position={statusPanel.position}
+        onMoveBy={statusPanel.moveBy}
+      >
+        <StatusPanel
+          players={view.players}
+          currentPlayer={view.currentPlayer}
+          step={view.step}
+          winner={view.winner}
+          isDone={view.isDone}
+        />
+      </FloatingPanel>
+
+      <FloatingPanel
+        title="Selected Cell"
+        anchor="top-right"
+        position={cellPanel.position}
+        onMoveBy={cellPanel.moveBy}
+      >
+        <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
+      </FloatingPanel>
+
+      <FloatingPanel
+        title="Actions"
+        anchor="bottom-right"
+        position={actionPanel.position}
+        onMoveBy={actionPanel.moveBy}
+      >
+        <ActionControls
+          legalActions={view.legalActions}
+          step={view.step}
+          isDone={view.isDone}
+          onSelect={selectAction}
+          onClear={clearActions}
+          onSubmit={submitTurn}
+        />
+      </FloatingPanel>
     </div>
   );
 }

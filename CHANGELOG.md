@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added floating overlay UI panels over the full-screen map (M11-T2, #75).
+  The status / cell-info / action-control panels are no longer rendered as a
+  single right-side `aside` column; instead `StatusPanel`, `CellInfoPanel`,
+  and `ActionControls` are each rendered as their own floating,
+  absolutely-positioned, `z-index`-above-the-board overlay panel
+  (`FloatingPanel`) pinned to a sensible viewport corner/edge (status
+  top-left, cell info top-right, actions bottom-right). Each floating panel
+  is draggable via a thin drag header, using the pure `useFloatingPanel`
+  view model (mirroring `usePan`) that tracks a per-panel drag offset;
+  dragging a panel header stops propagation so the board's pan/zoom/click-
+  to-select/move interaction underneath is never occluded except where
+  intended. The panels keep their existing props and `useGameSession` wiring
+  and behaviour (info display, recruit actions, End Turn, Clear, status/
+  stats) unchanged. This is a thin UI composition/positioning change only —
+  no core logic changed (core stays pure and 100% covered). The
+  `PlayableGame`, `FloatingPanel`, and `useFloatingPanel` tests were added/
+  extended to assert the per-panel floating overlay layout, corner anchoring,
+  drag-to-move (without panning the board), and preserved game wiring.
+
 - Added a full-screen game board that fills the viewport (M11-T1, #74).
   The playable layout in `PlayableGame.tsx` was restructured so the map is
   no longer a contained UI element: the former `max-w-5xl` grid container
