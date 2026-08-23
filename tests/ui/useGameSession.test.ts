@@ -24,20 +24,29 @@ describe("boardCells", () => {
     return home.hex;
   }
 
-  it("produces one cell per unique hex across sites and units", () => {
+  it("produces one cell per hex of the generated map", () => {
     const state = standardSetup();
     const cells = boardCells(state);
-    // The unique hexes are the union of site hexes and unit hexes.
-    const unique = new Set([
-      ...state.sites.map((s) => `${s.hex.q},${s.hex.r}`),
-      ...state.units.map((u) => `${u.hex.q},${u.hex.r}`),
-    ]);
-    expect(cells).toHaveLength(unique.size);
-    // Every site hex and every unit hex is represented exactly once.
+    // The board now renders the full generated map — one cell per map hex.
+    expect(cells).toHaveLength(state.map.cells.length);
     const hexKeys = cells.map((c) => `${c.hex.q},${c.hex.r}`);
+    const mapKeys = state.map.cells.map((c) => `${c.hex.q},${c.hex.r}`);
     expect(new Set(hexKeys).size).toBe(hexKeys.length);
+    expect(hexKeys).toEqual([...mapKeys].sort());
+  });
+
+  it("carries the terrain of each map cell onto the board cell", () => {
+    const state = standardSetup();
+    const cells = boardCells(state);
+    // Every terrain type appears on a default generated map (land, water,
+    // mountain all exist), and the board cell terrain matches the map's.
+    const terrains = new Set(cells.map((c) => c.terrain));
+    expect(terrains).toEqual(new Set(["land", "water", "mountain"]));
     for (const cell of cells) {
-      expect(cell.hex).toBeDefined();
+      const mapCell = state.map.cells.find(
+        (m) => m.hex.q === cell.hex.q && m.hex.r === cell.hex.r,
+      )!;
+      expect(cell.terrain).toBe(mapCell.terrain);
     }
   });
 
@@ -85,6 +94,10 @@ describe("boardCells", () => {
     const unitOnly = cells.find((c) => c.unit && !c.site);
     expect(unitOnly).toBeDefined();
     expect(unitOnly!.site).toBeNull();
+    // Unoccupied hexes are still rendered with terrain and no site/unit.
+    const empty = cells.find((c) => !c.site && !c.unit);
+    expect(empty).toBeDefined();
+    expect(empty!.terrain).toBeDefined();
   });
 });
 

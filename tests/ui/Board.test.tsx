@@ -49,14 +49,27 @@ describe("Board", () => {
   )!.hex;
   const p1HomeKey = `${p1Home.q},${p1Home.r}`;
 
-  it("renders one cell per board cell with owner colouring", () => {
+  it("renders one cell per hex of the generated map with terrain", () => {
     render(<Board board={board} currentPlayer="p1" />);
     const cells = screen.getAllByTestId("board-cell");
-    expect(cells).toHaveLength(board.length);
-    // The p1 Home Tree cell is owned by p1.
+    // The board renders the full generated map (one cell per map hex).
+    expect(cells).toHaveLength(state.map.cells.length);
+    // The p1 Home Tree cell is owned by p1 and sits on the p1 map cell's terrain.
     const home = cells.find((c) => c.dataset.hex === p1HomeKey);
     expect(home).toBeDefined();
     expect(home!.dataset.owner).toBe("p1");
+    const mapHome = state.map.cells.find(
+      (m) => `${m.hex.q},${m.hex.r}` === p1HomeKey,
+    )!;
+    expect(home!.dataset.terrain).toBe(mapHome.terrain);
+  });
+
+  it("renders distinct terrain across the generated map", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    const terrains = new Set(cells.map((c) => c.dataset.terrain));
+    // The default generated 20x20 map contains land, water, and mountain cells.
+    expect(terrains).toEqual(new Set(["land", "water", "mountain"]));
   });
 
   it("renders a unit badge for occupied cells", () => {

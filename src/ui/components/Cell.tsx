@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { PlayerId } from "../../core/game";
+import type { Terrain } from "../../core/mapGenerator";
 import { HEX_SIZE, HEX_CLIP } from "../presentation";
 
 export interface CellProps {
@@ -9,6 +10,8 @@ export interface CellProps {
   r: number;
   /** The owner of this cell (site/unit), or null for neutral terrain. */
   owner: PlayerId | null;
+  /** The terrain of this cell (land / water / mountain). Defaults to land. */
+  terrain?: Terrain;
   /** Whether this cell is the current player's territory (highlight). */
   isCurrent?: boolean;
   /** The pixel x offset of this cell from the board origin. */
@@ -22,43 +25,48 @@ export interface CellProps {
 }
 
 /**
- * Token-backed background classes used to colour a hex by its controller.
- * Player/site/unit colours map to the brand palette tokens (rose → violet
- * brand family), per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
+ * Token-backed background classes used to colour a hex by its terrain. Each
+ * terrain maps to a semantic theme token (`terrain-land` / `terrain-water` /
+ * `terrain-mountain`) per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
+ * Ownership is conveyed separately (via `hex-current` highlight and the
+ * owner-coloured site/unit badges), so terrain and territory stay distinct.
  */
-const OWNER_BG: Record<string, string> = {
-  p1: "bg-brand-rose",
-  p2: "bg-brand-violet",
-  neutral: "bg-brand-amber-soft",
+const TERRAIN_BG: Record<Terrain, string> = {
+  land: "bg-terrain-land",
+  water: "bg-terrain-water",
+  mountain: "bg-terrain-mountain",
 };
 
 /**
- * Thin, dumb `Cell` atom component (M8-T1).
+ * Thin, dumb `Cell` atom component (M8-T1, M9-T3).
  *
  * Renders a single pointy-top hexagon board cell, extracted from the inline
  * hex rendering previously in `Board.tsx`. It is purely presentational — it
- * receives the cell's hex coords, owner, position, and highlight state as
- * props and renders the hexagon shell (clip-path, token background, border,
- * `hex-cell`/`hex-pop`/`hex-current` classes, `data-testid="board-cell"` /
- * `data-hex` / `data-owner` attributes) with any content passed via the
- * `children` slot. No hooks, no context, no side effects, no business logic.
+ * receives the cell's hex coords, terrain, owner, position, and highlight
+ * state as props and renders the hexagon shell (clip-path, token terrain
+ * background, border, `hex-cell`/`hex-pop`/`hex-current` classes,
+ * `data-testid="board-cell"` / `data-hex` / `data-owner` / `data-terrain`
+ * attributes) with any content passed via the `children` slot. No hooks, no
+ * context, no side effects, no business logic.
  */
 export function Cell({
   q,
   r,
   owner,
+  terrain = "land",
   isCurrent = false,
   x,
   y,
   animationDelay = 0,
   children,
 }: CellProps) {
-  const bg = owner ? OWNER_BG[owner] ?? OWNER_BG.neutral : OWNER_BG.neutral;
+  const bg = TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
   return (
     <div
       data-testid="board-cell"
       data-hex={`${q},${r}`}
       data-owner={owner ?? "neutral"}
+      data-terrain={terrain}
       className={`hex-cell hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
         isCurrent ? "hex-current" : ""
       }`}
