@@ -9,11 +9,12 @@ import type {
   ApeKind,
   ApeRank,
 } from "../../core/game";
-import { rankOf } from "../../core/game";
+import { rankOf, sameHex } from "../../core/game";
 import type { MapConfig, Terrain } from "../../core/mapGenerator";
 import type { GameAction } from "../../core/ai";
 import type { CellInfo } from "../../core/cellInfo";
 import { cellInfo } from "../../core/cellInfo";
+import { moveTargets } from "../../core/moveTargets";
 import type { TurnStep } from "../../core/gameSession";
 import {
   createGameSession,
@@ -179,6 +180,22 @@ export function selectedCellInfo(
 }
 
 /**
+ * Pure presentation adaptation: derive the set of reachable, unoccupied target
+ * hexes for `unitHex` from the session's legal moves. This simply binds the
+ * core `moveTargets` derivation to the session's step-filtered legal moves —
+ * no business logic lives here.
+ *
+ * `null` is returned when no hex is selected, so the board highlights nothing.
+ */
+export function selectedMoveTargets(
+  legalMoves: GameAction[],
+  hex: Hex | null,
+): Hex[] {
+  if (!hex) return [];
+  return moveTargets(legalMoves, hex);
+}
+
+/**
  * The `useGameSession` view model.
  *
  * Holds a core `GameSession` and the currently selected hex in React state and
@@ -187,7 +204,13 @@ export function selectedCellInfo(
  *  - `selectedHex` — the hex the user has clicked (or null);
  *  - `selectedCell` — the core-derived display info for the selected hex (or
  *    null when none is selected);
+ *  - `selectedMoveTargets` — the reachable, unoccupied target hexes the
+ *    selected (movable, human-owned, not-yet-acted) unit could move to this
+ *    turn, or an empty array when none is selected / not movable (M10-T4);
  *  - `selectCell(hex)` — selects a hex so the info/action panel can show it;
+ *    when the currently selected cell is a movable unit and `hex` is one of
+ *    its reachable target hexes, issues the matching `move` action through
+ *    the core `selectAction` flow instead (M10-T4);
  *  - `selectAction(action)` — selects one legal action (delegates to core);
  *  - `clearActions()` — discards this turn's selections (delegates to core);
  *  - `submitTurn()` — ends the human's turn and runs the AI (delegates to core).
@@ -198,6 +221,7 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   view: GameSessionView;
   selectedHex: Hex | null;
   selectedCell: CellInfo | null;
+  selectedMoveTargets: Hex[];
   selectCell: (hex: Hex) => void;
   selectAction: (action: GameAction) => void;
   clearActions: () => void;
@@ -215,6 +239,11 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
     [session, selectedHex],
   );
 
+  const selectedTargets = useMemo(
+    () => selectedMoveTargets(session.legalMoves, selectedHex),
+    [session, selectedHex],
+  );
+
   const select = useCallback((action: GameAction) => {
     setSession((current) => selectAction(current, action));
   }, []);
@@ -227,14 +256,29 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
     setSession((current) => submitTurn(current));
   }, []);
 
-  const selectCell = useCallback((hex: Hex) => {
-    setSelectedHex(hex);
-  }, []);
+  const selectCell = useCallback(
+    (hex: Hex) => {
+      // If a movable unit is currently selected and the clicked hex is one of
+      // its reachable target hexes, issue the `move` action through the core
+      // `selectAction` flow (M10-T4). Clicking any other (non-reachable) cell
+      // never issues an illegal move — it just clears/reselects the selection,
+      // which drops any move highlight on the previously selected unit.
+      if (selectedHex) {
+        const targets = moveTargets(session.legalMoves, selectedHex);
+        if (targets.some((target) => sameHex(target, hex))) {
+          select({ type: "move", unitHex: selectedHex, targetHex: hex });
+        }
+      }
+      setSelectedHex(hex);
+    },
+    [selectedHex, session, select],
+  );
 
   return {
     view,
     selectedHex,
     selectedCell,
+    selectedMoveTargets: selectedTargets,
     selectCell,
     selectAction: select,
     clearActions: clear,

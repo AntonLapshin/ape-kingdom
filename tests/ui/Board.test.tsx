@@ -150,6 +150,38 @@ describe("Board", () => {
     expect(others.every((c) => c.dataset.selected === "false")).toBe(true);
   });
 
+  it("highlights only the reachable move-target cells", () => {
+    const targets = [
+      { q: p1Home.q + 1, r: p1Home.r },
+      { q: p1Home.q, r: p1Home.r + 1 },
+    ];
+    const targetKeys = new Set(targets.map((t) => `${t.q},${t.r}`));
+    render(
+      <Board
+        board={board}
+        currentPlayer="p1"
+        selectedHex={p1Home}
+        moveTargets={targets}
+      />,
+    );
+    const cells = screen.getAllByTestId("board-cell");
+    for (const cell of cells) {
+      const isTarget = targetKeys.has(cell.dataset.hex!);
+      expect(cell.dataset.moveTarget).toBe(isTarget ? "true" : "false");
+      if (isTarget) {
+        expect(cell.className).toContain("hex-move-target");
+      } else {
+        expect(cell.className).not.toContain("hex-move-target");
+      }
+    }
+  });
+
+  it("marks no cell as a move target when moveTargets is omitted", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    expect(cells.every((c) => c.dataset.moveTarget === "false")).toBe(true);
+  });
+
   it("calls onSelectCell with the clicked hex when cells are selectable", () => {
     const onSelectCell = vi.fn();
     render(

@@ -16,6 +16,8 @@ export interface CellProps {
   isCurrent?: boolean;
   /** Whether this cell is the currently selected hex (selection highlight). */
   isSelected?: boolean;
+  /** Whether this cell is a reachable move target of the selected unit (M10-T4). */
+  isMoveTarget?: boolean;
   /** The pixel x offset of this cell from the board origin. */
   x: number;
   /** The pixel y offset of this cell from the board origin. */
@@ -60,6 +62,7 @@ export function Cell({
   terrain = "land",
   isCurrent = false,
   isSelected = false,
+  isMoveTarget = false,
   x,
   y,
   animationDelay = 0,
@@ -87,9 +90,12 @@ export function Cell({
       data-owner={owner ?? "neutral"}
       data-terrain={terrain}
       data-selected={isSelected ? "true" : "false"}
+      data-move-target={isMoveTarget ? "true" : "false"}
       className={`hex-cell hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
         isCurrent ? "hex-current" : ""
-      } ${isSelected ? "hex-selected" : ""} ${onSelect ? "cursor-pointer" : ""}`}
+      } ${isSelected ? "hex-selected" : ""} ${
+        isMoveTarget ? "hex-move-target" : ""
+      } ${onSelect ? "cursor-pointer" : ""}`}
       style={{
         width: HEX_SIZE * 2,
         height: HEX_SIZE * 2,

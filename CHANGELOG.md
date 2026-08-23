@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added movement via click-to-move with reachable-cell highlighting (M10-T4,
+  #70). Selecting a human-owned, not-yet-acted unit now highlights every
+  reachable, unoccupied target hex it could move to this turn, and clicking
+  one of those highlighted targets moves the unit there through the existing
+  `selectAction` flow (ending in the core `moveUnit` reducer). A new pure core
+  derivation `moveTargets` (`src/core/moveTargets.ts`, 100% covered) extracts
+  every reachable target hex for a selected unit from the current player's
+  step-filtered legal moves (so only the current player's own, not-yet-acted
+  units ever highlight, and nothing is highlighted before income is collected).
+  The thin `useGameSession` view model exposes `selectedMoveTargets` (via a
+  pure `selectedMoveTargets` adapter) and enhances `selectCell` to issue the
+  `move` action when a reachable target is clicked; clicking a non-reachable
+  cell never issues an illegal move and simply reselects/clears the move
+  highlight. The dumb `Board` accepts a `moveTargets` prop and the `Cell` atom
+  gains an `isMoveTarget` state (`hex-move-target` token highlight in
+  `index.css`, `data-move-target` flag), with `PlayableGame` wiring the view
+  model to the board. `Cell`/`Board` Showcase demos were added per the atomic
+  design guidelines. Core stays pure and 100% covered; new tests cover the
+  core derivation, the view-model selection & move dispatch, the cell/board
+  highlighting, the PlayableGame click-to-move wiring, and the Showcase
+  registration.
+
 - Added cell selection with an info/action panel (M10-T3, #66). Clicking any
   hex on the board now selects it: the matched `Cell` is visually highlighted
   (`hex-selected` state, composable with the existing `hex-current` ring) and

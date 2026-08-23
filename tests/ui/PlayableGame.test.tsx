@@ -238,6 +238,110 @@ describe("PlayableGame", () => {
     ).toBeInTheDocument();
   });
 
+  it("highlights reachable targets when selecting a movable human unit", () => {
+    render(<PlayableGame />);
+    // Collect income so move actions become legal.
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+    // Click a p1-owned (human) unit until its reachable targets are highlighted.
+    const cells = screen.getAllByTestId("board-cell");
+    const p1Units = cells.filter((c) => c.dataset.owner === "p1");
+    let selectedUnit: HTMLElement | undefined;
+    for (const cell of p1Units) {
+      act(() => {
+        fireEvent.click(cell);
+      });
+      if (
+        cells.some((c) => c.dataset.moveTarget === "true") &&
+        cell.dataset.selected === "true"
+      ) {
+        selectedUnit = cell;
+        break;
+      }
+    }
+    expect(selectedUnit).toBeDefined();
+    // The selected unit's reachable target cells are highlighted.
+    const highlighted = cells.filter((c) => c.dataset.moveTarget === "true");
+    expect(highlighted.length).toBeGreaterThan(0);
+  });
+
+  it("moves the unit when clicking a highlighted reachable target", () => {
+    render(<PlayableGame />);
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+    const cells = screen.getAllByTestId("board-cell");
+    // Select a p1 movable unit and capture its highlighted reachable target.
+    const p1Units = cells.filter((c) => c.dataset.owner === "p1");
+    let target: HTMLElement | undefined;
+    for (const cell of p1Units) {
+      act(() => {
+        fireEvent.click(cell);
+      });
+      const highlighted = cells.find((c) => c.dataset.moveTarget === "true");
+      if (highlighted) {
+        target = highlighted;
+        break;
+      }
+    }
+    expect(target).toBeDefined();
+    const targetBefore =
+      target!.querySelector('[data-testid="board-unit"]')?.textContent ?? null;
+    expect(targetBefore).toBeNull(); // empty before the move (occupied after)
+
+    act(() => {
+      fireEvent.click(target!);
+    });
+    // The board reflects the move: the target cell now carries a unit badge and
+    // the step advanced to Move / Fight (the unit has acted this turn).
+    const movedCell = screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.hex === target!.dataset.hex)!;
+    expect(
+      movedCell.querySelector('[data-testid="board-unit"]'),
+    ).not.toBeNull();
+    // The step advanced to Move / Fight (the unit has acted this turn).
+    expect(screen.getAllByText(/Move \/ Fight/).length).toBeGreaterThan(0);
+  });
+
+  it("does not move when clicking a non-reachable cell", () => {
+    render(<PlayableGame />);
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+    const cells = screen.getAllByTestId("board-cell");
+    // Select a movable p1 unit so move targets are active.
+    const p1Units = cells.filter((c) => c.dataset.owner === "p1");
+    let activated = false;
+    for (const cell of p1Units) {
+      act(() => {
+        fireEvent.click(cell);
+      });
+      if (cells.some((c) => c.dataset.moveTarget === "true")) {
+        activated = true;
+        break;
+      }
+    }
+    expect(activated).toBe(true);
+    // Capture the unit badge counts before any (illegal) move.
+    const unitsBefore = screen.getAllByTestId("board-unit").length;
+    // Click a clearly non-reachable, unoccupied cell (not a move target).
+    const nonReachable = cells.find(
+      (c) =>
+        c.dataset.moveTarget !== "true" &&
+        c.dataset.owner === "neutral" &&
+        c.dataset.terrain === "land",
+    );
+    expect(nonReachable).toBeDefined();
+    act(() => {
+      fireEvent.click(nonReachable!);
+    });
+    // No illegal move was issued: no unit was created/moved and the step did
+    // not advance past what it was (still on the move-active step).
+    expect(screen.getAllByTestId("board-unit").length).toBe(unitsBefore);
+  });
+
   it("lists buildable recruit actions from the panel and wires them to the game", () => {
     render(<PlayableGame />);
     // Collect income to make recruiting legal.

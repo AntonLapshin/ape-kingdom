@@ -37,6 +37,7 @@ export function showcaseRegistry(): ShowcaseRegistry {
       showcases: {
         Opening: BoardShowcase.Opening,
         PlayerTwoTurn: BoardShowcase.PlayerTwoTurn,
+        MoveTargets: BoardShowcase.MoveTargets,
       },
     },
     {
@@ -65,6 +66,7 @@ export function showcaseRegistry(): ShowcaseRegistry {
         PlayerOne: CellShowcase.PlayerOne,
         PlayerTwo: CellShowcase.PlayerTwo,
         PlayerOneCurrent: CellShowcase.PlayerOneCurrent,
+        MoveTarget: CellShowcase.MoveTarget,
       },
     },
     {

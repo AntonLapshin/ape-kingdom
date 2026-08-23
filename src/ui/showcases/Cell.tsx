@@ -59,3 +59,10 @@ export const PlayerOneCurrent = () => (
     <Cell q={0} r={0} owner="p1" terrain="land" isCurrent x={0} y={0} />
   </Stage>
 );
+
+/** A neutral land cell highlighted as a reachable move target (M10-T4). */
+export const MoveTarget = () => (
+  <Stage>
+    <Cell q={0} r={0} owner={null} terrain="land" isMoveTarget x={0} y={0} />
+  </Stage>
+);

@@ -77,6 +77,18 @@ describe("Cell", () => {
     expect(cell.dataset.selected).toBe("true");
   });
 
+  it("adds the hex-move-target highlight and data flag when a move target", () => {
+    render(<Cell q={0} r={0} owner={null} isMoveTarget x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.className).toContain("hex-move-target");
+    expect(cell.dataset.moveTarget).toBe("true");
+  });
+
+  it("marks non-target cells as not a move target", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    expect(screen.getByTestId("board-cell").dataset.moveTarget).toBe("false");
+  });
+
   it("marks unselected cells as not selected", () => {
     render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
     expect(screen.getByTestId("board-cell").dataset.selected).toBe("false");

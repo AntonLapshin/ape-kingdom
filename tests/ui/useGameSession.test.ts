@@ -6,6 +6,7 @@ import {
   playerViews,
   toGameSessionView,
   selectedCellInfo,
+  selectedMoveTargets,
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
@@ -200,6 +201,33 @@ describe("selectedCellInfo", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* selectedMoveTargets (pure presentation derivation)                  */
+/* ------------------------------------------------------------------ */
+
+describe("selectedMoveTargets", () => {
+  it("returns an empty array when no hex is selected", () => {
+    expect(selectedMoveTargets([{ type: "move", unitHex: { q: 0, r: 0 }, targetHex: { q: 1, r: 0 } }], null)).toEqual([]);
+  });
+
+  it("derives the reachable targets for a selected unit from the legal moves", () => {
+    const moves = [
+      { type: "move" as const, unitHex: { q: 0, r: 0 }, targetHex: { q: 1, r: 0 } },
+      { type: "move" as const, unitHex: { q: 0, r: 0 }, targetHex: { q: 0, r: 1 } },
+      { type: "move" as const, unitHex: { q: 5, r: 5 }, targetHex: { q: 6, r: 5 } },
+    ];
+    const targets = selectedMoveTargets(moves, { q: 0, r: 0 });
+    expect(targets).toEqual([{ q: 1, r: 0 }, { q: 0, r: 1 }]);
+  });
+
+  it("returns an empty array when the selected hex has no legal move", () => {
+    const moves = [
+      { type: "move" as const, unitHex: { q: 0, r: 0 }, targetHex: { q: 1, r: 0 } },
+    ];
+    expect(selectedMoveTargets(moves, { q: 9, r: 9 })).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* useGameSession hook                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -289,6 +317,107 @@ describe("useGameSession", () => {
       result.current.selectCell(someHex);
     });
     expect(result.current.selectedHex).toEqual(someHex);
+  });
+
+  it("starts with no move targets selected", () => {
+    const { result } = renderHook(() => useGameSession());
+    expect(result.current.selectedMoveTargets).toEqual([]);
+  });
+
+  it("exposes no move targets on the income step (income must come first)", () => {
+    const { result } = renderHook(() => useGameSession());
+    // Select a human-owned unit on the income step: its moves are not yet
+    // selectable, so no reachable targets are highlighted (M10-T4).
+    const p1Unit = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    );
+    if (!p1Unit) throw new Error("expected a p1-owned unit");
+    act(() => {
+      result.current.selectCell(p1Unit.hex);
+    });
+    expect(result.current.selectedMoveTargets).toEqual([]);
+  });
+
+  it("highlights the reachable targets of a selected movable human unit", () => {
+    const { result } = renderHook(() => useGameSession());
+    // Advance past income so move actions become selectable.
+    act(() => {
+      result.current.selectAction({ type: "collectIncome" });
+    });
+    const move = result.current.view.legalActions.find((a) => a.type === "move");
+    if (!move || move.type !== "move") {
+      throw new Error("expected a legal move action");
+    }
+    act(() => {
+      result.current.selectCell(move.unitHex);
+    });
+    const targets = result.current.selectedMoveTargets;
+    expect(targets.length).toBeGreaterThan(0);
+    // Every returned target is a real legal move target for this unit.
+    expect(targets.some((t) => sameHex(t, move.targetHex))).toBe(true);
+  });
+
+  it("moves the selected unit when clicking one of its reachable targets", () => {
+    const { result } = renderHook(() => useGameSession());
+    act(() => {
+      result.current.selectAction({ type: "collectIncome" });
+    });
+    const move = result.current.view.legalActions.find((a) => a.type === "move");
+    if (!move || move.type !== "move") {
+      throw new Error("expected a legal move action");
+    }
+    // Select the movable unit, then click one of its reachable targets.
+    act(() => {
+      result.current.selectCell(move.unitHex);
+    });
+    const targets = result.current.selectedMoveTargets;
+    expect(targets).toContainEqual(move.targetHex);
+    act(() => {
+      result.current.selectCell(move.targetHex);
+    });
+    // The unit moved onto the target hex and has now acted.
+    const moved = result.current.view.board.find((c) =>
+      sameHex(c.hex, move.targetHex),
+    );
+    expect(moved?.unit?.kind).toBeTruthy();
+    // The step advanced to movefight (a move was performed).
+    expect(result.current.view.step).toBe("movefight");
+    // After moving, the now-acted unit offers no further move targets.
+    act(() => {
+      result.current.selectCell(move.targetHex);
+    });
+    expect(result.current.selectedMoveTargets).toEqual([]);
+  });
+
+  it("does not move when clicking a non-reachable cell (no illegal move)", () => {
+    const { result } = renderHook(() => useGameSession());
+    act(() => {
+      result.current.selectAction({ type: "collectIncome" });
+    });
+    const move = result.current.view.legalActions.find((a) => a.type === "move");
+    if (!move || move.type !== "move") {
+      throw new Error("expected a legal move action");
+    }
+    act(() => {
+      result.current.selectCell(move.unitHex);
+    });
+    const beforeStep = result.current.view.step;
+    const beforeUnits = result.current.view.board;
+    // Click a hex far away that is not one of the unit's reachable targets.
+    const nonReachable = result.current.view.board.find(
+      (c) =>
+        !result.current.selectedMoveTargets.some((t) => sameHex(t, c.hex)) &&
+        !sameHex(c.hex, move.unitHex),
+    );
+    if (!nonReachable) throw new Error("expected a non-reachable hex");
+    act(() => {
+      result.current.selectCell(nonReachable.hex);
+    });
+    // No move was issued: the step did not advance and no unit moved.
+    expect(result.current.view.step).toBe(beforeStep);
+    expect(result.current.view.board).toEqual(beforeUnits);
+    // The move highlight is cleared (selection moved to a non-movable hex).
+    expect(result.current.selectedMoveTargets).toEqual([]);
   });
 
   it("marks the view done with a winner when the game ends", () => {
