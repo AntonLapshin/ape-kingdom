@@ -19,6 +19,20 @@ project-state.md + this changelog reflect the shipped POC.
 
 ### Added
 
+- Added the `Content` atom component and its showcase (M8-T3, #50).
+  `src/ui/components/Content.tsx` is a pure, dumb atom that renders a site
+  content marker (Home Tree, Nest, Grove) as a small labelled badge
+  (`data-testid="board-site"` / `data-kind`, `text-[10px] font-semibold
+  leading-none text-text-body`), extracted from the inline site label
+  previously rendered in `Board.tsx` via `SITE_LABELS`. It exposes a `kind`
+  prop (the `SiteKind`) and renders the matching human-readable label, keeping
+  all presentation logic out of business logic. `Board.tsx` now composes
+  `Content`. A showcase demo `src/ui/showcases/Content.tsx` demos the three
+  site kinds (Grove, Nest, Home Tree) and is registered in
+  `src/ui/showcases/index.ts` per rule 7 of
+  `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`. Covered by
+  `tests/ui/Content.test.tsx` (5 tests) and the extended showcase-registry
+  test. Core stays 100% covered.
 - Added the `Cell` atom component and its showcase (M8-T1, #51).
   `src/ui/components/Cell.tsx` is a pure, dumb atom that renders a pointy-top
   hexagon board cell (hex clip-path, `bg-brand-*` token colours,

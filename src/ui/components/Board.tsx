@@ -1,7 +1,8 @@
 import type { BoardCell } from "../viewModels/useGameSession";
 import type { PlayerId } from "../../core/game";
-import { HEX_SIZE, hexToPixel, SITE_LABELS } from "../presentation";
+import { HEX_SIZE, hexToPixel } from "../presentation";
 import { Cell } from "./Cell";
+import { Content } from "./Content";
 import { Unit } from "./Unit";
 
 export interface BoardProps {
@@ -51,11 +52,7 @@ export function Board({ board, currentPlayer }: BoardProps) {
             y={y - minY + pad - HEX_SIZE}
             animationDelay={index * 40}
           >
-            {cell.site && (
-              <span className="text-[10px] font-semibold leading-none text-text-body">
-                {SITE_LABELS[cell.site.kind]}
-              </span>
-            )}
+            {cell.site && <Content kind={cell.site.kind} />}
             {cell.unit && (
               <Unit
                 kind={cell.unit.kind}
