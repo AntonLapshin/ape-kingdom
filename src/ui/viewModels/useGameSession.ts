@@ -129,6 +129,22 @@ export function boardCells(state: GameState): BoardCell[] {
 }
 
 /**
+ * Pure presentation adaptation: resolve the territory background token class
+ * for a rendered cell from its owner (M13-T2, #89).
+ *
+ * The owner→colour mapping lives here (the view model), not in the dumb
+ * `Cell` component: a land cell owned by p1 / p2 gets a soft owner tint token
+ * (`bg-owner-p1` / `bg-owner-p2`), while neutral cells return `null` so the
+ * `Cell` keeps its current terrain colour. Not game logic — just deciding the
+ * token-controlled background utility for the board to pass down.
+ */
+export function ownerBackground(owner: PlayerId | null): string | null {
+  if (owner === "p1") return "bg-owner-p1";
+  if (owner === "p2") return "bg-owner-p2";
+  return null;
+}
+
+/**
  * Pure presentation adaptation: map the core player records into renderable
  * summaries. Not game logic — just shaping the data for the players panel.
  */

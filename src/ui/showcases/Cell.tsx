@@ -59,3 +59,33 @@ export const PlayerOneCurrent = () => (
     <Cell q={0} r={0} owner="p1" terrain="land" isCurrent x={0} y={0} />
   </Stage>
 );
+
+/** A land cell tinted by p1's territory background (M13-T2, #89). */
+export const PlayerOneTint = () => (
+  <Stage>
+    <Cell
+      q={0}
+      r={0}
+      owner="p1"
+      ownerBg="bg-owner-p1"
+      terrain="land"
+      x={0}
+      y={0}
+    />
+  </Stage>
+);
+
+/** A land cell tinted by p2's territory background (M13-T2, #89). */
+export const PlayerTwoTint = () => (
+  <Stage>
+    <Cell
+      q={0}
+      r={0}
+      owner="p2"
+      ownerBg="bg-owner-p2"
+      terrain="land"
+      x={0}
+      y={0}
+    />
+  </Stage>
+);

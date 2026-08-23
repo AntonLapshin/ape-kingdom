@@ -1,5 +1,6 @@
 
 import type { BoardCell } from "../viewModels/useGameSession";
+import { ownerBackground } from "../viewModels/useGameSession";
 import type { Hex, PlayerId } from "../../core/game";
 import type { PanOffset } from "../viewModels/usePan";
 import { HEX_SIZE, hexToPixel } from "../presentation";
@@ -93,6 +94,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
             q={cell.hex.q}
             r={cell.hex.r}
             owner={owner}
+            ownerBg={ownerBackground(owner)}
             terrain={cell.terrain}
             isCurrent={owner === currentPlayer}
             isSelected={isSelected}
