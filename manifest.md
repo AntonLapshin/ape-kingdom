@@ -2,7 +2,8 @@
 
 > Project charter / intent.
 
-**Status: in-progress** — M1–M10 are complete and the POC is shipped
+**Status: done** — completed_at: 2026-08-23T21:41:10Z. All milestones M1–M11
+are complete and the POC is shipped
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
