@@ -422,4 +422,66 @@ describe("PlayableGame", () => {
     expect(screen.getByText("Collect Income")).toBeInTheDocument();
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Theme-polished floating full-screen UI (M11-T3 / #76)             */
+  /* ------------------------------------------------------------------ */
+
+  it("styles each floating panel card with the token glass-panel HUD surface (M11-T3)", () => {
+    render(<PlayableGame />);
+    // Each floating panel card is a `glass-panel` surface — the design-token
+    // backdrop-blur + shadow HUD surface — so the panels read as a polished
+    // over-map game HUD that stays readable over any terrain.
+    const overlays = [
+      screen.getByTestId("status-overlay"),
+      screen.getByTestId("cell-info-overlay"),
+      screen.getByTestId("actions-overlay"),
+    ];
+    for (const overlay of overlays) {
+      const card = overlay.firstElementChild as HTMLElement;
+      expect(card.className).toContain("glass-panel");
+      // Rounded HUD card (blur + shadow surface with rounded corners).
+      expect(card.className).toContain("rounded-2xl");
+    }
+  });
+
+  it("pops each floating panel card in with the token menu-pop animation (M11-T3)", () => {
+    render(<PlayableGame />);
+    // Each floating panel card animates in on mount via the token `menu-pop`
+    // animation class defined in the theme styles (M5-T3), giving the HUD a
+    // polished, non-jarring appearance over the map.
+    const overlays = [
+      screen.getByTestId("status-overlay"),
+      screen.getByTestId("cell-info-overlay"),
+      screen.getByTestId("actions-overlay"),
+    ];
+    for (const overlay of overlays) {
+      const card = overlay.firstElementChild as HTMLElement;
+      expect(card.className).toContain("menu-pop");
+    }
+  });
+
+  it("keeps the full-screen board layer beneath the themed floating panels (M11-T3)", () => {
+    render(<PlayableGame />);
+    const board = screen.getByTestId("board");
+    // The board layer fills the viewport beneath the overlays and is the first
+    // absolute layer (rendered before the z-10 panels), so the HUD never
+    // occludes pan/zoom/selection outside the panels.
+    const boardLayer = board.closest("[data-testid='board-layer']") as HTMLElement;
+    expect(boardLayer).toBeDefined();
+    expect(boardLayer.className).toContain("absolute");
+    expect(boardLayer.className).toContain("inset-0");
+    // Pan/zoom/selection still work with the themed HUD present.
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    act(() =>
+      game.dispatchEvent(
+        new WheelEvent("wheel", {
+          bubbles: true,
+          cancelable: true,
+          deltaY: -100,
+        }),
+      ),
+    );
+    expect(board.getAttribute("style")!).toContain("scale(1.1)");
+  });
 });
