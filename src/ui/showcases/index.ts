@@ -4,6 +4,7 @@ import * as BoardShowcase from "./Board";
 import * as StatusPanelShowcase from "./StatusPanel";
 import * as DemoPanelShowcase from "./DemoPanel";
 import * as CellShowcase from "./Cell";
+import * as ContentShowcase from "./Content";
 import * as UnitShowcase from "./Unit";
 
 /**
@@ -61,6 +62,14 @@ export function showcaseRegistry(): ShowcaseRegistry {
         PlayerOne: CellShowcase.PlayerOne,
         PlayerTwo: CellShowcase.PlayerTwo,
         PlayerOneCurrent: CellShowcase.PlayerOneCurrent,
+      },
+    },
+    {
+      name: ContentShowcase.name,
+      showcases: {
+        Grove: ContentShowcase.Grove,
+        Nest: ContentShowcase.Nest,
+        HomeTree: ContentShowcase.HomeTree,
       },
     },
     {
