@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added full-viewport drag-to-pan board navigation (M10-T1, #64). The
+  `PlayableGame` now mounts inside a full-viewport, non-scrolling container
+  (`h-screen w-screen overflow-hidden`), and the `App` game route renders it
+  without the page-scrolling wrapper so the game fills 100% of the viewport.
+  A new thin `usePan` view model (`src/ui/viewModels/usePan.ts`) tracks the
+  pan offset `{x, y}` and exposes `panBy(dx, dy)` / `setPan` (with a pure,
+  unit-tested `offsetBy` helper that clamps the offset); dragging the board
+  updates the offset via pointer events (pointer down → move → up, wired in
+  `PlayableGame`). The dumb `Board` component accepts an optional `pan` prop
+  and applies it as a CSS translate to the map/grid transform so the user can
+  drag to reposition the map. Core stays pure and 100% covered; new UI tests
+  cover the view model, the board transform, and the drag gesture.
+
 - Rendered the generated map's terrain (land / water / mountain) in the UI
   `Board` component (M9-T3, #52). The `Cell` atom now accepts a `terrain` prop
   (defaulting to `land`) and styles each hex with a distinct semantic theme

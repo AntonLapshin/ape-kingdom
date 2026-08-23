@@ -1,4 +1,6 @@
+import { useCallback, useRef } from "react";
 import { useGameSession } from "../viewModels/useGameSession";
+import { usePan } from "../viewModels/usePan";
 import { Board } from "./Board";
 import { ActionControls } from "./ActionControls";
 import { StatusPanel } from "./StatusPanel";
@@ -9,7 +11,7 @@ export interface PlayableGameProps {
 }
 
 /**
- * Playable game screen (M4-T3).
+ * Playable game screen (M4-T3, extended for M10-T1).
  *
  * The thin composition layer that wires the `useGameSession` view model to
  * the dumb board / action / status components. It owns no game rules — every
@@ -18,45 +20,105 @@ export interface PlayableGameProps {
  * passes it down, and forwards the user's input back up through the view
  * model's callbacks.
  *
- * This is the only "stateful" layer in the UI (it calls the view-model hook);
- * the components it renders stay pure and dumb.
+ * For viewport navigation (M10-T1) it also:
+ *  - mounts its content inside a full-viewport, non-scrolling container
+ *    (`h-screen w-screen overflow-hidden`, no page scroll) so the game fills
+ *    100% of the viewport;
+ *  - uses the thin `usePan` view model to track the map's pan offset; and
+ *  - handles pointer events on the viewport (pointer down → move → up as a
+ *    drag) to update that offset, so the user can drag the board to pan it.
+ *
+ * This is the only "stateful" layer in the UI (it calls the view-model hooks);
+ * the components it renders stay pure and dumb. The pointer wiring here is
+ * thin view glue (accumulating drag deltas into the view model), not game
+ * logic.
  */
 export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
   const { view, selectAction, clearActions, submitTurn } = useGameSession(aiSeed);
+  const { pan, panBy } = usePan();
+
+  // Drag state: the pointer id we are currently dragging with, plus the last
+  // known pointer position so we can compute deltas on each move.
+  const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(
+    null,
+  );
+
+  const onPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      drag.current = {
+        pointerId: event.pointerId,
+        lastX: event.clientX,
+        lastY: event.clientY,
+      };
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    },
+    [],
+  );
+
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const current = drag.current;
+      if (!current || current.pointerId !== event.pointerId) return;
+      const dx = event.clientX - current.lastX;
+      const dy = event.clientY - current.lastY;
+      current.lastX = event.clientX;
+      current.lastY = event.clientY;
+      // Guard against non-numeric deltas (e.g. jsdom test environments never
+      // producing pointer coordinates) so the transform never becomes NaN.
+      if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+      panBy(dx, dy);
+    },
+    [panBy],
+  );
+
+  const onPointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (drag.current?.pointerId === event.pointerId) {
+        drag.current = null;
+      }
+    },
+    [],
+  );
 
   return (
-    <section
+    <div
       data-testid="playable-game"
-      className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_300px]"
+      className="h-screen w-screen overflow-hidden"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
-      <div className="glass-panel rounded-2xl p-4">
-        <h2 className="mb-3 text-lg font-bold text-text-primary">
-          Ape Kingdom
-        </h2>
-        <Board board={view.board} currentPlayer={view.currentPlayer} />
-      </div>
+      <section className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_300px] py-6">
+        <div className="glass-panel rounded-2xl p-4">
+          <h2 className="mb-3 text-lg font-bold text-text-primary">
+            Ape Kingdom
+          </h2>
+          <Board board={view.board} currentPlayer={view.currentPlayer} pan={pan} />
+        </div>
 
-      <div className="space-y-4">
-        <div className="glass-panel rounded-2xl p-4">
-          <StatusPanel
-            players={view.players}
-            currentPlayer={view.currentPlayer}
-            step={view.step}
-            winner={view.winner}
-            isDone={view.isDone}
-          />
+        <div className="space-y-4">
+          <div className="glass-panel rounded-2xl p-4">
+            <StatusPanel
+              players={view.players}
+              currentPlayer={view.currentPlayer}
+              step={view.step}
+              winner={view.winner}
+              isDone={view.isDone}
+            />
+          </div>
+          <div className="glass-panel rounded-2xl p-4">
+            <ActionControls
+              legalActions={view.legalActions}
+              step={view.step}
+              isDone={view.isDone}
+              onSelect={selectAction}
+              onClear={clearActions}
+              onSubmit={submitTurn}
+            />
+          </div>
         </div>
-        <div className="glass-panel rounded-2xl p-4">
-          <ActionControls
-            legalActions={view.legalActions}
-            step={view.step}
-            isDone={view.isDone}
-            onSelect={selectAction}
-            onClear={clearActions}
-            onSubmit={submitTurn}
-          />
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

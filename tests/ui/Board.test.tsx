@@ -94,4 +94,18 @@ describe("Board", () => {
     render(<Board board={board} currentPlayer="p1" />);
     expect(screen.getByText(/Turn: You \(p1\)/)).toBeInTheDocument();
   });
+
+  it("applies the pan offset as a translate to the board transform", () => {
+    const { container } = render(
+      <Board board={board} currentPlayer="p1" pan={{ x: 40, y: -25 }} />,
+    );
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    expect(boardEl).toHaveStyle({ transform: "translate(40px, -25px)" });
+  });
+
+  it("applies no transform when the pan offset is omitted", () => {
+    const { container } = render(<Board board={board} currentPlayer="p1" />);
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    expect(boardEl).not.toHaveStyle({ transform: "translate(0px, 0px)" });
+  });
 });
