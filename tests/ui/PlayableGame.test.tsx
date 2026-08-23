@@ -128,4 +128,87 @@ describe("PlayableGame", () => {
     });
     expect(board.getAttribute("style")).toBe(startStyle);
   });
+
+  it("scrolls the wheel up to zoom in and down to zoom out on the board", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+
+    const wheel = (deltaY: number) => {
+      act(() => {
+        game.dispatchEvent(
+          new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY }),
+        );
+      });
+    };
+
+    // Scroll up (negative deltaY) zooms in: default 1 -> scale(1.1).
+    wheel(-100);
+    expect(board.getAttribute("style")!).toContain("scale(1.1)");
+
+    // Scroll down (positive deltaY) zooms back out to 1.
+    wheel(100);
+    expect(board.getAttribute("style")!).toContain("scale(1)");
+  });
+
+  it("prevents the default page scroll when zooming", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const event = new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      deltaY: -100,
+    });
+    act(() => {
+      game.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("clamps the zoom scale so the board maps stays visible", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+    const wheel = (deltaY: number) =>
+      act(() =>
+        game.dispatchEvent(
+          new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY }),
+        ),
+      );
+
+    // Zoom out many times: the board never goes below the min scale.
+    for (let i = 0; i < 40; i++) wheel(100);
+    expect(board.getAttribute("style")!).toContain("scale(0.5)");
+
+    // Zoom in many times: never above the max scale.
+    for (let i = 0; i < 40; i++) wheel(-100);
+    expect(board.getAttribute("style")!).toContain("scale(2.5)");
+  });
+
+  it("combines zoom and pan in the board transform", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+    const wheel = (deltaY: number) =>
+      act(() =>
+        game.dispatchEvent(
+          new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY }),
+        ),
+      );
+    const drag = (type: string, x: number, y: number) =>
+      act(() =>
+        game.dispatchEvent(
+          new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }),
+        ),
+      );
+
+    // Zoom in once then pan by (30, 20).
+    wheel(-100);
+    drag("pointerdown", 0, 0);
+    drag("pointermove", 30, 20);
+    drag("pointerup", 30, 20);
+
+    expect(board.getAttribute("style")!).toContain("translate(30px, 20px)");
+    expect(board.getAttribute("style")!).toContain("scale(1.1)");
+  });
 });

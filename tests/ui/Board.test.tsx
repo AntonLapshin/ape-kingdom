@@ -100,12 +100,40 @@ describe("Board", () => {
       <Board board={board} currentPlayer="p1" pan={{ x: 40, y: -25 }} />,
     );
     const boardEl = container.querySelector('[data-testid="board"]')!;
-    expect(boardEl).toHaveStyle({ transform: "translate(40px, -25px)" });
+    // A pan offset without an explicit zoom applies scale(1) alongside it.
+    expect(boardEl).toHaveStyle({ transform: "translate(40px, -25px) scale(1)" });
   });
 
   it("applies no transform when the pan offset is omitted", () => {
     const { container } = render(<Board board={board} currentPlayer="p1" />);
     const boardEl = container.querySelector('[data-testid="board"]')!;
     expect(boardEl).not.toHaveStyle({ transform: "translate(0px, 0px)" });
+  });
+
+  it("applies the zoom scale combined with the pan offset", () => {
+    const { container } = render(
+      <Board board={board} currentPlayer="p1" pan={{ x: 40, y: -25 }} zoom={1.2} />,
+    );
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    expect(boardEl).toHaveStyle({
+      transform: "translate(40px, -25px) scale(1.2)",
+    });
+  });
+
+  it("applies only the pan translate when zoom is omitted", () => {
+    const { container } = render(
+      <Board board={board} currentPlayer="p1" pan={{ x: 5, y: 5 }} />,
+    );
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    expect(boardEl).toHaveStyle({ transform: "translate(5px, 5px) scale(1)" });
+  });
+
+  it("scales alone when only zoom is provided", () => {
+    const { container } = render(
+      <Board board={board} currentPlayer="p1" zoom={0.5} />,
+    );
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    // Without a pan offset no scale is applied (transform stays unset).
+    expect(boardEl).not.toHaveStyle({ transform: "scale(0.5)" });
   });
 });

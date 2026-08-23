@@ -3,6 +3,7 @@ import type { BoardCell } from "../viewModels/useGameSession";
 import type { PlayerId } from "../../core/game";
 import type { PanOffset } from "../viewModels/usePan";
 import { HEX_SIZE, hexToPixel } from "../presentation";
+import { boardTransform } from "../viewModels/useZoom";
 import { Cell } from "./Cell";
 import { Content } from "./Content";
 import { Unit } from "./Unit";
@@ -18,6 +19,12 @@ export interface BoardProps {
    * transform is applied.
    */
   pan?: PanOffset;
+  /**
+   * The optional zoom scale (default 1, clamped to [ZOOM_MIN, ZOOM_MAX])
+   * applied as a scale to the board so the map can be zoomed in/out around
+   * its centre (M10-T2). When omitted, no scaling is applied.
+   */
+  zoom?: number;
 }
 
 /**
@@ -30,7 +37,7 @@ export interface BoardProps {
  * `BoardCell[]` and renders props only. No business logic, no hooks, no side
  * effects.
  */
-export function Board({ board, currentPlayer, pan }: BoardProps) {
+export function Board({ board, currentPlayer, pan, zoom }: BoardProps) {
   // Compute the bounding box so the board is centred in its container.
   const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
   const minX = Math.min(...positions.map((p) => p.x));
@@ -41,14 +48,14 @@ export function Board({ board, currentPlayer, pan }: BoardProps) {
   const width = maxX - minX + pad * 2;
   const height = maxY - minY + pad * 2;
 
-  const translate = pan
-    ? `translate(${pan.x}px, ${pan.y}px)`
+  const transform = pan
+    ? boardTransform(zoom ?? 1, pan)
     : undefined;
 
   return (
     <div
       className="relative mx-auto"
-      style={{ width, height, transform: translate }}
+      style={{ width, height, transform }}
       data-testid="board"
     >
       {board.map((cell, index) => {
