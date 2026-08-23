@@ -77,4 +77,4 @@ small `pi:ready` sub-issues.
   map per game (default 20×20). #48 split into M9-T1..T3 (closed).
   - [ ] M9-T1 Terrain model + pure `generateMap` engine in `src/core` (#54, `pi:ready`)
   - [ ] M9-T2 New generated map per game (default 20×20) wired into setup (#53, `pi:ready`)
-  - [ ] M9-T3 Render generated terrain in the UI `Board` (#52, `pi:ready`)
+  - [ ] M9-T3 Render generated terrain in the UI `Board` (#52, `pi:blocked` until #54/#53 merge; sequence T1->T2->T3)
