@@ -61,6 +61,36 @@ describe("PlayableGame", () => {
     expect(game.className).toContain("overflow-hidden");
   });
 
+  it("lays out the board full-screen without a max-width grid or a wrapping glass panel (M11-T1)", () => {
+    const { container } = render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game");
+    const board = screen.getByTestId("board");
+
+    // The board is no longer wrapped by a glass panel inside a max-w-5xl grid:
+    // the board's closest wrap is the full-screen board layer, not a contained
+    // grid/panel column.
+    const boardLayer = board.closest("[data-testid='board-layer']");
+    expect(boardLayer).toBeDefined();
+    // The full viewport is an ancestor of the board layer.
+    expect(boardLayer!.closest("[data-testid='playable-game']")).toBe(game);
+
+    // The legacy constrained grid container is gone entirely.
+    expect(
+      container.querySelector("[class*='max-w-5xl']"),
+    ).toBeNull();
+
+    // The board layer fills the whole viewport (absolute inset-0) so the map
+    // is no longer a contained UI element.
+    expect(boardLayer!.className).toContain("absolute");
+    expect(boardLayer!.className).toContain("inset-0");
+
+    // The info panels float over the map as an absolute overlay instead of
+    // constraining it in a side column.
+    const overlay = container.querySelector("aside");
+    expect(overlay).toBeDefined();
+    expect(overlay!.className).toContain("absolute");
+  });
+
   it("drags across the viewport to pan the board", () => {
     render(<PlayableGame />);
     const game = screen.getByTestId("playable-game") as HTMLElement;

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a full-screen game board that fills the viewport (M11-T1, #74).
+  The playable layout in `PlayableGame.tsx` was restructured so the map is
+  no longer a contained UI element: the former `max-w-5xl` grid container
+  and the `glass-panel` that wrapped the `Board` are removed, and the board
+  now fills 100% of the viewport inside the existing `h-screen w-screen
+  overflow-hidden` container. The status / cell-info / action panels are
+  floated over the map as a thin absolute overlay on the right so they no
+  longer constrain the board. This is a thin layout/composition change only:
+  drag-to-pan (M10-T1), mouse-wheel zoom (M10-T2), cell selection (M10-T3),
+  and movement (M10-T4) continue to work unchanged over the full-screen
+  board. No core logic changed (core stays pure and 100% covered); the
+  `PlayableGame` tests were extended to assert the board-layer fills the
+  viewport and the legacy constrained grid/panel is gone.
+
 - Added movement: highlight reachable cells + click a target to move
   (M10-T4, #70). Selecting a human-owned unit that has not yet acted now
   highlights every reachable, unoccupied target hex it may legally move onto
