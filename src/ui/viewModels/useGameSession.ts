@@ -6,7 +6,10 @@ import type {
   ApeUnit,
   Player,
   PlayerId,
+  ApeKind,
+  ApeRank,
 } from "../../core/game";
+import { rankOf } from "../../core/game";
 import type { GameAction } from "../../core/ai";
 import type { TurnStep } from "../../core/gameSession";
 import {
@@ -40,7 +43,21 @@ export interface BoardCell {
   /** The site on this hex, or null if there is none. */
   site: Site | null;
   /** The unit on this hex, or null if there is none. */
-  unit: ApeUnit | null;
+  unit: UnitView | null;
+}
+
+/**
+ * A renderable unit badge view: the ape kind, its rank, and its owner.
+ * The rank is derived from the kind by the (pure) core `rankOf` helper so the
+ * dumb `Unit` component needs no game-rule logic.
+ */
+export interface UnitView {
+  /** Which ape kind this unit is. */
+  kind: ApeKind;
+  /** Combat strength / rank (1–4) of the ape kind. */
+  rank: ApeRank;
+  /** The player who owns this unit. */
+  owner: PlayerId;
 }
 
 /** A renderable summary of one player. */
@@ -94,7 +111,13 @@ export function boardCells(state: GameState): BoardCell[] {
       return {
         hex,
         site: siteByHex.get(key) ?? null,
-        unit: unitByHex.get(key) ?? null,
+        unit: unitByHex.get(key)
+          ? {
+              kind: unitByHex.get(key)!.kind,
+              rank: rankOf(unitByHex.get(key)!.kind),
+              owner: unitByHex.get(key)!.owner,
+            }
+          : null,
       };
     });
 }

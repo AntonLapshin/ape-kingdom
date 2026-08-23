@@ -35,6 +35,21 @@ project-state.md + this changelog reflect the shipped POC.
   `tests/ui/Cell.test.tsx` (7 tests) and the extended showcase-registry test;
   the M5 polish test now asserts the hex classes on `Cell` (where they now
   live). Core stays 100% covered.
+- Added the `Unit` atom component and its showcase (M8-T2, #49).
+  `src/ui/components/Unit.tsx` is a pure, dumb atom that renders an ape unit
+  badge (kind + rank) coloured by owner (`data-testid="board-unit"`,
+  `data-owner`, `bg-brand-rose-deep` / `bg-brand-violet-deep`, `text-inverted`),
+  extracted from the inline badge previously rendered in `Board.tsx`. It
+  exposes `kind`, `rank`, and `owner` props so all presentation logic stays out
+  of business logic. `Board.tsx` now composes `Unit`, and the `useGameSession`
+  view model derives each unit's rank (via the pure core `rankOf`) into a
+  `UnitView` so the dumb component needs no game-rule logic. A showcase demo
+  `src/ui/showcases/Unit.tsx` demos the four ape kinds (Monkey, Gibbon,
+  Chimpanzee, Gorilla) for each owner and is registered in
+  `src/ui/showcases/index.ts` per rule 7 of
+  `guidelines/GUIDELINES-WEB-ATOMIC-DESIGN.md`. Covered by
+  `tests/ui/Unit.test.tsx` (4 tests) and the extended showcase-registry test;
+  core stays 100% covered.
 
 - Added the `/showcase` route, top-right link, and README documentation
   (M7-T4), completing M7 (#45). `src/App.tsx` is now a thin, router-agnostic

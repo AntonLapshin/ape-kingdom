@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Cell } from "../../src/ui/components/Cell";
+import { HEX_SIZE } from "../../src/ui/presentation";
 
 /* ------------------------------------------------------------------ */
 /* Cell atom component                                                 */
@@ -52,5 +53,16 @@ describe("Cell", () => {
       </Cell>,
     );
     expect(screen.getByTestId("content")).toHaveTextContent("Grove");
+  });
+
+  it("applies the animation delay and pixel position styles", () => {
+    render(<Cell q={0} r={0} owner={null} x={10} y={20} animationDelay={250} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.style.animationDelay).toBe("250ms");
+    expect(cell.style.left).toBe("10px");
+    expect(cell.style.top).toBe("20px");
+    // Derived from HEX_SIZE (2x the hex size), sharing the presentation constant.
+    expect(cell.style.width).toBe(`${HEX_SIZE * 2}px`);
+    expect(cell.style.height).toBe(`${HEX_SIZE * 2}px`);
   });
 });

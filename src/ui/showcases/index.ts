@@ -4,6 +4,7 @@ import * as BoardShowcase from "./Board";
 import * as StatusPanelShowcase from "./StatusPanel";
 import * as DemoPanelShowcase from "./DemoPanel";
 import * as CellShowcase from "./Cell";
+import * as UnitShowcase from "./Unit";
 
 /**
  * Showcase index / registration (M7-T3).
@@ -60,6 +61,13 @@ export function showcaseRegistry(): ShowcaseRegistry {
         PlayerOne: CellShowcase.PlayerOne,
         PlayerTwo: CellShowcase.PlayerTwo,
         PlayerOneCurrent: CellShowcase.PlayerOneCurrent,
+      },
+    },
+    {
+      name: UnitShowcase.name,
+      showcases: {
+        PlayerOneKinds: UnitShowcase.PlayerOneKinds,
+        PlayerTwoKinds: UnitShowcase.PlayerTwoKinds,
       },
     },
   ];

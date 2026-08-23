@@ -29,6 +29,7 @@ describe("showcase registry", () => {
       "Cell",
       "DemoPanel",
       "StatusPanel",
+      "Unit",
     ]);
   });
 
