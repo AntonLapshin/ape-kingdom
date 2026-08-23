@@ -26,6 +26,7 @@ describe("showcase registry", () => {
     expect(names).toEqual([
       "ActionControls",
       "Board",
+      "Cell",
       "DemoPanel",
       "StatusPanel",
     ]);

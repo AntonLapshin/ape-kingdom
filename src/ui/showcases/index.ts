@@ -3,6 +3,7 @@ import * as ActionControlsShowcase from "./ActionControls";
 import * as BoardShowcase from "./Board";
 import * as StatusPanelShowcase from "./StatusPanel";
 import * as DemoPanelShowcase from "./DemoPanel";
+import * as CellShowcase from "./Cell";
 
 /**
  * Showcase index / registration (M7-T3).
@@ -50,6 +51,15 @@ export function showcaseRegistry(): ShowcaseRegistry {
         Scaffolded: DemoPanelShowcase.Scaffolded,
         InProgress: DemoPanelShowcase.InProgress,
         Shipped: DemoPanelShowcase.Shipped,
+      },
+    },
+    {
+      name: CellShowcase.name,
+      showcases: {
+        Neutral: CellShowcase.Neutral,
+        PlayerOne: CellShowcase.PlayerOne,
+        PlayerTwo: CellShowcase.PlayerTwo,
+        PlayerOneCurrent: CellShowcase.PlayerOneCurrent,
       },
     },
   ];

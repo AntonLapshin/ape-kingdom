@@ -52,6 +52,10 @@ export function actionLabel(action: GameAction): string {
 
 /** The size (pointy-top hex "radius") of each board hex cell in pixels. */
 export const HEX_SIZE = 44;
+
+/** A CSS clip-path polygon that draws a pointy-top hexagon. */
+export const HEX_CLIP =
+  "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)";
 /** Horizontal spacing between adjacent hex columns. */
 const W = Math.sqrt(3) * HEX_SIZE;
 /** Vertical spacing between hex rows. */
