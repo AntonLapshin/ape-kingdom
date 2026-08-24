@@ -35,11 +35,10 @@ function emptyHex(state: GameState): Hex {
     )!;
 }
 
-/** Advance a fresh session past income so recruit actions become legal. */
+/** A session on the recruit step (recruit actions legal; income collected
+ *  automatically at the start of the turn). */
 function toRecruitStep(): GameSession {
-  let session = createGameSession();
-  session = selectAction(session, { type: "collectIncome" });
-  return session;
+  return createGameSession();
 }
 
 /** A legal recruit action from the recruit step (fails if none exists). */
@@ -143,8 +142,8 @@ describe("cellInfo actionability", () => {
   });
 
   it("is not actionable for a read-only hex with no legal recruit option", () => {
-    // On the income step recruit is not yet legal, so even a Home Tree hex is
-    // not actionable until the player collects income.
+    // The p1 Home Tree hex is occupied by a starting unit, so it is not a
+    // buildable placement hex and offers no legal action on the recruit step.
     const session = createGameSession();
     const info = cellInfo(session.state, p1Home(session.state));
     expect(info.actionable).toBe(false);

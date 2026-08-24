@@ -4,7 +4,6 @@ import { CellInfoPanel } from "../../src/ui/components/CellInfoPanel";
 import { cellInfo } from "../../src/core/cellInfo";
 import {
   createGameSession,
-  selectAction,
   standardSetup,
 } from "../../src/core/gameSession";
 import { sameHex, type GameState, type Hex } from "../../src/core/game";
@@ -19,11 +18,10 @@ function p1Home(state: GameState): Hex {
   )!.hex;
 }
 
-/** A session advanced to the recruit step (recruit actions legal). */
+/** A session on the recruit step (recruit actions legal; income collected
+ *  automatically at the start of the turn). */
 function recruitSession() {
-  let session = createGameSession();
-  session = selectAction(session, { type: "collectIncome" });
-  return session;
+  return createGameSession();
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,7 +85,7 @@ describe("CellInfoPanel read-only", () => {
   });
 
   it("shows no action buttons for a read-only cell", () => {
-    // On the income step no recruit is legal, so the Home Tree is read-only.
+    // An occupied Home Tree is read-only (no recruit offered on an occupied hex).
     const state = standardSetup();
     render(
       <CellInfoPanel info={cellInfo(state, p1Home(state))} onSelectAction={vi.fn()} />,

@@ -22,7 +22,6 @@ describe("playerName", () => {
 
 describe("STEP_LABELS", () => {
   it("has a label for every step", () => {
-    expect(STEP_LABELS.income).toBe("Income");
     expect(STEP_LABELS.recruit).toBe("Recruit / Act");
     expect(STEP_LABELS.movefight).toBe("Move / Fight");
     expect(STEP_LABELS.done).toBe("Game Over");
@@ -41,13 +40,13 @@ describe("StatusPanel", () => {
       <StatusPanel
         players={players}
         currentPlayer="p1"
-        step="income"
+        step="recruit"
         winner={null}
         isDone={false}
       />,
     );
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
-    expect(screen.getByText("Income")).toBeInTheDocument();
+    expect(screen.getByText("Recruit / Act")).toBeInTheDocument();
   });
 
   it("shows a banana score for each player", () => {
@@ -55,7 +54,7 @@ describe("StatusPanel", () => {
       <StatusPanel
         players={players}
         currentPlayer="p1"
-        step="income"
+        step="recruit"
         winner={null}
         isDone={false}
       />,
@@ -114,7 +113,7 @@ describe("StatusPanel", () => {
       <StatusPanel
         players={players}
         currentPlayer="p1"
-        step="income"
+        step="recruit"
         winner={null}
         isDone={false}
       />,

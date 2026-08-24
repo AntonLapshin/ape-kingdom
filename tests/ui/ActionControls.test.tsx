@@ -51,7 +51,6 @@ describe("actionLabel", () => {
 
 describe("STEP_LABELS", () => {
   it("has a label for every step", () => {
-    expect(STEP_LABELS.income).toBe("Income");
     expect(STEP_LABELS.recruit).toBe("Recruit / Act");
     expect(STEP_LABELS.movefight).toBe("Move / Fight");
     expect(STEP_LABELS.done).toBe("Game Over");

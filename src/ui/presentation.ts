@@ -14,7 +14,6 @@ import type { PlayerId } from "../core/game";
 
 /** A friendly display label for each turn step. */
 export const STEP_LABELS: Record<TurnStep, string> = {
-  income: "Income",
   recruit: "Recruit / Act",
   movefight: "Move / Fight",
   done: "Game Over",

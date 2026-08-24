@@ -14,12 +14,12 @@ export const name = "StatusPanel";
 
 const players = playerViews(standardSetup());
 
-/** In progress on the income step, p1 to move. */
+/** In progress on the recruit step (income collected automatically), p1 to move. */
 export const InProgress = () => (
   <StatusPanel
     players={players}
     currentPlayer="p1"
-    step="income"
+    step="recruit"
     winner={null}
     isDone={false}
   />

@@ -26,7 +26,7 @@ export function showcaseRegistry(): ShowcaseRegistry {
     {
       name: ActionControlsShowcase.name,
       showcases: {
-        Income: ActionControlsShowcase.Income,
+        Opening: ActionControlsShowcase.Opening,
         Recruit: ActionControlsShowcase.Recruit,
         MoveFight: ActionControlsShowcase.MoveFight,
         NoActions: ActionControlsShowcase.NoActions,

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Collect banana income automatically at the start of each player's turn so the
+  human no longer takes a manual "Collect Income" step (M13-T1, #91). The core
+  session controller (`src/core/gameSession.ts`) no longer has an `income` turn
+  step and never exposes `collectIncome` as a selectable legal action: a new
+  session (and each subsequent human turn) begins directly on the `recruit`
+  step with the turn's income from all controlled sites already applied to the
+  projected `state` (per the rules "At the start of your turn, collect bananas
+  from all sites you control"). `selectAction`/`submitTurn`/`resetTurn` were
+  updated to drop the income step and the `income-not-collected` error; the
+  game loop (`gameLoop.ts`) still applies income automatically via `playTurn`.
+  The `TurnStep` type loses `income` and the `STEP_LABELS` table drops the
+  "Income" label; the human's turn now begins on recruit/move actions. Core is
+  unaffected in rule semantics (income is credited exactly once per turn) and
+  stays 100% covered; all affected core/UI tests were updated to the
+  recruit-step flow and the full-game simulation now drives the human's legal
+  moves via the AI layer's own move generator (which reliably completes games
+  once income accounting is exact).
+
 - Change the selected-hex highlight from the amber brand ring to a blue
   selection border so the selected cell reads clearly apart from the brand
   (M13-T3, #90). The `.hex-cell.hex-selected` and the combined
