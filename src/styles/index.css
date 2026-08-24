@@ -236,8 +236,13 @@
 
 /* Board hex cells: subtle gradient/glow + smooth hover/active feedback. */
 .hex-cell {
+  /* Forbid HTML text selection on the map element: dragging/panning must
+     never produce a blue selection highlight (M17-T1). The same rule is also
+     applied via the Tailwind `select-none` utility on the board containers
+     so both the shell and any children are covered. */
+  user-select: none;
+  -webkit-user-select: none;
   transition:
-    transform 0.18s ease,
     filter 0.18s ease,
     box-shadow 0.18s ease;
   box-shadow: inset 0 1px 0 var(--color-glass-inner);
@@ -284,13 +289,17 @@
   z-index: 1;
 }
 
+/* Hovering a hex brightens it instead of moving/scaling it: a CSS filter
+   highlight (no transform) so the cell never jumps or shrinks under the
+   pointer and the hex-pop animation transform is left untouched (M17-T1).
+   Applied at the cell shell, so it is consistent over units, sites, and
+   empty terrain cells alike. */
 .hex-cell:hover {
-  filter: brightness(1.06) saturate(1.05);
-  transform: translateY(-2px);
+  filter: brightness(1.1) saturate(1.08);
 }
 
 .hex-cell:active {
-  transform: translateY(0) scale(0.98);
+  filter: brightness(1.18) saturate(1.1);
 }
 
 /* Keyboard focus on a hex cell shares the brand ring so the focused cell is

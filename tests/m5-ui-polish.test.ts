@@ -68,6 +68,43 @@ describe("src/styles/index.css — playable UI polish (issue #33)", () => {
   });
 });
 
+describe("map interaction UX (M17-T1/#114)", () => {
+  it("heights the hovered hex with a CSS filter instead of moving/scaling it", () => {
+    // Hovering a cell must brighten it (filter) rather than transform it:
+    // no translateY lift and no press-scale, so the hexagon never jumps or
+    // shrinks under the pointer.
+    const hover = STYLES.match(/\.hex-cell:hover\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(hover).toMatch(/\bfilter\s*:/);
+    expect(hover).not.toMatch(/\btransform\s*:/);
+
+    const active = STYLES.match(/\.hex-cell:active\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(active).toMatch(/\bfilter\s*:/);
+    // No transform/scale is applied on press.
+    expect(active).not.toMatch(/\btransform\s*:/);
+  });
+
+  it("forbids text selection on the hex cells via user-select none", () => {
+    // The cell shell forbids HTML text selection so dragging across the map
+    // never produces a blue selection highlight; the `select-none` Tailwind
+    // utility on the board containers backs this up at the React level.
+    expect(STYLES).toMatch(/user-select\s*:\s*none/);
+    expect(STYLES).toMatch(/-webkit-user-select\s*:\s*none/);
+  });
+
+  it("renders the board containers with the select-none utility", () => {
+    // The board root and the full-viewport board layer both forbid text
+    // selection so panning the map never selects HTML text (M17-T1/#114).
+    expect(BOARD).toContain('className="relative mx-auto select-none"');
+    expect(BOARD).toMatch(/data-testid="board"/);
+    const PLAYABLE = readFileSync(
+      resolve(ROOT, "src/ui/components/PlayableGame.tsx"),
+      "utf8",
+    );
+    expect(PLAYABLE).toContain('className="absolute inset-0 select-none"');
+    expect(PLAYABLE).toContain('data-testid="board-layer"');
+  });
+});
+
 describe("thin components reference the polish classes (issue #33)", () => {
   it("Cell uses hex-cell / hex-pop / hex-current classes (extracted from Board)", () => {
     expect(CELL).toContain("hex-cell");
