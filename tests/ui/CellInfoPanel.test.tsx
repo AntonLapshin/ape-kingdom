@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { CellInfoPanel } from "../../src/ui/components/CellInfoPanel";
+import { legalRecruitActions } from "../../src/ui/presentation";
 import { cellInfo } from "../../src/core/cellInfo";
 import {
   createGameSession,
+  selectAction,
   standardSetup,
 } from "../../src/core/gameSession";
 import { sameHex, type GameState, type Hex } from "../../src/core/game";
@@ -22,6 +24,36 @@ function p1Home(state: GameState): Hex {
  *  automatically at the start of the turn). */
 function recruitSession() {
   return createGameSession();
+}
+
+/**
+ * A session advanced to the `movefight` step by performing one legal move.
+ * Recruit actions are no longer in its step-filtered `legalMoves` (recruiting
+ * is over once a unit has moved/fought) — this is the crash reproduction for
+ * #123, where the panel previously still advertised recruit buttons even
+ * though submitting one crashed the app.
+ */
+function movefightSession() {
+  const session = recruitSession();
+  const move = session.legalMoves.find((a) => a.type === "move");
+  if (!move) throw new Error("expected a legal move action");
+  return selectAction(session, move);
+}
+
+/**
+ * Find a hex that is still advertised as buildable by `cellInfo` (it has
+ * recruit items in `info.actions` from the step-agnostic `legalActions`)
+ * while in the `movefight` step — i.e. a hex the panel WOULD have wrongly
+ * offered a recruit for before the #123 fix.
+ */
+function buildableMovefightHex(state: GameState): Hex {
+  const candidates = state.map.cells.map((c) => c.hex);
+  for (const hex of candidates) {
+    if (cellInfo(state, hex).actions.length > 0) {
+      return hex;
+    }
+  }
+  throw new Error("expected a buildable hex in the movefight step");
 }
 
 /* ------------------------------------------------------------------ */
@@ -323,5 +355,84 @@ describe("CellInfoPanel moved action list (M17-T2 / #115)", () => {
     );
     fireEvent.click(screen.getByTestId("clear-actions"));
     expect(onClear).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Mid-turn recruit crash regression (#123)                            */
+/* ------------------------------------------------------------------ */
+
+describe("CellInfoPanel mid-turn recruit crash (#123)", () => {
+  it("still shows recruit buttons on the recruit step (no regression)", () => {
+    const session = recruitSession();
+    const recruit = session.legalMoves.find((a) => a.type === "recruit");
+    if (!recruit || recruit.type !== "recruit") {
+      throw new Error("expected a legal recruit action");
+    }
+    render(
+      <CellInfoPanel
+        info={cellInfo(session.state, recruit.hex)}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    // On the recruit step the recruit action is genuinely legal, so the panel
+    // must still offer it (this is the normal buildable-hex flow).
+    expect(screen.getAllByTestId("cell-action-button").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Recruit here/i)).toBeInTheDocument();
+  });
+
+  it("hides recruit buttons on the movefight step (reproduces the #123 crash, now fixed)", () => {
+    // Reproduce the crash scenario: the player has already moved (movefight
+    // step), so recruiting is no longer legal. The panel previously still
+    // advertised the buildable hex's recruit actions, and clicking one threw
+    // an uncaught GameSessionError that crashed the app.
+    const session = movefightSession();
+    expect(session.step).toBe("movefight");
+    // The step-filtered legal set no longer contains any recruit action.
+    expect(
+      session.legalMoves.some((a) => a.type === "recruit"),
+    ).toBe(false);
+
+    // This hex is still advertised as buildable by the step-agnostic
+    // `cellInfo` (its `info.actions` have recruits) but none are legal now.
+    const hex = buildableMovefightHex(session.state);
+    expect(cellInfo(session.state, hex).actions.length).toBeGreaterThan(0);
+
+    render(
+      <CellInfoPanel
+        info={cellInfo(session.state, hex)}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    // No recruit buttons / no "Recruit here" section are offered because those
+    // actions are not legal this turn step -> clicking one can no longer crash
+    // the app via selectAction.
+    expect(screen.queryByTestId("cell-action-button")).toBeNull();
+    expect(screen.queryByText(/Recruit here/i)).toBeNull();
+  });
+
+  it("the legalRecruitActions filter drops recruit items not legal this step", () => {
+    const session = movefightSession();
+    const hex = buildableMovefightHex(session.state);
+    const items = cellInfo(session.state, hex).actions;
+    // The pure filter keeps only recruit items present in the step-filtered
+    // legal set — which on the movefight step contains no recruits, so nothing
+    // is offered (the fix).
+    expect(legalRecruitActions(items, session.legalMoves)).toEqual([]);
+
+    // On the recruit step, the same filter keeps the legal recruit items.
+    const recruitSession2 = recruitSession();
+    const recruit = recruitSession2.legalMoves.find((a) => a.type === "recruit");
+    if (!recruit || recruit.type !== "recruit") {
+      throw new Error("expected a legal recruit action");
+    }
+    const recruitItems = cellInfo(recruitSession2.state, recruit.hex).actions;
+    expect(
+      legalRecruitActions(recruitItems, recruitSession2.legalMoves).length,
+    ).toBeGreaterThan(0);
   });
 });

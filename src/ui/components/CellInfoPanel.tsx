@@ -1,6 +1,6 @@
 import type { CellInfo } from "../../core/cellInfo";
 import type { GameAction } from "../../core/ai";
-import { SITE_LABELS, actionLabel, cellHexagonClass } from "../presentation";
+import { SITE_LABELS, actionLabel, cellHexagonClass, legalRecruitActions } from "../presentation";
 import { Hexagon } from "./Hexagon";
 import { Unit } from "./Unit";
 
@@ -47,6 +47,17 @@ export interface CellInfoPanelProps {
  */
 export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: CellInfoPanelProps) {
   const nonRecruit = nonRecruitActions(legalActions);
+  /**
+   * The recruit items that are actually selectable this turn step (issue 123). The
+   * derived `info.actions` come from `cellInfo` → `legalActions(state)`, which
+   * include recruits in every turn step. But the session's step-filtered
+   * `legalActions` prop (its `legalMoves`) exclude recruits once the player has
+   * moved/fought (the `movefight` step). Clicking a recruit button that is not
+   * in `legalMoves` made `selectAction` throw an uncaught `GameSessionError`
+   * that crashed the app. So only offer the recruit items that are genuinely
+   * legal this turn — otherwise the section is hidden and read-only info shown.
+   */
+  const recruitActions = legalRecruitActions(info?.actions ?? [], legalActions);
   // The selected hexagon's owner: an owned site/unit colours the whole hexagon;
   // a hex with neither is neutral (keeps its terrain colour).
   const hexagonOwner =
@@ -116,15 +127,17 @@ export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: C
         </div>
       )}
 
-      {/* Actionable cells list recruit items with their cost; read-only cells
-          show no action buttons. */}
-      {info.actions.length > 0 ? (
+      {/* Actionable cells list the recruit items that are legal this turn
+          step with their cost (filtered against the session's step-filtered
+          legal actions, so no recruit is offered once the player has
+          moved/fought — issue 123); read-only cells show no action buttons. */}
+      {recruitActions.length > 0 ? (
         <div className="space-y-1.5 pt-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
             Recruit here
           </p>
           <div className="grid grid-cols-1 gap-1.5">
-            {info.actions.map((item) => (
+            {recruitActions.map((item) => (
               <button
                 key={item.kind}
                 type="button"
