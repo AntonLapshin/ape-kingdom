@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Extract the 8 pixel-art game icons from the image attached to issue #103
+  (M16-T1, #106). Located each icon's content boundaries in the 4x2 grid
+  (Home Tree, Monkey Nest, Monkey, Gibbon, Chimpanzee, Gorilla, Mountain,
+  Grave), cropped each to its bounding box and removed the white background,
+  committing clean RGBA (transparent) PNGs under `src/assets/icons/`. Added a
+  thin type-safe barrel module (`src/assets/icons/index.ts`) exposing each
+  asset URL for the UI wiring follow-up (M16-T2), a reproducible extraction
+  script (`scripts/extract-icons.py`), an asset README, and structural
+  regression tests (`tests/assets-icons.test.ts`) verifying all 8 icons exist,
+  are RGBA PNGs, and export correctly. The icons are theme-independent brand
+  assets (per `guidelines/GUIDELINES-WEB-THEME.md` §6 rule 3); no `src/core`
+  business logic was touched (core stays 100% covered).
+
 - Codify the protection / safety-zone mechanics (rules 3-4 of #102) in the
   game rules doc (#105, M15-T2). Added a dedicated **Protection / Safety
   Zones** section to `guidelines/ape-kingdom-rules.md` describing rule 3 (a
