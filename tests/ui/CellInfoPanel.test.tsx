@@ -67,6 +67,59 @@ describe("CellInfoPanel read-only", () => {
     expect(screen.getByText("land")).toBeInTheDocument();
   });
 
+  it("shows a hexagonal preview of the exact selected hexagon with its owner colour (M17-T3/#116)", () => {
+    // A p1 Home Tree is owned by p1, so the preview hexagon is tinted p1.
+    const state = standardSetup();
+    render(
+      <CellInfoPanel
+        info={cellInfo(state, p1Home(state))}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    const hex = screen.getByTestId("cell-info-hexagon");
+    expect(hex).toBeInTheDocument();
+    expect(hex.className).toContain("bg-owner-p1");
+    expect(hex.style.clipPath).toContain("polygon");
+  });
+
+  it("preview hexagon shows the unit badge when the selected hex is occupied (M17-T3/#116)", () => {
+    const state = standardSetup();
+    render(
+      <CellInfoPanel
+        info={cellInfo(state, p1Home(state))}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    const hex = screen.getByTestId("cell-info-hexagon");
+    // The exact unit that sits on the selected hex is rendered inside it.
+    const badge = hex.querySelector(
+      '[data-testid="board-unit"]',
+    ) as HTMLElement | null;
+    expect(badge).not.toBeNull();
+    expect(badge!.dataset.kind).toBe("Monkey");
+  });
+
+  it("preview hexagon shows the neutral terrain colour when the hex is unowned (M17-T3/#116)", () => {
+    // A neutral Grove hex: no owner, so the preview keeps its terrain colour.
+    const state = standardSetup();
+    const grove = state.sites.find((s) => s.kind === "Grove")!;
+    render(
+      <CellInfoPanel
+        info={cellInfo(state, grove.hex)}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    const hex = screen.getByTestId("cell-info-hexagon");
+    expect(hex.className).toContain("bg-terrain-");
+    expect(hex.className).not.toContain("bg-owner-");
+  });
+
   it("renders site info (label, neutral marker, income) for a sited hex", () => {
     const state = standardSetup();
     const home = p1Home(state);

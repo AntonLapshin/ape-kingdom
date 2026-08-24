@@ -31,6 +31,7 @@ describe("showcase registry", () => {
       "Content",
       "DemoPanel",
       "EndTurnButton",
+      "Hexagon",
       "PlayableGame",
       "StatusPanel",
       "Unit",

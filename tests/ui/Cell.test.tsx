@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Cell } from "../../src/ui/components/Cell";
 import { gameIcons } from "../../src/assets/icons";
-import { HEX_SIZE } from "../../src/ui/presentation";
+import { CELL_SIZE, HEX_SIZE } from "../../src/ui/presentation";
 
 /* ------------------------------------------------------------------ */
 /* Cell atom component                                                 */
@@ -176,14 +176,24 @@ describe("Cell", () => {
     expect(screen.getByTestId("content")).toHaveTextContent("Grove");
   });
 
-  it("applies the animation delay and pixel position styles", () => {
+  it("renders a hex cell that is shrunk below the layout size to leave a gap (M17-T3/#116)", () => {
     render(<Cell q={0} r={0} owner={null} x={10} y={20} animationDelay={250} />);
     const cell = screen.getByTestId("board-cell");
     expect(cell.style.animationDelay).toBe("250ms");
     expect(cell.style.left).toBe("10px");
     expect(cell.style.top).toBe("20px");
-    // Derived from HEX_SIZE (2x the hex size), sharing the presentation constant.
-    expect(cell.style.width).toBe(`${HEX_SIZE * 2}px`);
-    expect(cell.style.height).toBe(`${HEX_SIZE * 2}px`);
+    // The rendered hexagon is CELL_SIZE (HEX_SIZE*2 minus the HEX_GAP) so a
+    // few pixels of the dark board show between adjacent cells, while the
+    // layout spacing (hexToPixel) stays driven by HEX_SIZE.
+    expect(cell.style.width).toBe(`${CELL_SIZE}px`);
+    expect(cell.style.height).toBe(`${CELL_SIZE}px`);
+    // The gap is a small positive number of pixels.
+    expect(HEX_SIZE * 2 - CELL_SIZE).toBeGreaterThan(0);
+  });
+
+  it("applies the glass hexagon treatment to each cell (M17-T3/#116)", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.className).toContain("hex-glass");
   });
 });

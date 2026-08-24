@@ -248,6 +248,23 @@
   box-shadow: inset 0 1px 0 var(--color-glass-inner);
 }
 
+/* Hexagon glass effect (M17-T3). Shared by the board ``Cell`` hexagons
+   and the bottom-left selection panel's hexagonal preview (via the `Hexagon`
+   atom). A translucent glass sheet over the token terrain/owner fill with a
+   soft inner highlight so each hex reads as a polished glass chip on the dark
+   board rather than a flat colour. Only tokens — no raw hex. */
+.hex-glass {
+  border: 1px solid var(--color-glass-line);
+  background-image: linear-gradient(
+    160deg,
+    var(--color-glass-inner),
+    transparent 45%
+  );
+  box-shadow:
+    inset 0 1px 0 var(--color-glass-inner),
+    0 2px 6px var(--color-shadow);
+}
+
 /* Current player's territory is visually distinct (accent glow ring). */
 .hex-cell.hex-current {
   box-shadow:

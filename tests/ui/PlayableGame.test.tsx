@@ -67,6 +67,15 @@ describe("PlayableGame", () => {
     expect(board.className).toContain("select-none");
   });
 
+  it("renders the map canvas background dark behind the surrounding ocean (M17-T3/#116)", () => {
+    render(<PlayableGame />);
+    // The full-screen board layer behind the generated map uses the dark
+    // `bg-board-dark` canvas so the space outside the surrounding ocean reads
+    // as near-black and the glass hexagons pop.
+    const boardLayer = screen.getByTestId("board-layer");
+    expect(boardLayer.className).toContain("bg-board-dark");
+  });
+
   it("lays out the board full-screen without a max-width grid or a wrapping glass panel (M11-T1)", () => {
     const { container } = render(<PlayableGame />);
     const game = screen.getByTestId("playable-game");

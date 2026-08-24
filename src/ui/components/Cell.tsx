@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { PlayerId } from "../../core/game";
 import type { Terrain } from "../../core/mapGenerator";
 import { gameIcons } from "../../assets/icons";
-import { HEX_SIZE, HEX_CLIP } from "../presentation";
+import { CELL_SIZE, HEX_CLIP, TERRAIN_BG } from "../presentation";
 
 export interface CellProps {
   /** The axial hex coordinates (q, r) of this cell. */
@@ -41,19 +41,6 @@ export interface CellProps {
   /** The cell content (site label, unit badge, etc.). */
   children?: ReactNode;
 }
-
-/**
- * Token-backed background classes used to colour a hex by its terrain. Each
- * terrain maps to a semantic theme token (`terrain-land` / `terrain-water` /
- * `terrain-mountain`) per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
- * An owned cell's background may instead be overridden by the owner tint
- * token class passed via the `ownerBg` prop (derived by the view model).
- */
-const TERRAIN_BG: Record<Terrain, string> = {
-  land: "bg-terrain-land",
-  water: "bg-terrain-water",
-  mountain: "bg-terrain-mountain",
-};
 
 /**
  * Whether a terrain kind is an impassable mountain, which should render the
@@ -117,14 +104,14 @@ export function Cell({
       data-terrain={terrain}
       data-selected={isSelected ? "true" : "false"}
       data-move-target={isMoveTarget ? "true" : "false"}
-      className={`hex-cell hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
+      className={`hex-cell hex-glass hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
         isCurrent ? "hex-current" : ""
       } ${isSelected ? "hex-selected" : ""} ${
         isMoveTarget ? "hex-move-target" : ""
       } ${onSelect ? "cursor-pointer" : ""}`}
       style={{
-        width: HEX_SIZE * 2,
-        height: HEX_SIZE * 2,
+        width: CELL_SIZE,
+        height: CELL_SIZE,
         left: x,
         top: y,
         clipPath: HEX_CLIP,

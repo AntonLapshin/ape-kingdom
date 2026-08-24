@@ -227,8 +227,14 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
       onClick={onClick}
     >
       {/* Full-screen map: fills the whole viewport, no longer constrained by
-          a max-width container or a glass panel wrapper (M11-T1). */}
-      <div data-testid="board-layer" className="absolute inset-0 select-none">
+          a max-width container or a glass panel wrapper (M11-T1). The board
+          layer's canvas is a dark, near-black backdrop (`bg-board-dark`) so
+          the space behind/around the surrounding ocean reads as deep and the
+          glass hexagons pop (M17-T3). */}
+      <div
+        data-testid="board-layer"
+        className="absolute inset-0 select-none bg-board-dark"
+      >
         <Board
           board={view.board}
           currentPlayer={view.currentPlayer}

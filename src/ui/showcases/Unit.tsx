@@ -13,7 +13,8 @@ import { Unit } from "../components/Unit";
  */
 export const name = "Unit";
 
-/** The four ape kinds, each owned by p1 (rose badge). */
+/** The four ape kinds, each owned by p1. (The unit badge is a neutral glass
+    chip — ownership is shown only by the host hexagon, M17-T3.) */
 export const PlayerOneKinds = () => (
   <div className="flex flex-wrap gap-2">
     <Unit kind="Monkey" rank={1} owner="p1" />
@@ -23,7 +24,7 @@ export const PlayerOneKinds = () => (
   </div>
 );
 
-/** The four ape kinds, each owned by p2 (violet badge). */
+/** The four ape kinds, each owned by p2. */
 export const PlayerTwoKinds = () => (
   <div className="flex flex-wrap gap-2">
     <Unit kind="Monkey" rank={1} owner="p2" />

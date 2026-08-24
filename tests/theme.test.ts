@@ -347,3 +347,44 @@ describe("src/theme.css + index.css — game-backdrop gradients & animation poli
     expect(STYLES).not.toMatch(/rgba?\(/);
   });
 });
+
+describe("src/theme.css + index.css — cell & terrain overhaul (M17-T3/#116)", () => {
+  it("defines a dark board canvas token exposed to Tailwind", () => {
+    // The map canvas behind the surrounding ocean is dark (close to black),
+    // expressed as the `--color-board-dark` semantic token so the board layer
+    // can use `bg-board-dark`.
+    expect(THEME).toContain("--color-board-dark:");
+    expect(THEME).toMatch(
+      /--color-board-dark:\s*var\(--color-board-dark\)/,
+    );
+    const darkMatch = THEME.match(/--color-board-dark:\s*(#[0-9a-fA-F]{3,8})\s*;?/);
+    const dark = darkMatch?.[1] ?? "";
+    expect(dark).toBeTruthy();
+    // A dark (near-black) backdrop: its numeric intensity is low.
+    const r = parseInt(dark.slice(1, 3), 16);
+    const g = parseInt(dark.slice(3, 5), 16);
+    const b = parseInt(dark.slice(5, 7), 16);
+    expect(Math.max(r, g, b)).toBeLessThanOrEqual(0x28);
+  });
+
+  it("defines a neutral green default land colour token", () => {
+    // The default neutral land is a neutral green (M17-T3/#116).
+    const landMatch = THEME.match(/--color-terrain-land:\s*(#[0-9a-fA-F]{3,8})\s*;?/);
+    const land = landMatch?.[1] ?? "";
+    expect(land).toBeTruthy();
+    // Green-dominant: G channel exceeds R and B.
+    const r = parseInt(land.slice(1, 3), 16);
+    const g = parseInt(land.slice(3, 5), 16);
+    const b = parseInt(land.slice(5, 7), 16);
+    expect(g).toBeGreaterThan(r);
+    expect(g).toBeGreaterThan(b);
+  });
+
+  it("provides a glass hexagon treatment in index.css", () => {
+    // Both the board cells and the selector panel hexagon preview use a glass
+    // effect (`.hex-glass`) backed only by tokens.
+    expect(STYLES).toMatch(/\.hex-glass\s*\{/);
+    expect(STYLES).toMatch(/var\(--color-glass-inner\)/);
+  });
+});
+

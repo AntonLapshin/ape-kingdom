@@ -14,15 +14,16 @@ export interface UnitProps {
 /**
  * Thin, dumb `Unit` atom component (M8-T2).
  *
- * Renders a single ape unit badge showing its pixel-art icon (M16-T2, #111),
- * coloured by its owner. The kind → icon-name mapping is delegated to the
- * pure `apeKindIcon` presentation helper, and the icon URL is resolved via
- * the `gameIcons` barrel — the component holds no mapping logic. It is purely
- * presentational — it receives the unit's kind, rank, and owner as props and
- * renders them. No hooks, no context, no side effects, no business logic.
- *
- * The owner colour maps to the brand palette tokens (rose → violet brand
- * family), per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
+ * Renders a single ape unit badge showing its pixel-art icon (M16-T2, #111)
+ * and rank on a small glass surface. Since M17-T3 the unit badge no
+ * longer carries the "Kingdom" owner colour — ownership is expressed solely by
+ * the hexagon (cell) that hosts the unit, so the badge is a neutral glass
+ * chip that stays legible over any owner tint / terrain. The kind → icon-name
+ * mapping is delegated to the pure `apeKindIcon` presentation helper, and the
+ * icon URL is resolved via the `gameIcons` barrel — the component holds no
+ * mapping logic. It is purely presentational — it receives the unit's kind,
+ * rank, and owner as props and renders them. No hooks, no context, no side
+ * effects, no business logic.
  */
 export function Unit({ kind, rank, owner }: UnitProps) {
   return (
@@ -30,9 +31,7 @@ export function Unit({ kind, rank, owner }: UnitProps) {
       data-testid="board-unit"
       data-owner={owner}
       data-kind={kind}
-      className={`mt-0.5 flex flex-col items-center rounded-xl border px-1 py-0.5 text-[10px] font-bold text-inverted ${
-        owner === "p1" ? "border-brand-rose-deep bg-brand-rose-deep" : "border-brand-violet-deep bg-brand-violet-deep"
-      }`}
+      className="mt-0.5 flex flex-col items-center rounded-xl border border-line bg-panel/80 px-1 py-0.5 text-[10px] font-bold text-text-primary backdrop-blur-sm"
     >
       <img
         src={gameIcons[apeKindIcon(kind)]}

@@ -6,6 +6,7 @@ import * as DemoPanelShowcase from "./DemoPanel";
 import * as CellShowcase from "./Cell";
 import * as ContentShowcase from "./Content";
 import * as UnitShowcase from "./Unit";
+import * as HexagonShowcase from "./Hexagon";
 import * as CellInfoPanelShowcase from "./CellInfoPanel";
 import * as PlayableGameShowcase from "./PlayableGame";
 
@@ -78,6 +79,17 @@ export function showcaseRegistry(): ShowcaseRegistry {
       showcases: {
         PlayerOneKinds: UnitShowcase.PlayerOneKinds,
         PlayerTwoKinds: UnitShowcase.PlayerTwoKinds,
+      },
+    },
+    {
+      name: HexagonShowcase.name,
+      showcases: {
+        Land: HexagonShowcase.Land,
+        Water: HexagonShowcase.Water,
+        Mountain: HexagonShowcase.Mountain,
+        PlayerOne: HexagonShowcase.PlayerOne,
+        PlayerTwo: HexagonShowcase.PlayerTwo,
+        WithUnit: HexagonShowcase.WithUnit,
       },
     },
     {

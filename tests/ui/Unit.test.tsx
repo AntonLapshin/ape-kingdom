@@ -47,17 +47,25 @@ describe("Unit", () => {
     expect(badge.dataset.kind).toBe("Gibbon");
   });
 
-  it("uses the rose-deep badge for p1 units", () => {
+  it("does not carry the Kingdom owner colour on the badge for p1 units (M17-T3/#116)", () => {
     render(<Unit kind="Gibbon" rank={2} owner="p1" />);
     const badge = screen.getByTestId("board-unit");
-    expect(badge.className).toContain("bg-brand-rose-deep");
-    expect(badge.className).toContain("text-inverted");
+    // Ownership is shown only by the host hexagon, not the unit badge.
+    expect(badge.className).not.toContain("bg-brand-rose-deep");
+    expect(badge.className).not.toContain("bg-brand-violet-deep");
+    // The badge is a neutral glass chip.
+    expect(badge.className).toContain("bg-panel");
+    expect(badge.className).toContain("backdrop-blur");
   });
 
-  it("uses the violet-deep badge for p2 units", () => {
+  it("does not carry the Kingdom owner colour on the badge for p2 units (M17-T3/#116)", () => {
     render(<Unit kind="Chimpanzee" rank={3} owner="p2" />);
     const badge = screen.getByTestId("board-unit");
-    expect(badge.className).toContain("bg-brand-violet-deep");
-    expect(badge.className).toContain("text-inverted");
+    // Ownership is shown only by the host hexagon, not the unit badge.
+    expect(badge.className).not.toContain("bg-brand-violet-deep");
+    expect(badge.className).not.toContain("bg-brand-rose-deep");
+    // The badge is a neutral glass chip.
+    expect(badge.className).toContain("bg-panel");
+    expect(badge.className).toContain("backdrop-blur");
   });
 });
