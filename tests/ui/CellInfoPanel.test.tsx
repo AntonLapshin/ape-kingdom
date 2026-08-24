@@ -260,6 +260,36 @@ describe("CellInfoPanel moved action list (M17-T2 / #115)", () => {
     expect(label).toMatch(/move/i);
   });
 
+  it("excludes recruit actions from the moved 'Your actions' list (issue 113-2 / #119)", () => {
+    // The session's legal moves include recruit actions alongside move/attack
+    // (recruits are already offered per selected hex in the "Recruit here"
+    // section). They must NOT be duplicated in the relocated "Your actions"
+    // list — so no recruit-labelled button may render here. Register spies on
+    // the recruit actions passed in to prove they are still valid inputs but
+    // were filtered out of this section.
+    const session = recruitSession();
+    const recruit = session.legalMoves.find((a) => a.type === "recruit");
+    if (!recruit || recruit.type !== "recruit") {
+      throw new Error("expected a legal recruit action");
+    }
+    render(
+      <CellInfoPanel
+        info={null}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    // The "Your actions" section lists only non-recruit actions.
+    expect(screen.getByText(/Your actions/i)).toBeInTheDocument();
+    const actions = screen.getAllByTestId("action-button");
+    expect(actions.length).toBeGreaterThan(0);
+    actions.forEach((b) => expect(b.textContent).not.toMatch(/recruit/i));
+    // The recruit action is therefore not offered as a duplicate button here
+    // (it only appears per selected hex in the "Recruit here" section).
+    expect(screen.queryByTestId("cell-action-button")).toBeNull();
+  });
+
   it("wires a moved action button to the selectAction flow", () => {
     const session = recruitSession();
     const move = session.legalMoves.find((a) => a.type === "move");
