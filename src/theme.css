@@ -114,6 +114,16 @@
   --color-stage-dark-start: #b25868;
   --color-stage-dark-mid: #6d4da8;
   --color-stage-dark-end: #4c3626;
+
+  /* Game-view backdrop gradient stops (M14-T2, #98) — a soft, tasteful
+     vertical ramp derived from the warm parchment family. These read as a
+     subtle sunset wash behind the board — visibly warmer at the bottom,
+     gently bright at the top — so they add gradient depth without competing
+     with the board/panels. Kept separate from `stage` so the game backdrop
+     can be tuned independently of the login/showcase backdrop. */
+  --color-game-bg-top: #fdf1e3;
+  --color-game-bg-mid: #f6dfc4;
+  --color-game-bg-bottom: #edd6ba;
 }
 
 /* -------------------------------------------------------------------------
@@ -189,6 +199,10 @@
   --color-stage-dark-start: var(--color-stage-dark-start);
   --color-stage-dark-mid: var(--color-stage-dark-mid);
   --color-stage-dark-end: var(--color-stage-dark-end);
+
+  --color-game-bg-top: var(--color-game-bg-top);
+  --color-game-bg-mid: var(--color-game-bg-mid);
+  --color-game-bg-bottom: var(--color-game-bg-bottom);
 
   --radius-control: var(--radius-control);
 }

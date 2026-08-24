@@ -280,3 +280,67 @@ describe("src/theme.css + index.css — palette & visual-detail refinement (M14-
     expect(GAME).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });
+
+describe("src/theme.css + index.css — game-backdrop gradients & animation polish (M14-T2/#98)", () => {
+  it("defines token-backed game-backdrop gradient stops and re-exposes them", () => {
+    // The game-view background needs its own subtle gradient stop tokens in
+    // theme.css (the only file allowed to hold literal colors), which are
+    // then re-exposed to Tailwind via `@theme inline` like every other token.
+    const stops = [
+      "--color-game-bg-top",
+      "--color-game-bg-mid",
+      "--color-game-bg-bottom",
+    ];
+    for (const token of stops) {
+      expect(THEME, `missing game-bg token ${token}`).toContain(`${token}:`);
+      expect(THEME, `${token} not in @theme inline`).toMatch(
+        new RegExp(`${token}:\\s*var\\(${token}\\)`),
+      );
+    }
+  });
+
+  it("renders the game backdrop as a token-driven subtle gradient utility", () => {
+    // The game-view background must be a `.game-bg` utility whose gradient
+    // draws from the `--color-game-bg-*` token stops (no raw hex / rgba),
+    // with a smooth transition so re-skins fade instead of snapping.
+    const bg = STYLES.match(/\.game-bg\s*\{([^}]*)\}/)?.[1];
+    expect(bg).toBeTruthy();
+    expect(bg).toContain("var(--color-game-bg-top)");
+    expect(bg).toContain("var(--color-game-bg-mid)");
+    expect(bg).toContain("var(--color-game-bg-bottom)");
+    expect(bg).toMatch(/linear-gradient\(/);
+    expect(bg).toMatch(/transition/);
+  });
+
+  it("adds panel entrance/exit keyframes and classes", () => {
+    // Animation polish: floating panels should have both a smooth entrance
+    // (`menu-in`) and exit (`menu-out`) so entering/exiting feels
+    // intentional. The keyframes and the classes that reference them must be
+    // present.
+    expect(STYLES).toMatch(/@keyframes menu-in\s*\{/);
+    expect(STYLES).toMatch(/@keyframes menu-out\s*\{/);
+    const cls = STYLES.match(/\.menu-in\s*\{([^}]*)\}/)?.[1];
+    const out = STYLES.match(/\.menu-out\s*\{([^}]*)\}/)?.[1];
+    expect(cls).toBeTruthy();
+    expect(out).toBeTruthy();
+    expect(cls).toMatch(/animation:\s*menu-in/);
+    expect(out).toMatch(/animation:\s*menu-out/);
+  });
+
+  it("applies the token backdrop to the game route and keeps components raw-color-free", () => {
+    // The game route must switch to the token-driven `game-bg` backdrop
+    // (not the showcase `login-bg`), and the app root must stay free of raw
+    // hex so the gradient stops live only in theme.css.
+    const APP = readFileSync(resolve(ROOT, "src/App.tsx"), "utf8");
+    expect(APP).toMatch(/game-bg/);
+    expect(APP).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+
+  it("keeps index.css free of raw hex for the new backdrop rules", () => {
+    // New gradient/backdrop rules must reference tokens only (the global
+    // no-raw-hex rule already guards this, re-asserted here per the M14-T2
+    // requirement that no raw hex appears in the backdrop/animation CSS).
+    expect(STYLES).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(STYLES).not.toMatch(/rgba?\(/);
+  });
+});

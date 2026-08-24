@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Enhance the gradients and animation polish of the game background (M14-T2,
+  #98). In `src/theme.css` a new token-backed set of subtle game-backdrop
+  gradient stops is added — `--color-game-bg-top`, `--color-game-bg-mid`,
+  `--color-game-bg-bottom` (a soft warm parchment→rose sunset ramp)
+  — re-exposed to Tailwind via `@theme inline`. In `src/styles/index.css` the
+  game route now renders on a dedicated `.game-bg` utility: a tasteful
+  vertical gradient wash built from those token stops (plus a faint radial
+  veil near the top to keep the board the focal point) with a smooth
+  crossfade transition. Two new panel animation keyframes/classes —
+  `menu-in` (smooth slide+fade entrance) and `menu-out` (exit) — extend the
+  animation polish alongside the existing hover/focus transitions, and all
+  are disabled under `prefers-reduced-motion`. `App.tsx` switches the game
+  route from the showcase `login-bg` to the token-driven `game-bg` backdrop
+  with no raw hex in components. This is a pure token/CSS change: no
+  `src/core` business logic was touched (core stays 100% covered). Extended
+  the structural tests in `tests/theme.test.ts` to assert the presence and
+  `@theme inline` re-exposure of the new gradient stops, the token-driven
+  `.game-bg` gradient utility + transition, the panel entrance/exit
+  keyframes and classes, and that the app route/gradient CSS stay free of
+  raw hex.
+
 - Refine the design-token color palette and visual details for a more
   cohesive, beautiful look (M14-T3, #97). In `src/theme.css` the brand
   amber→rose→violet family is rebalanced into one warm "kingdom sunset" ramp
