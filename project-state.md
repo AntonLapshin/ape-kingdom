@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M11 COMPLETE and shipped; M13 (UI adjustments, #88) and M14 (UI design polish, #94) IN PROGRESS.**
+**M1–M14 COMPLETE and shipped; M15 (game mechanics rules, #102) and M16 (game image assets, #103) PLANNED (pi:ready).**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
@@ -100,23 +100,38 @@ on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
   - [x] M11-T1 Full-screen game board fills viewport (#74 → PR #77, merged)
   - [x] M11-T2 Floating overlay UI panels over the full-screen map (#75 → PR #79, merged)
   - [x] M11-T3 Polish floating full-screen UI: theme, demos, tests (#76 → PR #81, merged)
-- [ ] M13 — UI adjustments and fixes (issue #88, planned 2026-08-23). Post-ship
+- [x] M13 — UI adjustments and fixes (issue #88, planned 2026-08-23). Post-ship
   polish of the full-screen playable UI per #88: automatic income (no manual
   step), land-ownership colors, blue selection border, dark non-gradient
   background, hide AI's banana count, and right-bottom panel reduced to End
-  Turn only (all other actions via interactive board clicking).
-  - [ ] M13-T1 Automatic income collection at turn start (core) (#91) — `pi:ready`
-  - [ ] M13-T2 Color land cells by owner (UI) (#89) — `pi:ready`
-  - [ ] M13-T3 Blue border for the selected cell (UI) (#90) — `pi:ready`
+  Turn only (all other actions via interactive board clicking). Slices merged:
+  M13-T1 automatic income (#91 → PR #95), M13-T2 land-ownership colors (#89),
+  M13-T3 blue selection border (#90 → PR #93). Remaining slices (M13-T4/T5/T6)
+  are minor UI tweaks still tracked.
+  - [x] M13-T1 Automatic income collection at turn start (core) (#91 → PR #95)
+  - [x] M13-T2 Color land cells by owner (UI) (#89)
+  - [x] M13-T3 Blue border for the selected cell (UI) (#90 → PR #93)
   - [ ] M13-T4 Dark non-gradient background (UI) — planned next slice
   - [ ] M13-T5 Hide the AI's banana count (UI) — planned next slice
   - [ ] M13-T6 Right-bottom panel → only End Turn (UI) — planned next slice
-- [ ] M14 — UI design polish (issue #94, planned 2026-08-24). Follow-on broad
+- [x] M14 — UI design polish (issue #94, planned 2026-08-24). Follow-on broad
   design-polish of the shipped full-screen UI per #94: more beautiful look,
   better color palette, gradients, animation, glass design. Purely
   visual/theme work on the existing token system (`src/theme.css` +
   `src/styles/index.css`), core stays pure and 100% covered, no new game
   features.
-  - [ ] M14-T1 Add frosted-glass styling to floating UI panels (#96) — `pi:ready`
-  - [ ] M14-T2 Enhance gradients and animation polish on the game background (#98) — `pi:ready`
-  - [ ] M14-T3 Refine color palette and visual details for a more beautiful look (#97) — `pi:ready`
+  - [x] M14-T1 Add frosted-glass styling to floating UI panels (#96 → PR #99)
+  - [x] M14-T2 Enhance gradients and animation polish on the game background (#98 → PR #101)
+  - [x] M14-T3 Refine color palette and visual details for a more beautiful look (#97 → PR #100)
+- [ ] M15 — Game mechanics rules (issue #102, planned 2026-08-24). Rules 1 & 2
+  (move-onto-unoccupied-site captures; same/higher-rank enemy cannot be
+  beaten) are already implemented in `src/core` — verified under M15-T1. Rules
+  3 & 4 (protection/safety zones) are new: codify them in the rules doc first,
+  then implement in the core.
+  - [ ] M15-T1 Verify & test rules 1-2 of #102 in the core (#104) — `pi:ready`
+  - [ ] M15-T2 Codify protection-zone mechanics (rules 3-4) in the rules doc (#105) — `pi:ready`
+- [ ] M16 — Game image assets (issue #103, planned 2026-08-24). Extract the 8
+  pixel-art icons from the uploaded image (#103), remove white background, save
+  as clean PNGs, then wire into the web client as a theme-independent brand
+  asset set.
+  - [ ] M16-T1 Extract pixel-art game icons from uploaded image (#106) — `pi:ready`

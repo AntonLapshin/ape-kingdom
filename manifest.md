@@ -2,10 +2,11 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13/M14)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13/M14 done; M15/M16 planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
-(issue #88) are planned under milestone M13, and the follow-on design-polish
-request (issue #94) under milestone M14.
+(issue #88) are planned under milestone M13, the follow-on design-polish
+request (issue #94) under milestone M14, the game-mechanics rules (issue #102)
+under milestone M15, and the game image assets (issue #103) under milestone M16.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -330,6 +331,52 @@ full-screen UI. Purely visual/theme work built on the existing token system
     cohesive, beautiful look, all token-backed.
 
 **Sub-issues (first slice):**
-  - [ ] M14-T1 Add frosted-glass styling to floating UI panels (#96)
-  - [ ] M14-T2 Enhance gradients and animation polish on the game background (#98)
-  - [ ] M14-T3 Refine color palette and visual details for a more beautiful look (#97)
+  - [x] M14-T1 Add frosted-glass styling to floating UI panels (#96)
+  - [x] M14-T2 Enhance gradients and animation polish on the game background (#98)
+  - [x] M14-T3 Refine color palette and visual details for a more beautiful look (#97)
+
+### M15 — Game mechanics: combat/movement safety zones (#102)
+
+**Goal:** Resolve the game-mechanics rules requested in issue #102. Rules 1 & 2
+(move-onto-unoccupied-site captures it for the mover; a unit cannot beat an
+enemy of the same or higher rank) are already implemented and covered in
+`src/core` — verified under M15-T1. Rules 3 & 4 (protection/safety zones — a
+unit protects its surrounding cells from same-rank enemy units; a Home Tree
+protects its surrounding cells from rank-1 enemy units) are new mechanics that
+must first be codified in `guidelines/ape-kingdom-rules.md` (the single source
+of truth), then implemented and tested in the core.
+
+**Scope:**
+  - **Verify rules 1 & 2 (test, #102 items 1-2):** Confirm `src/core`
+    capture-on-move and rank-combat already satisfy rules 1 & 2, adding
+    regression tests for any uncovered branch.
+  - **Rules-doc update (infra, #102 items 3-4):** Add a "Protection / Safety
+    Zones" section to `guidelines/ape-kingdom-rules.md` describing units
+    protecting adjacent cells from same-rank enemies and Home Trees protecting
+    adjacent cells from rank-1 enemies, keeping it consistent with the existing
+    Combat/Movement sections.
+  - **Core implementation (core, #102 items 3-4, next slice):** Enforce the
+    protection-zone rules in `src/core` movement/combat/legal-move + AI logic,
+    100% core coverage.
+
+**Sub-issues (first slice):**
+  - [ ] M15-T1 Verify & test rules 1-2 of #102 in the core (#104)
+  - [ ] M15-T2 Codify protection-zone mechanics (rules 3-4) in the rules doc (#105)
+
+### M16 — Game image assets (#103)
+
+**Goal:** Extract the 8 pixel-art game icons from the image attached to issue
+#103 (Home Tree, Monkey Nest, Monkey, Gibbon, Chimpanzee, Gorilla, Mountain,
+Grave; 4 rows x 2 on white), remove the white background, save as clean PNGs,
+and wire them into the web client as a theme-independent brand asset set per
+GUIDELINES-WEB-THEME.md.
+
+**Scope:**
+  - **Icon extraction (assets, #103):** Crop each icon by its boundaries,
+    remove the white background, and commit the 8 PNGs under `src/assets/`.
+  - **UI wiring (UI, #103, next slice):** Render units/sites with the extracted
+    pixel-art icons in the thin UI components / view model, no core business
+    logic change.
+
+**Sub-issues (first slice):**
+  - [ ] M16-T1 Extract pixel-art game icons from uploaded image (#106)
