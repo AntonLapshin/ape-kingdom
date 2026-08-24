@@ -51,10 +51,11 @@ export const APE_KIND_ICONS: Record<ApeKind, GameIconName> = {
  * The pixel-art icon name for the site kinds that have a dedicated asset
  * (M16-T2, #111). The Home Tree and Monkey Nest have icons in the 8-asset
  * set; Grove does not (the asset set's remaining site icons are Mountain and
- * Grave, which are terrain/other markers rather than a Grove site). So this
- * is a partial map and `siteKindIcon` returns `null` for Grove, letting the
- * dumb `Content` component fall back to its text label. Not business logic —
- * a read-only kind → icon-name presentation map.
+ * Grave, which are a terrain cell background and a removed-unit marker that
+ * has no entity in `src/core`, rather than a Grove site). So this is a
+ * partial map and `siteKindIcon` returns `null` for Grove, letting the dumb
+ * `Content` component fall back to its text label. Not business logic — a
+ * read-only kind → icon-name presentation map.
  */
 export const SITE_KIND_ICONS: Partial<Record<SiteKind, GameIconName>> = {
   HomeTree: "homeTree",

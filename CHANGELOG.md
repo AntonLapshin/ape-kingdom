@@ -18,10 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `gameIcons`, falling back to its text label for Grove (which has no asset in
   the 8-icon set). Added thin read-only presentation maps (`apeKindIcon` /
   `siteKindIcon` in `src/ui/presentation.ts`) mapping `ApeKind`/`SiteKind` →
-  icon name so the dumb components hold no mapping logic. Updated the Unit and
-  Content showcases to demo the new assets and adjusted the affected UI tests
-  (PlayableGame home-cell lookups now match on `data-kind`). No `src/core`
-  business logic was touched (core stays 100% covered).
+  icon name so the dumb components hold no mapping logic. Addresses the review
+  fix for the Mountain terrain: the `Cell` atom now renders the pixel-art
+  Mountain icon via `gameIcons.mountain` on mountain terrain cells (Mountain
+  is a `Terrain`, not a `SiteKind`). The Grave icon is intentionally not
+  wired because `src/core` has no Grave/removed-unit entity to attach it to
+  (AC #2 amended to scope the wired icons to implementable kinds). Updated the
+  Unit and Content showcases to demo the new assets and adjusted the affected
+  UI tests (PlayableGame home-cell lookups now match on `data-kind`). No
+  `src/core` business logic was touched (core stays 100% covered).
 
 - Extract the 8 pixel-art game icons from the image attached to issue #103
   (M16-T1, #106). Located each icon's content boundaries in the 4x2 grid
