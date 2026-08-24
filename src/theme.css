@@ -97,9 +97,17 @@
   --color-glass-panel: rgba(251, 247, 244, 0.9);
 
   /* Board terrain roles (M9-T3) */
-  --color-terrain-land: #e6cfa3;
-  --color-terrain-water: #9fc4d8;
-  --color-terrain-mountain: #b8a99a;
+  /* Neutral land is a neutral green (M17-T3, #116) — a calm, desaturated
+     green so default neutral terrain reads as grassland rather than the
+     previous warm parchment. Kept token-driven so a re-skin can retune it. */
+  --color-terrain-land: #7f9d6b;
+  --color-terrain-water: #4e6f86;
+  --color-terrain-mountain: #8f8378;
+
+  /* The board canvas behind the surrounding ocean (M17-T3, #116) — a dark,
+     near-black backdrop so the map's water border and the space outside it
+     read as deep, allowing the islands and the glass hexagons to pop. */
+  --color-board-dark: #0d0f12;
 
   /* Owner territory tints (M13-T2, #89) — soft rose (p1) / violet (p2)
      land fills so territories are distinct at a glance while the unit badge
@@ -190,6 +198,8 @@
   --color-terrain-land: var(--color-terrain-land);
   --color-terrain-water: var(--color-terrain-water);
   --color-terrain-mountain: var(--color-terrain-mountain);
+
+  --color-board-dark: var(--color-board-dark);
 
   /* Owner territory tints */
   --color-owner-p1: var(--color-owner-p1);

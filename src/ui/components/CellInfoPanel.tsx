@@ -1,6 +1,8 @@
 import type { CellInfo } from "../../core/cellInfo";
 import type { GameAction } from "../../core/ai";
-import { SITE_LABELS, actionLabel } from "../presentation";
+import { SITE_LABELS, actionLabel, cellHexagonClass } from "../presentation";
+import { Hexagon } from "./Hexagon";
+import { Unit } from "./Unit";
 
 export interface CellInfoPanelProps {
   /**
@@ -37,9 +39,18 @@ export interface CellInfoPanelProps {
  *
  * It is purely presentational — it renders the `info` props it is given and
  * calls `onSelectAction`. No business logic, no hooks, no side effects.
+ *
+ * Since M17-T3 the panel leads with a hexagonal preview of the exact
+ * selected hexagon — its correct cell colour (owner tint / terrain) and,
+ * when the hex is occupied, the unit badge it hosts — instead of the
+ * previous "Water / Land" terrain pill.
  */
 export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: CellInfoPanelProps) {
   const nonRecruit = nonRecruitActions(legalActions);
+  // The selected hexagon's owner: an owned site/unit colours the whole hexagon;
+  // a hex with neither is neutral (keeps its terrain colour).
+  const hexagonOwner =
+    info?.site?.owner ?? info?.unit?.owner ?? null;
 
   return (
     <div data-testid="cell-info" className="space-y-2">
@@ -51,14 +62,30 @@ export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: C
 
       {info && (
         <>
-      {/* The selected hex coordinates and terrain. */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-text-primary">
-          Hex ({info.hex.q}, {info.hex.r})
-        </span>
-        <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
-          {info.terrain}
-        </span>
+      {/* The selected hex coordinates, its terrain, and a hexagonal preview of
+          the exact hexagon currently selected (M17-T3): the correct
+          cell colour (owner tint / terrain) plus the unit badge it hosts, so
+          the selector shows what is actually on the board. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text-primary">
+            Hex ({info.hex.q}, {info.hex.r})
+          </p>
+          <p className="text-xs capitalize text-text-muted">{info.terrain}</p>
+        </div>
+        <Hexagon
+          bgClass={cellHexagonClass(hexagonOwner, info.terrain)}
+          size={88}
+          testId="cell-info-hexagon"
+        >
+          {info.unit && (
+            <Unit
+              kind={info.unit.kind}
+              rank={info.unit.rank}
+              owner={info.unit.owner}
+            />
+          )}
+        </Hexagon>
       </div>
 
       {/* Read-only info: site, then unit. */}

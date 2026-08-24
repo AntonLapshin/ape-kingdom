@@ -104,8 +104,9 @@ describe("map interaction UX (M17-T1/#114)", () => {
       resolve(ROOT, "src/ui/components/PlayableGame.tsx"),
       "utf8",
     );
-    expect(PLAYABLE).toContain('className="absolute inset-0 select-none"');
-    expect(PLAYABLE).toContain('data-testid="board-layer"');
+    expect(PLAYABLE).toMatch(/className="[^"]*select-none[^"]*"/);
+    expect(PLAYABLE).toMatch(/className="[^"]*bg-board-dark[^"]*"/);
+    expect(PLAYABLE).toMatch(/data-testid="board-layer"/);
   });
 });
 

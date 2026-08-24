@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Overhaul the cell & terrain visuals (M17-T3, #116). Board hexagons are now
+  rendered slightly smaller than their layout box (a new `HEX_GAP` of 8px,
+  `CELL_SIZE = HEX_SIZE*2 − HEX_GAP`) so a few pixels of the dark board show
+  between neighbouring cells, and each hexagon gets a glass treatment (the
+  new `hex-glass` effect — a token-driven translucent fill + inner highlight)
+  so cells read as polished glass chips on the map. Units no longer carry the
+  "Kingdom" owner colour: the `Unit` badge is now a neutral glass chip and
+  ownership is expressed solely by the host hexagon (via the existing
+  `bg-owner-p1`/`bg-owner-p2` cell tint). The map canvas behind and around the
+  surrounding ocean is now dark (a new `--color-board-dark` near-black token
+  applied to the full-screen `board-layer`), and the default neutral land
+  colour is a neutral green (`--color-terrain-land: #7f9d6b`). The bottom-left
+  selection panel now leads with a hexagonal preview of the exact selected
+  hexagon — its correct cell colour (owner tint / terrain) and, when occupied,
+  the unit badge it hosts — instead of the previous "Water / Land" terrain
+  pill; this is built on a new reusable `Hexagon` atom and shared
+  `cellHexagonClass` / `TERRAIN_BG` / `OWNER_BG` presentation maps in
+  `src/ui/presentation.ts`. Pure thin-component/theme change with added and
+  updated component + presentation tests (incl. the new `Hexagon` atom and its
+  Showcase); no `src/core` business logic was touched (core stays 100%
+  covered).
+
 - Replace the bottom-right `Step: Recruit / Act` indicator and its selectable
   action-list panel with a single circular "End Turn" button, and stop
   revealing the AI's banana count (M17-T2, #115). The old `ActionControls`
