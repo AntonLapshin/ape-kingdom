@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix the app crash when creating/recruiting a new unit mid-turn (issue 123).
+  The bottom-left `CellInfoPanel`'s "Recruit here" action list was derived from
+  `cellInfo` → `legalActions(state)`, which contains recruit actions in every
+  turn step, so after the player moved or fought (the `movefight` step) the
+  panel still advertised recruit buttons for buildable hexes. Clicking one
+  passed a recruit action that was no longer in the session's step-filtered
+  `legalMoves`, so `selectAction` threw an uncaught `GameSessionError` and
+  crashed the app. The panel now only offers the recruit items whose exact
+  `recruit` action is present in the session's step-filtered legal set — a new
+  pure `legalRecruitActions` presentation helper in `src/ui/presentation.ts`
+  — so once the player has moved/fought the section is hidden and the cell is
+  shown read-only. Thin UI-layer change with regression tests (incl. an
+  integration test that a recruited unit renders on its board hex and stays
+  selectable); no `src/core` business logic was touched (core stays 100%
+  covered).
+
 ### Changed
 
 - Overhaul the cell & terrain visuals (M17-T3, #116). Board hexagons are now

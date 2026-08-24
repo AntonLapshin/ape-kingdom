@@ -1,8 +1,10 @@
 import type { GameAction } from "../core/ai";
 import type { TurnStep } from "../core/gameSession";
 import type { ApeKind, PlayerId, SiteKind } from "../core/game";
+import { sameHex } from "../core/game";
 import type { Terrain } from "../core/mapGenerator";
 import type { GameIconName } from "../assets/icons";
+import type { CellActionItem } from "../core/cellInfo";
 
 /**
  * Pure presentation helpers shared by the thin UI components.
@@ -152,6 +154,35 @@ export function cellHexagonClass(
   if (owner === "p1") return OWNER_BG.p1;
   if (owner === "p2") return OWNER_BG.p2;
   return TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
+}
+
+/**
+ * Pure presentation filter: the recruit `CellActionItem`s (from `cellInfo`'s
+ * `info.actions`) whose exact `recruit` `GameAction` is present in the
+ * session's step-filtered `legalActions` prop (#123).
+ *
+ * This prevents offering (and therefore clicking) a recruit action that is not
+ * actually selectable this turn step. `cellInfo` derives its recruit items from
+ * `legalActions(state)` — which contains recruits in every step — but the
+ * session's step-filtered `legalMoves` exclude recruits once the player has
+ * moved/fought (`movefight` step). Submitting one of those excluded recruits to
+ * `selectAction` throws an uncaught `GameSessionError` and crashes the app, so
+ * the panel must only surface the recruits that are genuinely legal. Not game
+ * logic — just a pure UI grouping consistent with how the component groups the
+ * rest of the action list.
+ */
+export function legalRecruitActions(
+  items: CellActionItem[],
+  legalActions: GameAction[],
+): CellActionItem[] {
+  return items.filter((item) =>
+    legalActions.some(
+      (a) =>
+        a.type === "recruit" &&
+        a.kind === item.kind &&
+        sameHex(a.hex, item.action.hex),
+    ),
+  );
 }
 
 /** Horizontal spacing between adjacent hex columns. */

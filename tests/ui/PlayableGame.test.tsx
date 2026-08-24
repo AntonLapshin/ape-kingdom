@@ -883,4 +883,120 @@ describe("PlayableGame", () => {
       .find((row) => row.textContent!.includes("You"))!;
     expect(youRow.textContent).toMatch(/🍌/);
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Mid-turn recruit crash regression (#123)                            */
+  /* ------------------------------------------------------------------ */
+
+  it("regression: no recruit buttons are offered after moving, so a mid-turn recruit can no longer crash the app (#123)", () => {
+    render(<PlayableGame />);
+    const cells = () => screen.getAllByTestId("board-cell");
+
+    // Move first: select a p1 unit and move it, advancing the session to the
+    // movefight step (recruiting is no longer legal this turn).
+    const unitCell = cells().find(
+      (c) =>
+        c.dataset.owner === "p1" &&
+        !!c.querySelector("[data-testid='board-unit']"),
+    )!;
+    act(() => fireEvent.click(unitCell));
+    const target = cells().find((c) => c.dataset.moveTarget === "true");
+    expect(target).toBeDefined();
+    act(() => fireEvent.click(target!));
+
+    // Select an empty land hex adjacent to the human's Home Tree — exactly the
+    // type of hex that used to still advertise a recruit action after moving.
+    const p1Home = cells().find(
+      (c) =>
+        c
+          .querySelector('[data-testid="board-site"]')
+          ?.getAttribute("data-kind") === "HomeTree" &&
+        c.dataset.owner === "p1",
+    )!;
+    const [hq, hr] = p1Home.dataset.hex!.split(",").map(Number);
+    const buildable = cells().find((c) => {
+      const [q, r] = c.dataset.hex!.split(",").map(Number);
+      const dist = Math.max(
+        Math.abs(q - hq),
+        Math.abs(r - hr),
+        Math.abs(q + r - hq - hr),
+      );
+      return (
+        dist === 1 && c.dataset.owner === "neutral" && c.dataset.terrain === "land"
+      );
+    });
+    expect(buildable).toBeDefined();
+    act(() => fireEvent.click(buildable!));
+
+    // The panel no longer offers any recruit button on the movefight step (the
+    // bug fix). Before #123 this section still listed a recruit action, and
+    // clicking it threw an uncaught GameSessionError that crashed the app.
+    expect(screen.queryByTestId("cell-action-button")).toBeNull();
+    expect(screen.queryByText(/Recruit here/i)).toBeNull();
+    // Reading the (now read-only) buildable cell does not crash the app.
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+  });
+
+  it("acceptance: a recruited unit renders on the board at its placement hex and stays selectable (#123)", () => {
+    render(<PlayableGame />);
+    const cells = () => screen.getAllByTestId("board-cell");
+
+    const p1Home = cells().find(
+      (c) =>
+        c
+          .querySelector('[data-testid="board-site"]')
+          ?.getAttribute("data-kind") === "HomeTree" &&
+        c.dataset.owner === "p1",
+    )!;
+    const [hq, hr] = p1Home.dataset.hex!.split(",").map(Number);
+    // Click a buildable neighbour hex until the panel lists recruit buttons
+    // (still on the recruit step, so recruiting a new unit is legal).
+    let buildable: HTMLElement | undefined;
+    for (const candidate of cells().filter((c) => {
+      const [q, r] = c.dataset.hex!.split(",").map(Number);
+      const dist = Math.max(
+        Math.abs(q - hq),
+        Math.abs(r - hr),
+        Math.abs(q + r - hq - hr),
+      );
+      return (
+        dist === 1 && c.dataset.owner === "neutral" && c.dataset.terrain === "land"
+      );
+    })) {
+      act(() => fireEvent.click(candidate));
+      if (screen.queryAllByTestId("cell-action-button").length > 0) {
+        buildable = candidate;
+        break;
+      }
+    }
+    expect(buildable).toBeDefined();
+
+    // Before recruiting, the placement hex has no unit badge.
+    const placementHex = buildable!.dataset.hex!;
+    expect(
+      cells()
+        .find((c) => c.dataset.hex === placementHex)!
+        .querySelector("[data-testid='board-unit']"),
+    ).toBeNull();
+
+    // Recruit one ape via the panel's action button.
+    act(() => fireEvent.click(screen.getAllByTestId("cell-action-button")[0]));
+
+    // The newly recruited unit now renders on the board at its placement hex.
+    const placed = cells().find((c) => c.dataset.hex === placementHex)!;
+    const badge = placed.querySelector(
+      "[data-testid='board-unit']",
+    ) as HTMLElement | null;
+    expect(badge).not.toBeNull();
+    expect(badge!.dataset.owner).toBe("p1");
+    expect(
+      ["Monkey", "Gibbon", "Chimpanzee", "Gorilla"].includes(
+        badge!.dataset.kind as string,
+      ),
+    ).toBe(true);
+
+    // It stays present after re-render / selecting the cell (no crash).
+    act(() => fireEvent.click(placed));
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+  });
 });
