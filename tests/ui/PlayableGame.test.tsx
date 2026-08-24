@@ -249,8 +249,10 @@ describe("PlayableGame", () => {
     render(<PlayableGame />);
     // Click p1's Home Tree cell.
     const cells = screen.getAllByTestId("board-cell");
-    const homeCell = cells.find((c) =>
-      c.querySelector('[data-testid="board-site"]')?.textContent?.includes("Home Tree"),
+    const homeCell = cells.find(
+      (c) =>
+        c.querySelector('[data-testid="board-site"]')?.getAttribute("data-kind") ===
+        "HomeTree",
     )!;
     act(() => {
       fireEvent.click(homeCell);
@@ -275,9 +277,11 @@ describe("PlayableGame", () => {
     // placement hexes this turn (recruiting is restricted to the controlled
     // Home Tree's empty adjacent hexes), so click candidate neighbours until
     // the panel shows recruit action buttons for the selected buildable cell.
-    const p1Home = cells.find((c) =>
-      c.querySelector('[data-testid="board-site"]')?.textContent?.includes("Home Tree") &&
-      c.dataset.owner === "p1",
+    const p1Home = cells.find(
+      (c) =>
+        c.querySelector('[data-testid="board-site"]')?.getAttribute("data-kind") ===
+          "HomeTree" &&
+        c.dataset.owner === "p1",
     )!;
     const [hq, hr] = p1Home.dataset.hex!.split(",").map(Number);
     const candidates = cells.filter((c) => {
@@ -540,10 +544,11 @@ describe("PlayableGame", () => {
   it("selects a hex on a static pointer click (down→up) via the real pointer path (M12-T1)", () => {
     render(<PlayableGame />);
     const cells = screen.getAllByTestId("board-cell");
-    const homeCell = cells.find((c) =>
-      c
-        .querySelector('[data-testid="board-site"]')
-        ?.textContent?.includes("Home Tree"),
+    const homeCell = cells.find(
+      (c) =>
+        c
+          .querySelector('[data-testid="board-site"]')
+          ?.getAttribute("data-kind") === "HomeTree",
     )!;
 
     // A genuine static click: pointer-down → pointer-up at the same spot, then
@@ -641,10 +646,11 @@ describe("PlayableGame", () => {
     const board = screen.getByTestId("board");
     const startStyle = board.getAttribute("style");
     const cells = screen.getAllByTestId("board-cell");
-    const homeCell = cells.find((c) =>
-      c
-        .querySelector('[data-testid="board-site"]')
-        ?.textContent?.includes("Home Tree"),
+    const homeCell = cells.find(
+      (c) =>
+        c
+          .querySelector('[data-testid="board-site"]')
+          ?.getAttribute("data-kind") === "HomeTree",
     )!;
 
     // Press, wiggle a couple of pixels (below the drag threshold), release,
@@ -678,10 +684,11 @@ describe("PlayableGame", () => {
   it("regression: a static pointer click on a hex selects it and updates the info panel (M12-T2)", () => {
     render(<PlayableGame />);
     const cells = screen.getAllByTestId("board-cell");
-    const homeCell = cells.find((c) =>
-      c
-        .querySelector("[data-testid='board-site']")
-        ?.textContent?.includes("Home Tree"),
+    const homeCell = cells.find(
+      (c) =>
+        c
+          .querySelector("[data-testid='board-site']")
+          ?.getAttribute("data-kind") === "HomeTree",
     )!;
 
     // Realistic static click: pointer-down → pointer-up at the same spot (no
@@ -785,10 +792,11 @@ describe("PlayableGame", () => {
     render(<PlayableGame />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const cells = screen.getAllByTestId("board-cell");
-    const homeCell = cells.find((c) =>
-      c
-        .querySelector("[data-testid='board-site']")
-        ?.textContent?.includes("Home Tree"),
+    const homeCell = cells.find(
+      (c) =>
+        c
+          .querySelector("[data-testid='board-site']")
+          ?.getAttribute("data-kind") === "HomeTree",
     )!;
 
     // First perform a genuine drag that pans and must not select.

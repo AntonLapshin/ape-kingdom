@@ -1,4 +1,6 @@
 import type { ApeKind, ApeRank, PlayerId } from "../../core/game";
+import { gameIcons } from "../../assets/icons";
+import { apeKindIcon } from "../presentation";
 
 export interface UnitProps {
   /** Which ape kind this unit is (Monkey, Gibbon, Chimpanzee, Gorilla). */
@@ -12,11 +14,12 @@ export interface UnitProps {
 /**
  * Thin, dumb `Unit` atom component (M8-T2).
  *
- * Renders a single ape unit badge (kind + rank) coloured by its owner,
- * extracted from the inline badge previously rendered in `Board.tsx`. It is
- * purely presentational — it receives the unit's kind, rank, and owner as
- * props and renders them. No hooks, no context, no side effects, no business
- * logic.
+ * Renders a single ape unit badge showing its pixel-art icon (M16-T2, #111),
+ * coloured by its owner. The kind → icon-name mapping is delegated to the
+ * pure `apeKindIcon` presentation helper, and the icon URL is resolved via
+ * the `gameIcons` barrel — the component holds no mapping logic. It is purely
+ * presentational — it receives the unit's kind, rank, and owner as props and
+ * renders them. No hooks, no context, no side effects, no business logic.
  *
  * The owner colour maps to the brand palette tokens (rose → violet brand
  * family), per GUIDELINES-WEB-THEME.md — no raw Tailwind palettes.
@@ -26,11 +29,17 @@ export function Unit({ kind, rank, owner }: UnitProps) {
     <span
       data-testid="board-unit"
       data-owner={owner}
-      className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-inverted ${
-        owner === "p1" ? "bg-brand-rose-deep" : "bg-brand-violet-deep"
+      data-kind={kind}
+      className={`mt-0.5 flex flex-col items-center rounded-xl border px-1 py-0.5 text-[10px] font-bold text-inverted ${
+        owner === "p1" ? "border-brand-rose-deep bg-brand-rose-deep" : "border-brand-violet-deep bg-brand-violet-deep"
       }`}
     >
-      {kind} {rank}
+      <img
+        src={gameIcons[apeKindIcon(kind)]}
+        alt={`${kind} unit`}
+        className="h-8 w-8 object-contain"
+      />
+      <span className="mt-0.5 leading-none">{rank}</span>
     </span>
   );
 }

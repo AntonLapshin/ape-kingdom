@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Board } from "../../src/ui/components/Board";
 import { hexToPixel, SITE_LABELS } from "../../src/ui/presentation";
+import { gameIcons } from "../../src/assets/icons";
 import { boardCells } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
 
@@ -102,7 +103,7 @@ describe("Board", () => {
     expect(units).toHaveLength(state.units.length);
   });
 
-  it("renders the unit badge text as '<kind> <rank>' (view-model wiring)", () => {
+  it("renders the unit badge with its pixel-art icon and rank (view-model wiring)", () => {
     render(<Board board={board} currentPlayer="p1" />);
     // The starting Monkey at p1's Home Tree resolves to rank 1 via the view model.
     const homeCell = screen
@@ -110,7 +111,10 @@ describe("Board", () => {
       .find((c) => c.dataset.hex === p1HomeKey);
     const badge = homeCell!.querySelector('[data-testid="board-unit"]');
     expect(badge).not.toBeNull();
-    expect(badge!.textContent).toBe("Monkey 1");
+    const img = badge!.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toBe(gameIcons.monkey);
+    expect(badge!.textContent).toBe("1");
   });
 
   it("labels the current player in the board footer", () => {

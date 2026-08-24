@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Wire the 8 pixel-art game icons into the Atom components (M16-T2, #111).
+  Updated the `Unit` atom to render each ape kind's matching pixel-art icon
+  (Monkey/Gibbon/Chimpanzee/Gorilla) via the `gameIcons` barrel
+  (`src/assets/icons`) inside its owner-coloured badge, showing the rank
+  below the icon instead of the old `{kind} {rank}` text badge. The `Content`
+  atom now renders the Home Tree and Monkey Nest pixel-art site icons via
+  `gameIcons`, falling back to its text label for Grove (which has no asset in
+  the 8-icon set). Added thin read-only presentation maps (`apeKindIcon` /
+  `siteKindIcon` in `src/ui/presentation.ts`) mapping `ApeKind`/`SiteKind` →
+  icon name so the dumb components hold no mapping logic. Updated the Unit and
+  Content showcases to demo the new assets and adjusted the affected UI tests
+  (PlayableGame home-cell lookups now match on `data-kind`). No `src/core`
+  business logic was touched (core stays 100% covered).
+
 - Extract the 8 pixel-art game icons from the image attached to issue #103
   (M16-T1, #106). Located each icon's content boundaries in the 4x2 grid
   (Home Tree, Monkey Nest, Monkey, Gibbon, Chimpanzee, Gorilla, Mountain,
