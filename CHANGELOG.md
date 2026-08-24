@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Codify the protection / safety-zone mechanics (rules 3-4 of #102) in the
+  game rules doc (#105, M15-T2). Added a dedicated **Protection / Safety
+  Zones** section to `guidelines/ape-kingdom-rules.md` describing rule 3 (a
+  unit protects its adjacent cells from enemy units of the same rank —
+  Monkey protects from Monkeys, Gibbon from Gibbons, Chimpanzee from
+  Chimpanzees, Gorilla from Gorillas) and rule 4 (a Home Tree protects its
+  surrounding cells from enemy rank-1 / Monkey units). The section clarifies
+  that protection only restricts entry by those listed opposing ranks does
+  not prevent higher- or lower-ranked enemy units from entering, does not
+  constrain the protecting unit's own movement/attacks, and does not change
+  site ownership (kept consistent with the existing Combat/Movement/Capture
+  rules). Documentation-only change: no `src/core` business logic was touched
+  (core stays 100% covered).
+
 - Verify & regression-test game-mechanics rules 1-2 of #102 in the core
   (#104). Confirmed that `src/core` already implements and fully covers both
   rules: (1) moving a unit onto an unoccupied Grove/Nest/Home Tree captures

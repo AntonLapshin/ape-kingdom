@@ -116,6 +116,19 @@ If both units are destroyed, site ownership does not change.
 
 Each unit may make only one attack per turn.
 
+Protection / Safety Zones
+
+A unit protects its surrounding cells. An enemy unit may not move or attack into a cell protected by an opposing unit of the same rank.
+
+  - A Monkey (rank 1) protects its adjacent cells from opposing Monkeys.
+  - A Gibbon (rank 2) protects its adjacent cells from opposing Gibbons.
+  - A Chimpanzee (rank 3) protects its adjacent cells from opposing Chimpanzees.
+  - A Gorilla (rank 4) protects its adjacent cells from opposing Gorillas.
+
+A Home Tree protects the cells surrounding it. An enemy ape of rank 1 (Monkey) may not move or attack into a cell protected by an opposing Home Tree.
+
+Protection only restricts entry by the opposing units listed above; it does not prevent higher- or lower-ranked enemy units from entering protected cells, and it does not restrict the protecting unit's own movement or attacks. Protection does not change site ownership and does not prevent the protected cells from being captured by a unit that is allowed to enter them.
+
 Capturing Sites
 
 Move onto an unoccupied site to capture it.
