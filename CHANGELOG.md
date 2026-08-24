@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a missing test for the `nonRecruitActions` recruit-exclusion filter in
+  `src/ui/components/CellInfoPanel.tsx` (M17-T2 follow-up, #119). The new test
+  renders the panel with a full `legalActions` set (which includes recruit,
+  move and attack actions) and asserts that no recruit-labelled button appears
+  in the relocated "Your actions" list — the recruit buttons are only offered
+  per selected hex in the "Recruit here" section and must not be duplicated.
+  Pure test-only change; no `src/core` or component logic was touched.
+
 - Wire the 8 pixel-art game icons into the Atom components (M16-T2, #111).
   Updated the `Unit` atom to render each ape kind's matching pixel-art icon
   (Monkey/Gibbon/Chimpanzee/Gorilla) via the `gameIcons` barrel
