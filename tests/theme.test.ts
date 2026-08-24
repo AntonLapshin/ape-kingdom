@@ -70,6 +70,14 @@ describe("src/theme.css — two-layer token model", () => {
     }
   });
 
+  it("defines the blue selection-highlight tokens (M13-T3/#90)", () => {
+    // The selected-hex ring must use a dedicated blue selection token family
+    // instead of the amber brand token, so the selected cell reads clearly.
+    for (const token of ["--color-selection", "--color-selection-soft"]) {
+      expect(THEME, `missing selection token ${token}`).toContain(`${token}:`);
+    }
+  });
+
   it("re-exposes every token to Tailwind via @theme inline", () => {
     expect(THEME).toContain("@theme inline");
     for (const token of [...LAYER1_TOKENS, ...LAYER2_TOKENS]) {
@@ -106,5 +114,30 @@ describe("src/styles/index.css — reusable surfaces & keyframes", () => {
     expect(STYLES).toMatch(/var\(--color-/);
     expect(STYLES).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(STYLES).not.toMatch(/rgba?\(/);
+  });
+});
+
+describe("src/styles/index.css — selected-hex blue border (M13-T3/#90)", () => {
+  it("uses the blue selection tokens (not amber) for the selected hex border", () => {
+    // The .hex-selected rule must draw its border from the blue selection
+    // token family, and must no longer reference the amber brand token that
+    // was previously used.
+    const selected = STYLES.match(/\.hex-cell\.hex-selected\s*\{([^}]*)\}/)?.[1];
+    expect(selected).toBeTruthy();
+    expect(selected).toContain("var(--color-selection)");
+    expect(selected).toContain("var(--color-selection-soft)");
+    expect(selected).not.toMatch(/brand-amber/);
+  });
+
+  it("uses the blue selection tokens in the combined current+selected case", () => {
+    // The hex-current.hex-selected combination is updated to match: blue
+    // selection ring (plus the accent current-territory outer ring).
+    const combined = STYLES.match(
+      /\.hex-cell\.hex-current\.hex-selected\s*\{([^}]*)\}/,
+    )?.[1];
+    expect(combined).toBeTruthy();
+    expect(combined).toContain("var(--color-selection)");
+    expect(combined).toContain("var(--color-selection-soft)");
+    expect(combined).not.toMatch(/brand-amber/);
   });
 });

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Change the selected-hex highlight from the amber brand ring to a blue
+  selection border so the selected cell reads clearly apart from the brand
+  (M13-T3, #90). The `.hex-cell.hex-selected` and the combined
+  `.hex-cell.hex-current.hex-selected` rules in `src/styles/index.css` now
+  draw their ring from a new semantic blue `--color-selection` /
+  `--color-selection-soft` token family (added to `src/theme.css` and
+  re-exposed via `@theme inline`) instead of the amber brand tokens — no raw
+  hex colours introduced (all token-backed per GUIDELINES-WEB-THEME.md). The
+  current-territory accent glow is unchanged (`hex-current` uses
+  `--color-accent`). Pure CSS/token change: no core business logic altered
+  (core stays pure and 100% covered) and the `data-selected` attribute is
+  untouched, so all existing selection tests still pass. Added structural
+  tests in `tests/theme.test.ts` asserting the selection tokens exist, are
+  re-exposed, and that both selected-hex rules use the blue selection tokens
+  (and no longer reference amber).
+
 - Color each land cell by its owner (M13-T2, #89). A rendered board cell whose
   site or unit is owned by p1 or p2 now shows a distinct soft owner territory
   tint in addition to the existing owner-coloured unit badge and the
