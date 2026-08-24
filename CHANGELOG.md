@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Refine the design-token color palette and visual details for a more
+  cohesive, beautiful look (M14-T3, #97). In `src/theme.css` the brand
+  amber→rose→violet family is rebalanced into one warm "kingdom sunset" ramp
+  (amber `#eda25c`, rose `#da838a`, rose-deep `#b25868`, violet-deep
+  `#6d4da8`), the warm parchment semantics are harmonized (canvas `#fcd3a8`,
+  warmer text-muted/faint mud neutrals), and the stage dark gradient stops
+  track the refined brand ramp. Two new tokens drive the visual-detail polish
+  — `--color-shadow-hover` (a deeper hover-elevation shadow) and `--color-ring`
+  (a warm brand focus ring) — both re-exposed to Tailwind via `@theme inline`.
+  In `src/styles/index.css` the action buttons now lift on hover with the
+  `--color-shadow-hover` token plus an accent border, gain a `focus-visible`
+  ring using `--color-ring`, and the primary `glass-panel` content sheet gets
+  a layered (contact + ambient) token-driven shadow for a flatter, more
+  polished float; keyboard-focussed hex cells share the same warm focus ring.
+  This is a pure token/CSS change: no `src/core` business logic was touched
+  (core stays 100% covered), no raw hex was added to components, and the
+  semantic token roles stay intact. Extended the structural tests in
+  `tests/theme.test.ts` to assert the refined palette values, the presence and
+  `@theme inline` re-exposure of the new `--color-shadow-hover`/`--color-ring`
+  tokens, the token-driven hover/focus button states, the layered glass-panel
+  shadow, and that no raw hex leaks into components.
+
 - Apply a translucent frosted-glass (glassmorphism) surface to the floating
   HUD panels so the glass-design polish (#94) reads over the map (M14-T1,
   #96). The status, cell-info and action panels in `src/ui/components/`
