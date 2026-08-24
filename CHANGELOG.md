@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Verify & regression-test game-mechanics rules 1-2 of #102 in the core
+  (#104). Confirmed that `src/core` already implements and fully covers both
+  rules: (1) moving a unit onto an unoccupied Grove/Nest/Home Tree captures
+  that cell for the mover (`moveUnit` flips the site owner, verified for all
+  three site kinds), and (2) combat resolves strictly by rank comparison
+  (`attackUnit` — higher-rank attacker wins and captures, equal ranks destroy
+  both with no site ownership change, lower-rank attacker is destroyed and the
+  defender remains). Added explicit regression tests: a rule-1 capture test
+  across Grove/Nest/HomeTree and a rule-2 test that walks the complete rank
+  comparison table across all 16 attacker/defender kind pairs, plus behavior
+  checks for the nil/defender-action outcomes. This is a test-only change:
+  no `src/core` business logic was touched (core stays 100% covered).
+
 - Enhance the gradients and animation polish of the game background (M14-T2,
   #98). In `src/theme.css` a new token-backed set of subtle game-backdrop
   gradient stops is added — `--color-game-bg-top`, `--color-game-bg-mid`,

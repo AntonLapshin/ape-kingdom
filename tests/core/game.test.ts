@@ -555,6 +555,19 @@ describe("moveUnit", () => {
     expect(() => moveUnit(state, mover, { q: 2, r: 0 })).toThrowError(MoveError);
   });
 
+  // Rule 1 of #102: moving a unit onto an unoccupied Grove/Nest/Home Tree
+  // makes that cell part of the unit's kingdom. The site's owner flips to the
+  // mover, verified across all three site kinds.
+  it("rule 1: moving onto an unoccupied site captures it for the mover's kingdom", () => {
+    for (const kind of ["Grove", "Nest", "HomeTree"] as const) {
+      const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+      const state = moveState({ unit: mover, sites: [createSite(kind, 2, 0, "p2")] });
+      const next = moveUnit(state, mover, { q: 2, r: 0 });
+      const captured = next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }));
+      expect(captured?.owner).toBe("p1");
+    }
+  });
+
   it("rejects when the unit has already acted this turn", () => {
     const acted = createUnit("Monkey", "p1", { q: 1, r: 0 }, true);
     const state = moveState({ unit: acted });
@@ -737,6 +750,82 @@ describe("attackUnit", () => {
     });
     const next = attackUnit(state, attacker, { q: 2, r: 0 });
     expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p2");
+  });
+
+  // Rule 2 of #102: a unit cannot beat an enemy unit of the same rank or
+  // higher. Equal ranks destroy both; a lower-rank attacker is destroyed and
+  // the defender remains. Regression-tests the full rank comparison table.
+  it("rule 2: equal-rank combat destroys both units", () => {
+    const attacker = createUnit("Chimpanzee", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Chimpanzee", "p2", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    // Equal ranks: both units are destroyed, so neither side gains the hex.
+    expect(next.units).toHaveLength(0);
+    expect(next.units.find((u) => sameHex(u.hex, { q: 2, r: 0 }))).toBeUndefined();
+  });
+
+  it("rule 2: equal-rank combat never lets the attacker capture the defender's hex", () => {
+    const attacker = createUnit("Gibbon", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Gibbon", "p2", { q: 2, r: 0 });
+    const state = attackState({
+      attacker,
+      defender,
+      sites: [createSite("Nest", 2, 0, "p2")],
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    // Both destroyed, so the Nest stays with the defender's owner.
+    expect(next.units).toHaveLength(0);
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p2");
+  });
+
+  it("rule 2: a lower-rank attacker never defeats an equal-or-higher-rank defender", () => {
+    // Monkey (1) vs Gibbon (2): attacker lower, so it is destroyed.
+    const attacker = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const defender = createUnit("Gibbon", "p2", { q: 2, r: 0 });
+    const state = attackState({ attacker, defender });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    expect(next.units).toHaveLength(1);
+    expect(next.units[0].owner).toBe("p2");
+    expect(next.units[0].hex).toEqual({ q: 2, r: 0 });
+  });
+
+  it("rule 2: covers every rank pair of the combat table", () => {
+    const kinds = ["Monkey", "Gibbon", "Chimpanzee", "Gorilla"] as const;
+    const ranks: Record<(typeof kinds)[number], number> = {
+      Monkey: 1,
+      Gibbon: 2,
+      Chimpanzee: 3,
+      Gorilla: 4,
+    };
+    for (const atkKind of kinds) {
+      for (const defKind of kinds) {
+        const attacker = createUnit(atkKind, "p1", { q: 1, r: 0 }, false);
+        const defender = createUnit(defKind, "p2", { q: 2, r: 0 });
+        const state = attackState({ attacker, defender });
+        const next = attackUnit(state, attacker, { q: 2, r: 0 });
+        const defenderSurvives = next.units.some(
+          (u) => u.owner === "p2" && sameHex(u.hex, { q: 2, r: 0 }),
+        );
+        const attackerGainedHex = next.units.some(
+          (u) => u.owner === "p1" && sameHex(u.hex, { q: 2, r: 0 }),
+        );
+        if (ranks[atkKind] > ranks[defKind]) {
+          // Higher attacker wins and moves in.
+          expect(attackerGainedHex).toBe(true);
+          expect(defenderSurvives).toBe(false);
+        } else if (ranks[atkKind] === ranks[defKind]) {
+          // Equal ranks: both destroyed.
+          expect(attackerGainedHex).toBe(false);
+          expect(defenderSurvives).toBe(false);
+          expect(next.units).toHaveLength(0);
+        } else {
+          // Lower attacker is destroyed; defender remains.
+          expect(attackerGainedHex).toBe(false);
+          expect(defenderSurvives).toBe(true);
+        }
+      }
+    }
   });
 
   it("keeps other units and sites untouched", () => {
