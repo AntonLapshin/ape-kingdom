@@ -657,6 +657,108 @@ describe("moveUnit", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* Territory ownership persistence & loss (issue #124, #122-mechanics)  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Regression coverage for the territory ownership rules (issue #122).
+ *
+ * A site captured by a unit belongs to that unit's kingdom, and stays owned
+ * by that kingdom when the unit moves off (ownership is stored on the site,
+ * independent of unit position). The only way a kingdom loses a cell is when
+ * an enemy unit occupies it — by moving onto it or by defeating a unit on it.
+ * These tests codify that persistence in `src/core` (pure, 100% covered).
+ */
+describe("territory ownership persistence & loss", () => {
+  it("retains ownership when the owning unit moves off the site", () => {
+    // p1 already controls a Nest at (1,0) and has a Monkey standing on it
+    // that has not yet acted this turn.
+    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const state = gameState({
+      sites: [createSite("Nest", 1, 0, "p1")],
+      units: [mover],
+      currentPlayer: "p1",
+    });
+    // The unit walks off to an adjacent empty hex (2,0).
+    const next = moveUnit(state, mover, { q: 2, r: 0 });
+    // The site the unit left behind is still owned by p1's kingdom.
+    expect(next.units[0].hex).toEqual({ q: 2, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 1, r: 0 }))?.owner).toBe("p1");
+  });
+
+  it("keeps ownership after capture even when the mover vacates", () => {
+    // p1 owns a Grove (capture itself is covered by the moveUnit tests above);
+    // a p1 unit standing on it walks off, and the site persists as p1's.
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 0 }, false);
+    const state = gameState({
+      sites: [createSite("Grove", 2, 0, "p1")],
+      units: [mover],
+      currentPlayer: "p1",
+    });
+    const next = moveUnit(state, mover, { q: 3, r: 0 });
+    expect(next.units[0].hex).toEqual({ q: 3, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p1");
+  });
+
+  it("a captured site yields income even after the capturing unit moves away", () => {
+    // p1 controls a Nest (worth 2 bananas); its unit marches on, but the
+    // Nest keeps producing p1 income because ownership persisted.
+    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const state = gameState({
+      sites: [createSite("Nest", 1, 0, "p1")],
+      units: [mover],
+      currentPlayer: "p1",
+    });
+    const next = moveUnit(state, mover, { q: 2, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 1, r: 0 }))?.owner).toBe("p1");
+    expect(incomeFor("p1", next.sites)).toBe(2);
+    expect(collectIncome(next).players.p1.bananas).toBe(2);
+  });
+
+  it("keeps ownership when the owning unit dies far away from the site", () => {
+    // p2 controls a Home Tree at (1,0); its lone unit is far away and dies in
+    // an equal-rank clash elsewhere. The Home Tree stays p2's.
+    const attacker = createUnit("Monkey", "p1", { q: 5, r: 5 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 4, r: 5 });
+    const state = gameState({
+      sites: [createSite("HomeTree", 1, 0, "p2")],
+      units: [attacker, defender],
+      currentPlayer: "p1",
+    });
+    const next = attackUnit(state, attacker, { q: 4, r: 5 }); // both die
+    expect(next.units).toHaveLength(0);
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 1, r: 0 }))?.owner).toBe("p2");
+  });
+
+  it("only loses a cell when an enemy unit occupies the site", () => {
+    // p2 captures p1's Grove by defeating the p1 unit standing on it.
+    const attacker = createUnit("Gorilla", "p2", { q: 1, r: 0 }, false);
+    const defender = createUnit("Monkey", "p1", { q: 2, r: 0 });
+    const state = gameState({
+      sites: [createSite("Grove", 2, 0, "p1")],
+      units: [attacker, defender],
+      currentPlayer: "p2",
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    // p2's attacker moves in and the site owner flips to p2.
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p2");
+  });
+
+  it("does not change ownership when an enemy unit merely moves onto an empty adjacent hex", () => {
+    // p1 owns an unoccupied Nest; an enemy Monkey moves to the hex next to it.
+    const enemy = createUnit("Monkey", "p2", { q: 1, r: 0 }, false);
+    const state = gameState({
+      sites: [createSite("Nest", 3, 0, "p1")],
+      units: [enemy],
+      currentPlayer: "p2",
+    });
+    // p2 moves onto the empty hex (2,0) adjacent to the Nest, not on it.
+    const next = moveUnit(state, enemy, { q: 2, r: 0 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 3, r: 0 }))?.owner).toBe("p1");
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* Combat (Turn Sequence step C — attack part)                         */
 /* ------------------------------------------------------------------ */
 

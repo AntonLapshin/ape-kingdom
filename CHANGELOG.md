@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selectable); no `src/core` business logic was touched (core stays 100%
   covered).
 
+### Added
+
+- Confirm & regression-test the territory ownership rules (M18-T2, #124).
+  Codifies — with new `src/core/game.test.ts` coverage in a dedicated
+  "territory ownership persistence & loss" block — the three rules from issue
+  #122: (1) when a unit takes a cell/site that cell belongs to its kingdom;
+  (2) when the unit moves off the cell, ownership persists (a site stays owned
+  by the kingdom that captured it, independent of the unit's position); and
+  (3) the only way to lose a cell is for an enemy unit to occupy it — either
+  by moving onto it or by defeating a unit on it (attack flips the owner,
+  while equal/losing combat or merely adjacent movement does not). Tests cover
+  capture-then-vacate persistence, continued income from a vacated site, and
+  ownership retention when the owning unit dies elsewhere. Pure test-only
+  change; no `src/core` business logic was touched (core stays 100% covered).
+
 ### Changed
 
 - Overhaul the cell & terrain visuals (M17-T3, #116). Board hexagons are now
