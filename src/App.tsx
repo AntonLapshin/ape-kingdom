@@ -91,7 +91,10 @@ export default function App() {
           </div>
         </main>
       ) : (
-        <main className="login-bg flex h-screen w-screen items-center justify-center overflow-hidden">
+        <main
+          className="game-bg flex h-screen w-screen items-center justify-center overflow-hidden"
+          data-testid="game-backdrop"
+        >
           <PlayableGame />
         </main>
       )}

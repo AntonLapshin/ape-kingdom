@@ -137,6 +137,65 @@
     var(--color-canvas);
 }
 
+/* -------------------------------------------------------------------------
+ * Game-view backdrop (M14-T2, #98)
+ * ------------------------------------------------------------------------- */
+
+/* The game-view background — a tasteful, subtle vertical gradient wash built
+   from the token-backed `--color-game-bg-*` gradient stops in `theme.css`.
+   The three stops ramp softly from warm parchment (top) to a slightly
+   deeper rose-tinted warm (bottom) so the backdrop reads as a gentle sunset
+   that stays calm behind the board. A very faint radial veil near the top
+   keeps the centre bright so the hex map stays the focal point; it never
+   distracts from the board. A soft crossfade transition is included so any
+   re-skin / theme swap animates smoothly instead of snapping. */
+.game-bg {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      var(--color-game-bg-top),
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-game-bg-top) 0%,
+      var(--color-game-bg-mid) 45%,
+      var(--color-game-bg-bottom) 100%
+    );
+  transition: background-color 0.4s ease;
+}
+
+/* Floating overlay panels slide + fade in on mount (entry) and can be
+   animated out with `.menu-out` (exit). Both are token-free transforms but
+   pair with the token-backed `glass` surface so transitions feel cohesive. */
+@keyframes menu-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.menu-in {
+  animation: menu-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes menu-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+.menu-out {
+  animation: menu-out 0.15s ease-in both;
+}
+
 /* A decorative floating orb (use inside `.login-bg`). */
 .orb {
   position: absolute;
@@ -346,13 +405,16 @@
   .orb,
   .btn-shine::after,
   .menu-pop,
+  .menu-in,
+  .menu-out,
   .turn-fade,
   .hex-pop,
   .result-celebrate {
     animation: none;
   }
   .hex-cell,
-  .btn-action {
+  .btn-action,
+  .game-bg {
     transition: none;
   }
 }
