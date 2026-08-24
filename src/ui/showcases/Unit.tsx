@@ -7,6 +7,9 @@ import { Unit } from "../components/Unit";
  * state. There is no component implementation or business logic here — only
  * imports plus the scene-setting render functions. The `name` constant is the
  * display name shown in the Showcase sidebar.
+ *
+ * Since M16-T2 (#111) each `Unit` renders its pixel-art ape icon instead of a
+ * text badge, so the demos below show the four kinds with their image assets.
  */
 export const name = "Unit";
 

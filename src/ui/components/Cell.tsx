@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { PlayerId } from "../../core/game";
 import type { Terrain } from "../../core/mapGenerator";
+import { gameIcons } from "../../assets/icons";
 import { HEX_SIZE, HEX_CLIP } from "../presentation";
 
 export interface CellProps {
@@ -52,6 +53,17 @@ const TERRAIN_BG: Record<Terrain, string> = {
   land: "bg-terrain-land",
   water: "bg-terrain-water",
   mountain: "bg-terrain-mountain",
+};
+
+/**
+ * Whether a terrain kind is an impassable mountain, which should render the
+ * pixel-art Mountain icon (M16-T2, #111). Not business logic — a read-only
+ * terrain → boolean presentation map.
+ */
+const IS_MOUNTAIN: Record<Terrain, boolean> = {
+  land: false,
+  water: false,
+  mountain: true,
 };
 
 /**
@@ -119,6 +131,15 @@ export function Cell({
         animationDelay: `${animationDelay}ms`,
       }}
     >
+      {IS_MOUNTAIN[terrain] && (
+        <img
+          src={gameIcons.mountain}
+          alt="Mountain terrain"
+          data-testid="terrain-mountain"
+          data-terrain={terrain}
+          className="h-8 w-8 object-contain"
+        />
+      )}
       {children}
     </div>
   );

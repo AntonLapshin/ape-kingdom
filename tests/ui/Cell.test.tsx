@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Cell } from "../../src/ui/components/Cell";
+import { gameIcons } from "../../src/assets/icons";
 import { HEX_SIZE } from "../../src/ui/presentation";
 
 /* ------------------------------------------------------------------ */
@@ -133,6 +134,37 @@ describe("Cell", () => {
   it("is not clickable (no role button) when no onSelect is provided", () => {
     render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
     expect(screen.getByTestId("board-cell")).not.toHaveAttribute("role", "button");
+  });
+
+  it("renders the pixel-art Mountain icon on a mountain terrain cell (M16-T2/#111)", () => {
+    render(<Cell q={0} r={0} owner={null} terrain="mountain" x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    // The token background is kept for a mountain cell.
+    expect(cell.className).toContain("bg-terrain-mountain");
+    const icon = screen.getByTestId("terrain-mountain");
+    expect(icon.tagName).toBe("IMG");
+    expect(icon.getAttribute("src")).toBe(gameIcons.mountain);
+    expect(icon.getAttribute("alt")).toBe("Mountain terrain");
+    expect(icon.dataset.terrain).toBe("mountain");
+  });
+
+  it("does not render the Mountain icon on land or water terrain", () => {
+    const { rerender } = render(
+      <Cell q={0} r={0} owner={null} terrain="land" x={0} y={0} />,
+    );
+    expect(screen.queryByTestId("terrain-mountain")).toBeNull();
+    rerender(<Cell q={0} r={0} owner={null} terrain="water" x={0} y={0} />);
+    expect(screen.queryByTestId("terrain-mountain")).toBeNull();
+  });
+
+  it("renders the Mountain icon alongside cell content when both present", () => {
+    render(
+      <Cell q={0} r={0} owner={null} terrain="mountain" x={0} y={0}>
+        <span data-testid="content">Grove</span>
+      </Cell>,
+    );
+    expect(screen.getByTestId("terrain-mountain")).toBeTruthy();
+    expect(screen.getByTestId("content")).toHaveTextContent("Grove");
   });
 
   it("renders its children content", () => {

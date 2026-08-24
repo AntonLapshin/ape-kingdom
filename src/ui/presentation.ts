@@ -1,6 +1,7 @@
 import type { GameAction } from "../core/ai";
 import type { TurnStep } from "../core/gameSession";
-import type { PlayerId } from "../core/game";
+import type { ApeKind, PlayerId, SiteKind } from "../core/game";
+import type { GameIconName } from "../assets/icons";
 
 /**
  * Pure presentation helpers shared by the thin UI components.
@@ -30,6 +31,50 @@ export const SITE_LABELS: Record<string, string> = {
   Nest: "Nest",
   HomeTree: "Home Tree",
 };
+
+/**
+ * The pixel-art icon name for each ape kind (M16-T2, #111).
+ *
+ * Each of the four ape kinds has a dedicated icon in the 8-asset set, so this
+ * is a total map. This is not business logic — it is a read-only kind →
+ * icon-name presentation map that lets the dumb `Unit` component resolve the
+ * asset URL via the `gameIcons` barrel without holding any mapping logic.
+ */
+export const APE_KIND_ICONS: Record<ApeKind, GameIconName> = {
+  Monkey: "monkey",
+  Gibbon: "gibbon",
+  Chimpanzee: "chimpanzee",
+  Gorilla: "gorilla",
+};
+
+/**
+ * The pixel-art icon name for the site kinds that have a dedicated asset
+ * (M16-T2, #111). The Home Tree and Monkey Nest have icons in the 8-asset
+ * set; Grove does not (the asset set's remaining site icons are Mountain and
+ * Grave, which are a terrain cell background and a removed-unit marker that
+ * has no entity in `src/core`, rather than a Grove site). So this is a
+ * partial map and `siteKindIcon` returns `null` for Grove, letting the dumb
+ * `Content` component fall back to its text label. Not business logic — a
+ * read-only kind → icon-name presentation map.
+ */
+export const SITE_KIND_ICONS: Partial<Record<SiteKind, GameIconName>> = {
+  HomeTree: "homeTree",
+  Nest: "monkeyNest",
+};
+
+/** Resolve the pixel-art icon name for an ape kind (M16-T2, #111). */
+export function apeKindIcon(kind: ApeKind): GameIconName {
+  return APE_KIND_ICONS[kind];
+}
+
+/**
+ * Resolve the pixel-art icon name for a site kind, or `null` when the kind
+ * has no dedicated asset (Grove) so the component can fall back to text
+ * (M16-T2, #111).
+ */
+export function siteKindIcon(kind: SiteKind): GameIconName | null {
+  return SITE_KIND_ICONS[kind] ?? null;
+}
 
 /**
  * Build a short human-readable label for a `GameAction` so the action
