@@ -1,5 +1,5 @@
 import type { ShowcaseRegistry } from "../../core/showcase";
-import * as ActionControlsShowcase from "./ActionControls";
+import * as EndTurnButtonShowcase from "./EndTurnButton";
 import * as BoardShowcase from "./Board";
 import * as StatusPanelShowcase from "./StatusPanel";
 import * as DemoPanelShowcase from "./DemoPanel";
@@ -24,13 +24,10 @@ import * as PlayableGameShowcase from "./PlayableGame";
 export function showcaseRegistry(): ShowcaseRegistry {
   return [
     {
-      name: ActionControlsShowcase.name,
+      name: EndTurnButtonShowcase.name,
       showcases: {
-        Opening: ActionControlsShowcase.Opening,
-        Recruit: ActionControlsShowcase.Recruit,
-        MoveFight: ActionControlsShowcase.MoveFight,
-        NoActions: ActionControlsShowcase.NoActions,
-        GameOver: ActionControlsShowcase.GameOver,
+        Active: EndTurnButtonShowcase.Active,
+        Disabled: EndTurnButtonShowcase.Disabled,
       },
     },
     {

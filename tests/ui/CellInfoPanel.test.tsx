@@ -30,7 +30,14 @@ function recruitSession() {
 
 describe("CellInfoPanel empty", () => {
   it("shows a click-to-inspect prompt when no hex is selected", () => {
-    render(<CellInfoPanel info={null} onSelectAction={vi.fn()} />);
+    render(
+      <CellInfoPanel
+        info={null}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
     expect(screen.getByTestId("cell-info")).toBeInTheDocument();
     expect(screen.getByText(/click a hex to inspect/i)).toBeInTheDocument();
     // No site/unit/action rows when nothing is selected.
@@ -48,7 +55,14 @@ describe("CellInfoPanel read-only", () => {
   it("renders terrain and hex coordinates for a selected cell", () => {
     const state = standardSetup();
     const info = cellInfo(state, p1Home(state));
-    render(<CellInfoPanel info={info} onSelectAction={vi.fn()} />);
+    render(
+      <CellInfoPanel
+        info={info}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
     expect(screen.getByText(/Hex \(.*\)/)).toBeInTheDocument();
     expect(screen.getByText("land")).toBeInTheDocument();
   });
@@ -56,7 +70,14 @@ describe("CellInfoPanel read-only", () => {
   it("renders site info (label, neutral marker, income) for a sited hex", () => {
     const state = standardSetup();
     const home = p1Home(state);
-    render(<CellInfoPanel info={cellInfo(state, home)} onSelectAction={vi.fn()} />);
+    render(
+      <CellInfoPanel
+        info={cellInfo(state, home)}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
     const row = screen.getByTestId("cell-info-site");
     expect(row).toBeInTheDocument();
     expect(screen.getByText("Home Tree")).toBeInTheDocument();
@@ -69,7 +90,12 @@ describe("CellInfoPanel read-only", () => {
     const state = standardSetup();
     const grove = state.sites.find((s) => s.kind === "Grove")!;
     render(
-      <CellInfoPanel info={cellInfo(state, grove.hex)} onSelectAction={vi.fn()} />,
+      <CellInfoPanel
+        info={cellInfo(state, grove.hex)}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
     );
     expect(screen.getByText("neutral")).toBeInTheDocument();
   });
@@ -77,7 +103,14 @@ describe("CellInfoPanel read-only", () => {
   it("renders unit info (kind, rank, cost) for an occupied hex", () => {
     const state = standardSetup();
     const home = p1Home(state);
-    render(<CellInfoPanel info={cellInfo(state, home)} onSelectAction={vi.fn()} />);
+    render(
+      <CellInfoPanel
+        info={cellInfo(state, home)}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
     const row = screen.getByTestId("cell-info-unit");
     expect(row).toBeInTheDocument();
     expect(screen.getByText("Monkey (rank 1)")).toBeInTheDocument();
@@ -88,7 +121,12 @@ describe("CellInfoPanel read-only", () => {
     // An occupied Home Tree is read-only (no recruit offered on an occupied hex).
     const state = standardSetup();
     render(
-      <CellInfoPanel info={cellInfo(state, p1Home(state))} onSelectAction={vi.fn()} />,
+      <CellInfoPanel
+        info={cellInfo(state, p1Home(state))}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
     );
     expect(screen.queryByTestId("cell-action-button")).toBeNull();
     expect(screen.queryByText(/Recruit here/i)).toBeNull();
@@ -109,7 +147,9 @@ describe("CellInfoPanel actionable", () => {
     render(
       <CellInfoPanel
         info={cellInfo(session.state, recruit.hex)}
+        legalActions={session.legalMoves}
         onSelectAction={vi.fn()}
+        onClear={vi.fn()}
       />,
     );
     // At least one recruit item labelled with its kind and banana cost.
@@ -127,7 +167,9 @@ describe("CellInfoPanel actionable", () => {
     render(
       <CellInfoPanel
         info={cellInfo(session.state, recruit.hex)}
+        legalActions={session.legalMoves}
         onSelectAction={onSelectAction}
+        onClear={vi.fn()}
       />,
     );
     // Click the first item; it should dispatch the matching recruit action.
@@ -137,5 +179,66 @@ describe("CellInfoPanel actionable", () => {
     const action = onSelectAction.mock.calls[0][0] as { type: string; kind: string; hex: Hex };
     expect(action.type).toBe("recruit");
     expect(sameHex(action.hex, recruit.hex)).toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Moved action list (M17-T2 / #115)                                   */
+/* ------------------------------------------------------------------ */
+
+describe("CellInfoPanel moved action list (M17-T2 / #115)", () => {
+  it("lists the non-recruit legal actions (move/attack) as buttons", () => {
+    const session = recruitSession();
+    const move = session.legalMoves.find((a) => a.type === "move");
+    if (!move) throw new Error("expected a legal move action");
+    render(
+      <CellInfoPanel
+        info={null}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    // A move/attack button is listed under "Your actions" (recruits excluded).
+    expect(screen.getByText(/Your actions/i)).toBeInTheDocument();
+    const actions = screen.getAllByTestId("action-button");
+    expect(actions.length).toBeGreaterThan(0);
+    const label = actions.map((b) => b.textContent).join(" ");
+    expect(label).toMatch(/move/i);
+  });
+
+  it("wires a moved action button to the selectAction flow", () => {
+    const session = recruitSession();
+    const move = session.legalMoves.find((a) => a.type === "move");
+    if (!move) throw new Error("expected a legal move action");
+    const onSelectAction = vi.fn();
+    render(
+      <CellInfoPanel
+        info={null}
+        legalActions={session.legalMoves}
+        onSelectAction={onSelectAction}
+        onClear={vi.fn()}
+      />,
+    );
+    const moveButton = screen
+      .getAllByTestId("action-button")
+      .find((b) => /move/i.test(b.textContent!))!;
+    fireEvent.click(moveButton);
+    expect(onSelectAction).toHaveBeenCalledWith(move);
+  });
+
+  it("wires the Clear button to the onClear flow", () => {
+    const session = recruitSession();
+    const onClear = vi.fn();
+    render(
+      <CellInfoPanel
+        info={null}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={onClear}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("clear-actions"));
+    expect(onClear).toHaveBeenCalledTimes(1);
   });
 });

@@ -168,10 +168,12 @@ describe("src/styles/index.css — frosted-glass HUD surface (M14-T1/#96)", () =
   });
 
   it("floats the HUD panels on the token-backed translucent glass surface", () => {
-    // The floating HUD panels (status, cell-info, actions) in PlayableGame
-    // must carry the token-backed `glass` frosted surface — the acceptance
-    // criterion that the panels use a tokenized frosted-glass surface with no
-    // raw hex in the component.
+    // The floating HUD panels (status, cell-info) in PlayableGame must carry
+    // the token-backed `glass` frosted surface — the acceptance criterion that
+    // the panels use a tokenized frosted-glass surface with no raw hex in the
+    // component. The bottom-right corner is now the standalone circular End
+    // Turn button (M17-T2), not a glass panel card (issue 113-2), so only the
+    // two card-based panels remain.
     const GAME = readFileSync(
       resolve(ROOT, "src/ui/components/PlayableGame.tsx"),
       "utf8",
@@ -180,13 +182,14 @@ describe("src/styles/index.css — frosted-glass HUD surface (M14-T1/#96)", () =
       /className="glass menu-pop pointer-events-auto rounded-2xl p-4"/g,
       /className="glass menu-pop pointer-events-auto w-72 rounded-2xl p-4"/g,
     ];
-    // Three floating HUD panels (status, cell-info, actions) use the glass
-    // surface: count the two distinct glass card class strings.
+    // Two floating HUD panels (status, cell-info) use the glass surface: count
+    // the two distinct glass card class strings. The bottom-right corner hosts
+    // the circular End Turn button (a native button) instead of a third card.
     let glassCards = 0;
     for (const re of overlayCards) {
       glassCards += (GAME.match(re) || []).length;
     }
-    expect(glassCards).toBe(3);
+    expect(glassCards).toBe(2);
     expect(GAME).not.toMatch(/className="glass-panel/);
   });
 });

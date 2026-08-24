@@ -30,7 +30,11 @@ const STATUS = readFileSync(
   "utf8",
 );
 const ACTION = readFileSync(
-  resolve(ROOT, "src/ui/components/ActionControls.tsx"),
+  resolve(ROOT, "src/ui/components/CellInfoPanel.tsx"),
+  "utf8",
+);
+const END_TURN = readFileSync(
+  resolve(ROOT, "src/ui/components/EndTurnButton.tsx"),
   "utf8",
 );
 
@@ -117,8 +121,13 @@ describe("thin components reference the polish classes (issue #33)", () => {
     expect(STATUS).toContain("result-celebrate");
   });
 
-  it("ActionControls uses the btn-action pressed/disabled class", () => {
+  it("CellInfoPanel (relocated action list) uses the btn-action pressed/disabled class", () => {
     expect(ACTION).toContain("btn-action");
+  });
+
+  it("EndTurnButton uses the circular end-turn-btn class (M17-T2 / #115)", () => {
+    expect(END_TURN).toContain("end-turn-btn");
+    expect(END_TURN).toContain("rounded-full");
   });
 
   it("components stay thin — no game rules leak into the UI", () => {

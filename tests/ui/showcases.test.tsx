@@ -25,12 +25,12 @@ describe("showcase registry", () => {
     // HUD demo (M11-T3 / #76). The Showcase browser itself is the page that
     // hosts the gallery and is intentionally not showcased.
     expect(names).toEqual([
-      "ActionControls",
       "Board",
       "Cell",
       "CellInfoPanel",
       "Content",
       "DemoPanel",
+      "EndTurnButton",
       "PlayableGame",
       "StatusPanel",
       "Unit",

@@ -391,6 +391,50 @@
   box-shadow: none;
 }
 
+/* The circular End Turn button (M17-T2) — the sole occupant of the bottom-
+   right corner. A token-backed glass disc with a warm accent fill, a soft
+   drop shadow and a gentle hover lift so it reads as the primary HUD action
+   (issue 113-2). It references only design tokens (`--color-accent`,
+   `--color-accent-strong`, shadow tokens, `--color-inverted`) — no raw hex. */
+.end-turn-btn {
+  background: linear-gradient(
+    180deg,
+    var(--color-accent),
+    var(--color-accent-strong)
+  );
+  box-shadow:
+    0 6px 18px var(--color-shadow-accent),
+    inset 0 1px 0 var(--color-glass-inner);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+.end-turn-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 10px 26px var(--color-shadow-accent),
+    inset 0 1px 0 var(--color-glass-inner);
+}
+.end-turn-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow:
+    0 4px 12px var(--color-shadow-accent),
+    inset 0 1px 0 var(--color-glass-inner);
+}
+.end-turn-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--color-glass-strong),
+    0 0 0 4px var(--color-ring),
+    0 10px 26px var(--color-shadow-accent);
+}
+.end-turn-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* Custom scrollbar tinted with the brand line colour. */
 * {
   scrollbar-width: thin;

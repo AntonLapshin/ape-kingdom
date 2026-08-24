@@ -61,8 +61,29 @@ describe("StatusPanel", () => {
     );
     const scores = screen.getAllByTestId("player-score");
     expect(scores).toHaveLength(players.length);
-    // Both players start with the same banana count, so there are two matches.
-    expect(screen.getAllByText(`🍌 ${players[0].bananas}`)).toHaveLength(2);
+    // The human's banana balance is shown (both players start with the same
+    // count, so the human's renders once even though the AI's is hidden).
+    expect(screen.getAllByText(`🍌 ${players[0].bananas}`)).toHaveLength(1);
+  });
+
+  it("hides the AI's banana count but keeps the human's (M17-T2 / #115)", () => {
+    const mixed = [
+      { id: "p1", bananas: 9, eliminated: false },
+      { id: "p2", bananas: 42, eliminated: false },
+    ];
+    render(
+      <StatusPanel
+        players={mixed}
+        currentPlayer="p1"
+        step="recruit"
+        winner={null}
+        isDone={false}
+      />,
+    );
+    // The human's banana balance is displayed.
+    expect(screen.getByText("🍌 9")).toBeInTheDocument();
+    // The AI's banana count is never revealed (issue #113-3).
+    expect(screen.queryByText("🍌 42")).toBeNull();
   });
 
   it("marks an eliminated player", () => {
