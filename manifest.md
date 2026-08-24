@@ -2,12 +2,13 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M16 done; M17 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M17 done; M18 planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
 (issue #88) are planned under milestone M13, the follow-on design-polish
 request (issue #94) under milestone M14, the game-mechanics rules (issue #102)
 under milestone M15, the game image assets (issue #103) under milestone M16,
-and the new post-ship UI adjustments (issue #113) under milestone M17.
+the new post-ship UI adjustments (issue #113) under milestone M17, and the new
+UI adjustments & fixes (issue #122) under milestone M18.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -392,7 +393,23 @@ the hexagon), dark map canvas background, neutral green default land, and a
 bottom-left selection panel showing the actual selected hexagon instead of
 labels. These are pure UI/visual changes — no `src/core` business logic change.
 
+**Sub-issues (first slice) — complete:**
+  - [x] M17-T1 Forbid text selection on map drag + hover highlight instead of move (#114)
+  - [x] M17-T2 Replace Step indicator with circular End Turn button & hide AI bananas (#115)
+  - [x] M17-T3 Cell & terrain visual overhaul (#116)
+
+### M18 — UI adjustments & fixes (#122)
+
+**Goal:** Resolve the new UI adjustments & fixes from issue #122: (1) render
+hexagons with an SVG approach instead of the clip-path, (2) reduce the
+inter-hexagon padding so the gap is roughly twice smaller, (3) add a glass
+glass edge/highlight effect on the hexagon itself, (bug) fix the app crash
+when creating a new unit, and (mechanics) confirm the territory ownership
+rules (a taken cell belongs to the taking kingdom and stays owned when the
+unit moves off; it is lost only when an enemy occupies it). Split per
+plan.md §16.3 — planned 2026-08-24.
+
 **Sub-issues (first slice):**
-  - [ ] M17-T1 Forbid text selection on map drag + hover highlight instead of move (#114)
-  - [ ] M17-T2 Replace Step indicator with circular End Turn button & hide AI bananas (#115)
-  - [ ] M17-T3 Cell & terrain visual overhaul (#116)
+  - [ ] M18-T1 Fix app crash when creating a new unit (#123) — `pi:ready`
+  - [ ] M18-T2 Confirm & test territory ownership rules (#124) — `pi:ready`
+  - [ ] M18-T3 Hexagon visual overhaul: SVG render, tighter gap, glass edges (#125) — `pi:ready`

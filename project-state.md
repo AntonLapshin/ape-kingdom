@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M16 COMPLETE and shipped; M17 (UI adjustments, #113) PLANNED (pi:ready).**
+**M1–M17 COMPLETE and shipped; M18 (UI adjustments & fixes, #122) PLANNED (pi:ready).**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
@@ -23,8 +23,11 @@ milestone M14 (M14-T1 frosted-glass panels #96, M14-T2 gradients + animation
 polish #98, M14-T3 palette/visual-detail refinement #97 — all done). M15 (game
 mechanics rules, #102) and M16 (game image assets, #103) are also complete
 (M15-T1/T2, M16-T1/T2 merged). The new post-ship UI adjustments issue #113
-(9 items) is split as milestone M17: M17-T1 #114, M17-T2 #115, M17-T3 #116 —
-all `pi:ready`.
+(9 items) is split as milestone M17: M17-T1 #114, M17-T2 #115, M17-T3 #116 — all
+`pi:ready` (now complete, PRs #117/#118/#120 merged). The new post-ship UI
+adjustments & fixes issue #122 (SVG hexagons, tighter gap, glass edges, a
+recruit crash bug, and territory-ownership rules) is split as milestone M18:
+M18-T1 #123, M18-T2 #124, M18-T3 #125 — all `pi:ready`.
 `npm test` (471 tests), `npm run test:coverage` (100%
 on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
 
@@ -144,6 +147,14 @@ on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
   hover-highlight instead of move, circular End Turn button, hide AI bananas,
   cell gap + glass effect, remove Kingdom color from units, dark map canvas
   background, neutral green land, and bottom-left selected-hexagon display.
-  - [ ] M17-T1 No text selection on map drag + hover highlight instead of move (#114) — `pi:ready`
-  - [ ] M17-T2 Circular End Turn button & hide AI bananas (#115) — `pi:ready`
-  - [ ] M17-T3 Cell & terrain visual overhaul (#116) — `pi:ready`
+  **Complete** (PRs #117, #118, #120, #121 merged).
+  - [x] M17-T1 No text selection on map drag + hover highlight instead of move (#114 → PR #117) — **complete**
+  - [x] M17-T2 Circular End Turn button & hide AI bananas (#115 → PR #118) — **complete**
+  - [x] M17-T3 Cell & terrain visual overhaul (#116 → PR #120) — **complete**
+- [ ] M18 — UI adjustments & fixes (issue #122, planned 2026-08-24). Plannned
+  from unplanned issue #122: (1) SVG hexagon rendering, (2) tighter inter-hex
+  gap, (3) glass edge/highlight on the hexagon, (bug) fix app crash when
+  creating a new unit, (mechanics) confirm territory ownership rules.
+  - [ ] M18-T1 Fix app crash when creating a new unit (#123) — `pi:ready`
+  - [ ] M18-T2 Confirm & test territory ownership rules (#124) — `pi:ready`
+  - [ ] M18-T3 Hexagon visual overhaul: SVG render, tighter gap, glass edges (#125) — `pi:ready`
