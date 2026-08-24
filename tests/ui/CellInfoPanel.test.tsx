@@ -113,7 +113,10 @@ describe("CellInfoPanel read-only", () => {
     const hex = screen.getByTestId("cell-info-hexagon");
     expect(hex).toBeInTheDocument();
     expect(hex.className).toContain("bg-owner-p1");
-    expect(hex.style.clipPath).toContain("polygon");
+    // The hexagon silhouette is clipped by the SVG polygon (SVG approach,
+    // M18-T3), referenced via a url() fragment id rather than a literal CSS
+    // clip-path polygon string.
+    expect(hex.style.clipPath).toMatch(/^url\(#hex-clip-cell-info-hexagon\)$/);
   });
 
   it("preview hexagon shows the unit badge when the selected hex is occupied (M17-T3/#116)", () => {

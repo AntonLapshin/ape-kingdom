@@ -388,3 +388,26 @@ describe("src/theme.css + index.css — cell & terrain overhaul (M17-T3/#116)", 
   });
 });
 
+describe("src/styles/index.css — SVG hexagon glass edge (M18-T3/#125)", () => {
+  it("defines a token-backed glass-edge highlight for the SVG hexagon layer", () => {
+    // The new SVG hexagon render (M18-T3) draws a glass edge along the true
+    // hexagon edges. The `.hex-glass-edge` rule must reference only tokens
+    // (no raw color) and render an outline-style stroke that reads as a rim.
+    const edge = STYLES.match(/\.hex-glass-edge\s*\{([^}]*)\}/)?.[1];
+    expect(edge).toBeTruthy();
+    expect(edge).toContain("var(--color-glass-line)");
+    expect(edge).toContain("var(--color-glass-inner)");
+    expect(edge).toContain("stroke");
+    expect(edge).toContain("fill: none");
+    expect(edge).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(edge).not.toMatch(/rgba?\(/);
+  });
+
+  it("keeps index.css free of raw hex for the new SVG glass-edge rules", () => {
+    // Global guard: the new SVG glass-edge / hexagon-svg rules add no raw
+    // color, consistent with the token-only theme model.
+    expect(STYLES).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(STYLES).not.toMatch(/rgba?\(/);
+  });
+});
+
