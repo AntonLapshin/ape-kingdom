@@ -2,13 +2,14 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M17 done; M18 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M18 done; M19 planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
 (issue #88) are planned under milestone M13, the follow-on design-polish
 request (issue #94) under milestone M14, the game-mechanics rules (issue #102)
 under milestone M15, the game image assets (issue #103) under milestone M16,
-the new post-ship UI adjustments (issue #113) under milestone M17, and the new
-UI adjustments & fixes (issue #122) under milestone M18.
+the new post-ship UI adjustments (issue #113) under milestone M17, the new
+UI adjustments & fixes (issue #122) under milestone M18, and the new
+post-ship bug fixes & UI tweaks (issue #129) under milestone M19.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -409,7 +410,27 @@ rules (a taken cell belongs to the taking kingdom and stays owned when the
 unit moves off; it is lost only when an enemy occupies it). Split per
 plan.md §16.3 — planned 2026-08-24.
 
+**Sub-issues (first slice) — complete:**
+  - [x] M18-T1 Fix app crash when creating a new unit (#123) — `pi:ready`
+  - [x] M18-T2 Confirm & test territory ownership rules (#124) — `pi:ready`
+  - [x] M18-T3 Hexagon visual overhaul: SVG render, tighter gap, glass edges (#125) — `pi:ready`
+
+### M19 — New post-ship bug fixes & UI tweaks (#129)
+
+**Goal:** Resolve the new post-ship bug fixes & UI tweaks from issue #129:
+(1) territory-ownership display bug (a cell should stay owned by the kingdom
+even when the unit vacates; only an enemy occupation flips it), (2) "Next
+Turn" does nothing (End Turn should work anytime even if not all units have
+moved), (3) glass edge effect is too contrast (make it more subtle), (4) no
+way to create new units (Restore a Recruit option at the Home Tree), (5)
+remove the "Move {from} => {to}" action list, and (6) units that have moved
+should be opaque. Pure UI/bug-fix work; `src/core` stays pure and 100%
+covered. Split per plan.md §16.3 — planned 2026-08-24.
+
 **Sub-issues (first slice):**
-  - [ ] M18-T1 Fix app crash when creating a new unit (#123) — `pi:ready`
-  - [ ] M18-T2 Confirm & test territory ownership rules (#124) — `pi:ready`
-  - [ ] M18-T3 Hexagon visual overhaul: SVG render, tighter gap, glass edges (#125) — `pi:ready`
+  - [ ] M19-T1 Fix territory ownership display (#130) — `pi:ready`
+  - [ ] M19-T2 Make End Turn work anytime (#131) — `pi:ready`
+  - [ ] M19-T3 Restore a way to create new units (#132) — `pi:ready`
+  - [ ] M19-T4 (next slice) Glass edge made more subtle (#129-3)
+  - [ ] M19-T5 (next slice) Remove the Move {from} => {to} action list (#129-5)
+  - [ ] M19-T6 (next slice) Mark moved units as opaque (#129-6)

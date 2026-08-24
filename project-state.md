@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M17 COMPLETE and shipped; M18 (UI adjustments & fixes, #122) PLANNED (pi:ready).**
+**M1–M18 COMPLETE and shipped; M19 (new post-ship bug fixes & UI tweaks, #129) PLANNED (pi:ready).**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
@@ -27,7 +27,15 @@ mechanics rules, #102) and M16 (game image assets, #103) are also complete
 `pi:ready` (now complete, PRs #117/#118/#120 merged). The new post-ship UI
 adjustments & fixes issue #122 (SVG hexagons, tighter gap, glass edges, a
 recruit crash bug, and territory-ownership rules) is split as milestone M18:
-M18-T1 #123, M18-T2 #124, M18-T3 #125 — all `pi:ready`.
+M18-T1 #123, M18-T2 #124, M18-T3 #125 — all complete (PRs #126/#127/#128
+merged). The new post-ship bug fixes & UI tweaks issue #129 (6 items:
+territory-ownership display, End Turn does nothing, glass too contrast, no
+way to create new units, remove Move action list, moved units not opaque) is
+split as milestone M19. First slice (all `pi:ready`): M19-T1 #130 (territory
+ownership display — cell stays owned after unit vacates), M19-T2 #131 (make
+End Turn work anytime even if not all units moved), M19-T3 #132 (restore a way
+to create new units at the Home Tree). Remaining #129 items (glass subtlety,
+remove Move action list, moved-unit opacity) are the next PM slice.
 `npm test` (471 tests), `npm run test:coverage` (100%
 on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
 
@@ -151,10 +159,22 @@ on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
   - [x] M17-T1 No text selection on map drag + hover highlight instead of move (#114 → PR #117) — **complete**
   - [x] M17-T2 Circular End Turn button & hide AI bananas (#115 → PR #118) — **complete**
   - [x] M17-T3 Cell & terrain visual overhaul (#116 → PR #120) — **complete**
-- [ ] M18 — UI adjustments & fixes (issue #122, planned 2026-08-24). Plannned
+- [x] M18 — UI adjustments & fixes (issue #122, planned 2026-08-24). Planned
   from unplanned issue #122: (1) SVG hexagon rendering, (2) tighter inter-hex
   gap, (3) glass edge/highlight on the hexagon, (bug) fix app crash when
   creating a new unit, (mechanics) confirm territory ownership rules.
-  - [ ] M18-T1 Fix app crash when creating a new unit (#123) — `pi:ready`
-  - [ ] M18-T2 Confirm & test territory ownership rules (#124) — `pi:ready`
-  - [ ] M18-T3 Hexagon visual overhaul: SVG render, tighter gap, glass edges (#125) — `pi:ready`
+  **Complete** (PRs #126, #127, #128 merged).
+  - [x] M18-T1 Fix app crash when creating a new unit (#123 → PR #126) — **complete**
+  - [x] M18-T2 Confirm & test territory ownership rules (#124 → PR #127) — **complete**
+  - [x] M18-T3 Hexagon visual overhaul: SVG render, tighter gap, glass edges (#125 → PR #128) — **complete**
+- [ ] M19 — New post-ship bug fixes & UI tweaks (issue #129, planned 2026-08-24). Planned
+  from unplanned issue #129 (6 items): territory-ownership display bug, "Next Turn"
+  does nothing, glass effect too contrast, no way to create new units, remove the
+  Move {from} => {to} action list, and moved units not opaque. First slice
+  (all `pi:ready`):
+  - [ ] M19-T1 Fix territory ownership display: cell stays owned after unit vacates (#130)
+  - [ ] M19-T2 Make End Turn work anytime, even if some units haven't moved (#131)
+  - [ ] M19-T3 Restore a way to create new units at the Home Tree / buildable cell (#132)
+  - [ ] M19-T4 (next slice) Glass edge effect made more subtle (#129-3)
+  - [ ] M19-T5 (next slice) Remove the Move {from} => {to} action list (#129-5)
+  - [ ] M19-T6 (next slice) Mark units that have moved as opaque (#129-6)
