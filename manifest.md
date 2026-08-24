@@ -2,9 +2,10 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13/M14)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
-(issue #88) are planned under milestone M13.
+(issue #88) are planned under milestone M13, and the follow-on design-polish
+request (issue #94) under milestone M14.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -308,3 +309,27 @@ core/UI split intact; `src/core` stays pure and 100% covered.
   - [ ] M13-T4 Dark non-gradient background for the game viewport (UI) (#88 item 4) — planned next slice
   - [ ] M13-T5 Hide the AI's banana count (UI) (#88 item 5) — planned next slice
   - [ ] M13-T6 Right-bottom panel reduced to only End Turn (UI) (#88 item 6) — planned next slice
+
+### M14 — UI design polish (#94)
+
+**Goal:** Apply the broad design-polish request from issue #94 ("more beautiful,
+better color palette, gradients, animation, glass design") to the shipped
+full-screen UI. Purely visual/theme work built on the existing token system
+(`src/theme.css` + `src/styles`), keeping the core/UI split intact and
+`src/core` pure and 100% covered. No new game features (out of rules scope).
+
+**Scope:**
+  - **Frosted-glass surfaces (UI, #94):** Add a tokenized glassmorphism
+    treatment (translucent surface + backdrop blur) to the floating UI panels,
+    using the semantic `glass*` token family per GUIDELINES-WEB-THEME.md.
+  - **Gradients & animation polish (UI, #94):** Refine the backdrop gradients
+    and add smooth transition/animation polish via token-referencing utilities
+    and keyframes in `src/styles`.
+  - **Palette & visual detail polish (UI, #94):** Tune the brand/semantic
+    palette and visual details (shadows, borders, hover transitions) for a more
+    cohesive, beautiful look, all token-backed.
+
+**Sub-issues (first slice):**
+  - [ ] M14-T1 Add frosted-glass styling to floating UI panels (#96)
+  - [ ] M14-T2 Enhance gradients and animation polish on the game background (#98)
+  - [ ] M14-T3 Refine color palette and visual details for a more beautiful look (#97)

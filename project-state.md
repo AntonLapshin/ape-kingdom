@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M11 COMPLETE and shipped; M13 (UI adjustments, #88) IN PROGRESS.**
+**M1–M11 COMPLETE and shipped; M13 (UI adjustments, #88) and M14 (UI design polish, #94) IN PROGRESS.**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
@@ -17,7 +17,11 @@ https://AntonLapshin.github.io/ape-kingdom/. Post-ship issue #88 requested
 further UI adjustments, now planned as milestone M13 (planned 2026-08-23:
 T1 automatic income, T2 land-ownership colors, T3 blue selection border are
 `pi:ready`; T4 dark background, T5 hide AI money, T6 right-bottom End Turn only
-are the next PM slice). `npm test` (471 tests), `npm run test:coverage` (100%
+are the next PM slice). A new open-ended design-polish issue #94 (more
+beautiful, better palette, gradients, animation, glass design) is planned as
+milestone M14 (planned 2026-08-24: T1 frosted-glass panels #96, T2 gradients +
+animation polish #98, T3 palette/visual-detail refinement #97 — all `pi:ready`).
+`npm test` (471 tests), `npm run test:coverage` (100%
 on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
 
 ## What's here
@@ -107,3 +111,12 @@ on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
   - [ ] M13-T4 Dark non-gradient background (UI) — planned next slice
   - [ ] M13-T5 Hide the AI's banana count (UI) — planned next slice
   - [ ] M13-T6 Right-bottom panel → only End Turn (UI) — planned next slice
+- [ ] M14 — UI design polish (issue #94, planned 2026-08-24). Follow-on broad
+  design-polish of the shipped full-screen UI per #94: more beautiful look,
+  better color palette, gradients, animation, glass design. Purely
+  visual/theme work on the existing token system (`src/theme.css` +
+  `src/styles/index.css`), core stays pure and 100% covered, no new game
+  features.
+  - [ ] M14-T1 Add frosted-glass styling to floating UI panels (#96) — `pi:ready`
+  - [ ] M14-T2 Enhance gradients and animation polish on the game background (#98) — `pi:ready`
+  - [ ] M14-T3 Refine color palette and visual details for a more beautiful look (#97) — `pi:ready`
