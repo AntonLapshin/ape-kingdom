@@ -484,4 +484,140 @@ describe("PlayableGame", () => {
     );
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
   });
+
+  /* ------------------------------------------------------------------ */
+  /* Click-vs-drag selection (M12-T1 / #84, #85)                         */
+  /* ------------------------------------------------------------------ */
+
+  // A realistic pointer gesture: dispatch pointerdown/pointermove/pointerup
+  // (as MouseEvents carrying clientX/clientY, like the existing drag tests)
+  // on a target element so the sequence travels through the viewport pointer
+  // handlers — the path that previously swallowed cell clicks via pointer
+  // capture (M12-T1).
+  const pointer = (
+    el: HTMLElement,
+    type: string,
+    coords?: { x: number; y: number },
+  ) => {
+    const init: Record<string, unknown> = { bubbles: true, cancelable: true };
+    if (coords) {
+      init.clientX = coords.x;
+      init.clientY = coords.y;
+    }
+    el.dispatchEvent(new MouseEvent(type, init));
+  };
+
+  const cellAt = (hex: `${number},${number}`) =>
+    screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.hex === hex)!;
+
+  it("selects a hex from a static pointer down->up click (no drag) (M12-T1)", () => {
+    render(<PlayableGame />);
+    // A full pointer-down -> pointer-up sequence on p1's Home Tree cell with no
+    // movement must select it (the regression path from #83/#84): the cell gets
+    // the `hex-selected` highlight + `data-selected="true"`, and the info panel
+    // shows the selected home tree.
+    const homeCell = cellAt("2,6");
+    act(() => pointer(homeCell, "pointerdown", { x: 10, y: 10 }));
+    act(() => pointer(homeCell, "pointerup", { x: 10, y: 10 }));
+
+    expect(homeCell.className).toContain("hex-selected");
+    expect(homeCell.dataset.selected).toBe("true");
+    expect(screen.getByTestId("cell-info-site")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("cell-info")).getByText("Home Tree"),
+    ).toBeInTheDocument();
+  });
+
+  it("selection from a pointer click is driven by the pointer-up, not the (captured) native click (M12-T1)", () => {
+    render(<PlayableGame />);
+    // Drive only pointerdown/pointerup (no separate `click`). Previously the
+    // click never reached the cell because pointer capture retargeted it to
+    // the viewport; here the selection is issued from the pointer-up handler
+    // so the cell is selected even though no native click was fired.
+    const emptyCell = screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.owner === "neutral" && c.dataset.terrain === "land")!;
+    act(() => pointer(emptyCell, "pointerdown", { x: 5, y: 5 }));
+    act(() => pointer(emptyCell, "pointerup", { x: 5, y: 5 }));
+    expect(emptyCell.dataset.selected).toBe("true");
+    // An empty/inspect-only hex shows the empty-prompt info (no site/unit).
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+    expect(screen.queryByTestId("cell-info-site")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("cell-info-unit")).not.toBeInTheDocument();
+  });
+
+  it("a small pointer travel below the drag threshold is still treated as a click (M12-T1)", () => {
+    render(<PlayableGame />);
+    const homeCell = cellAt("2,6");
+    // Move the pointer slightly (under the 4px drag threshold) during the
+    // gesture — this must still count as a click, not a pan.
+    act(() => pointer(homeCell, "pointerdown", { x: 100, y: 100 }));
+    act(() => pointer(homeCell, "pointermove", { x: 102, y: 101 }));
+    act(() => pointer(homeCell, "pointerup", { x: 102, y: 101 }));
+    expect(homeCell.dataset.selected).toBe("true");
+    expect(homeCell.className).toContain("hex-selected");
+    // The gesture stayed below the drag threshold, so no pan was applied (the
+    // board transform keeps its initial translate(0px, 0px)).
+    expect(screen.getByTestId("board").getAttribute("style")!).toContain(
+      "translate(0px, 0px)",
+    );
+  });
+
+  it("pointer-clicking a movable human-owned unit highlights its reachable targets and pointer-clicking a target moves the unit (M12-T1)", () => {
+    render(<PlayableGame />);
+    // Moves are only legal on the recruit step, so collect income first.
+    act(() => {
+      fireEvent.click(screen.getByText("Collect Income"));
+    });
+
+    // Pointer-click p1's Gibbon at hex 2,7: it is movable, so its reachable
+    // targets are highlighted.
+    const unitCell = cellAt("2,7");
+    act(() => pointer(unitCell, "pointerdown", { x: 20, y: 20 }));
+    act(() => pointer(unitCell, "pointerup", { x: 20, y: 20 }));
+    expect(unitCell.dataset.selected).toBe("true");
+
+    const reachable = screen
+      .getAllByTestId("board-cell")
+      .filter((c) => c.dataset.moveTarget === "true");
+    expect(reachable.length).toBeGreaterThan(0);
+
+    // Pointer-click one reachable target: the unit moves onto it (move issued
+    // through the existing selectCell move-through logic), the selection
+    // clears, and the source cell no longer holds the unit.
+    const target = reachable[0];
+    act(() => pointer(target, "pointerdown", { x: 30, y: 30 }));
+    act(() => pointer(target, "pointerup", { x: 30, y: 30 }));
+
+    // The unit badge moved onto the target cell and the source lost it.
+    expect(
+      target.querySelector('[data-testid="board-unit"]')?.textContent,
+    ).toBeTruthy();
+    expect(unitCell.querySelector('[data-testid="board-unit"]')).toBeNull();
+    // The previous selection highlight is cleared after the move.
+    expect(unitCell.dataset.selected).toBe("false");
+    expect(unitCell.className).not.toContain("hex-selected");
+  });
+
+  it("a genuine drag pans the board and does NOT select a cell (M12-T1)", () => {
+    render(<PlayableGame />);
+    const board = screen.getByTestId("board");
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+
+    // Begin the drag on a board cell (the home tree) so a selection would be
+    // expected if the gesture were not recognised as a drag, then move beyond
+    // the threshold and release.
+    const homeCell = cellAt("2,6");
+    act(() => pointer(homeCell, "pointerdown", { x: 0, y: 0 }));
+    act(() => pointer(game, "pointermove", { x: 40, y: 55 }));
+    act(() => pointer(game, "pointerup", { x: 40, y: 55 }));
+
+    // The board panned by the accumulated drag deltas.
+    expect(board.getAttribute("style")!).toContain("translate(40px, 55px)");
+    // No cell got selected by the drag.
+    expect(homeCell.dataset.selected).toBe("false");
+    expect(homeCell.className).not.toContain("hex-selected");
+  });
 });

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import type { Hex } from "../../core/game";
 import { useGameSession } from "../viewModels/useGameSession";
 import { usePan } from "../viewModels/usePan";
 import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
@@ -85,22 +86,60 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
   const { pan, panBy } = usePan();
   const { zoom, zoomBy } = useZoom();
 
-  // Drag state: the pointer id we are currently dragging with, plus the last
-  // known pointer position so we can compute deltas on each move.
-  const drag = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(
-    null,
-  );
+  // Drag state (M12-T1): the pointer id we are currently interacting with,
+  // the down position so we can measure the drag distance, the last known
+  // pointer position so we can compute deltas on each move, whether the
+  // pointer has moved beyond the drag threshold (a genuine pan vs a static
+  // click), and the hex of the board cell under the pointer when the gesture
+  // began (so a static click can select it on pointer-up).
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    dragged: boolean;
+    downHex: Hex | null;
+  } | null>(null);
+
+  // The minimum pointer travel (in viewport px) before a pointer gesture is
+  // treated as a drag-to-pan rather than a static click-to-select (M12-T1). A
+  // smaller movement (or none) is a click, so the cell under the pointer gets
+  // selected instead of the board being panned.
+  const DRAG_THRESHOLD = 4;
+
+  // Read the axial hex from a board-cell DOM node (its `data-hex="q,r"`
+  // attribute), or null when the node is not a board cell. Thin view glue for
+  // resolving which cell a pointer gesture began on.
+  const hexFromCell = useCallback((node: Element): Hex | null => {
+    const cell = node.closest?.('[data-testid="board-cell"]');
+    const raw = cell?.getAttribute("data-hex");
+    if (!raw) return null;
+    const [q, r] = raw.split(",").map(Number);
+    if (!Number.isFinite(q) || !Number.isFinite(r)) return null;
+    return { q, r };
+  }, []);
 
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       drag.current = {
         pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
         lastX: event.clientX,
         lastY: event.clientY,
+        dragged: false,
+        downHex: hexFromCell(event.target as Element),
       };
+      // Pointer capture retargets the subsequent events (including the
+      // synthetic `click`) to this viewport, which is what we want for smooth
+      // drag-to-pan. Because selection is now issued from the pointer-up
+      // handler (from the hex recorded at pointer-down) rather than from the
+      // board cell's native `click`, retargeting the click here no longer
+      // swallows cell selection (M12-T1 fixes #83).
       event.currentTarget.setPointerCapture?.(event.pointerId);
     },
-    [],
+    [hexFromCell],
   );
 
   const onPointerMove = useCallback(
@@ -114,18 +153,33 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
       // Guard against non-numeric deltas (e.g. jsdom test environments never
       // producing pointer coordinates) so the transform never becomes NaN.
       if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
-      panBy(dx, dy);
+      // Only start treating the gesture as a drag once it has travelled beyond
+      // the threshold, so a static click is distinguished from a pan.
+      if (!current.dragged) {
+        const travel = Math.hypot(
+          event.clientX - current.startX,
+          event.clientY - current.startY,
+        );
+        if (travel >= DRAG_THRESHOLD) current.dragged = true;
+      }
+      if (current.dragged) panBy(dx, dy);
     },
     [panBy],
   );
 
   const onPointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (drag.current?.pointerId === event.pointerId) {
-        drag.current = null;
+      const current = drag.current;
+      if (!current || current.pointerId !== event.pointerId) return;
+      // A static click (the pointer never moved beyond the drag threshold) that
+      // began on a board cell issues the cell selection; a genuine drag only
+      // pans and must not select a cell (M12-T1).
+      if (!current.dragged && current.downHex) {
+        selectCell(current.downHex);
       }
+      drag.current = null;
     },
-    [],
+    [selectCell],
   );
 
   // Mount a wheel listener on the game viewport so a scroll-wheel gesture

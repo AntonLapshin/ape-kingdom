@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed click selection on the full-screen board (M12-T1, #84). The viewport
+  previously called `setPointerCapture` on every pointer-down, which retargeted
+  the synthetic `click` to the viewport so a hex click never reached the board
+  cell — no visual selection, no cell-info panel, and no movement highlight
+  (the #83 regression). `PlayableGame.tsx` now distinguishes a static click
+  from a drag: pointer-up issues the cell selection from the hex recorded at
+  pointer-down (so the selection no longer depends on the pointer-captured
+  native click), and pointer travel beyond a small drag threshold (4px) is
+  treated as drag-to-pan, which pans without selecting. Existing drag/pan,
+  wheel-zoom and floating-overlay behaviour is unchanged. This is a thin UI
+  pointer-wiring fix only: no `src/core` logic changed, so core stays pure and
+  100% covered. Added pointer-sequence tests in `PlayableGame.test.tsx` that
+  drive a realistic pointer-down→up click and assert selection/highlight, the
+  info panel, movement highlight + click-to-move via the pointer path, and
+  that a genuine drag pans without selecting.
+
 ### Added
 
 - Polished the floating full-screen game UI (M11-T3, #76). The floating
