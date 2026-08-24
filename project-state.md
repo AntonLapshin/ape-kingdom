@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M14 COMPLETE and shipped; M15 (game mechanics rules, #102) and M16 (game image assets, #103) PLANNED (pi:ready).**
+**M1–M16 COMPLETE and shipped; M17 (UI adjustments, #113) PLANNED (pi:ready).**
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,
@@ -18,9 +18,13 @@ further UI adjustments, now planned as milestone M13 (planned 2026-08-23:
 T1 automatic income, T2 land-ownership colors, T3 blue selection border are
 `pi:ready`; T4 dark background, T5 hide AI money, T6 right-bottom End Turn only
 are the next PM slice). A new open-ended design-polish issue #94 (more
-beautiful, better palette, gradients, animation, glass design) is planned as
-milestone M14 (planned 2026-08-24: T1 frosted-glass panels #96, T2 gradients +
-animation polish #98, T3 palette/visual-detail refinement #97 — all `pi:ready`).
+beautiful, better palette, gradients, animation, glass design) was planned as
+milestone M14 (M14-T1 frosted-glass panels #96, M14-T2 gradients + animation
+polish #98, M14-T3 palette/visual-detail refinement #97 — all done). M15 (game
+mechanics rules, #102) and M16 (game image assets, #103) are also complete
+(M15-T1/T2, M16-T1/T2 merged). The new post-ship UI adjustments issue #113
+(9 items) is split as milestone M17: M17-T1 #114, M17-T2 #115, M17-T3 #116 —
+all `pi:ready`.
 `npm test` (471 tests), `npm run test:coverage` (100%
 on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
 
@@ -123,15 +127,23 @@ on `src/core/**`) and `npm run build` pass, CI + Pages deployment green.
   - [x] M14-T1 Add frosted-glass styling to floating UI panels (#96 → PR #99)
   - [x] M14-T2 Enhance gradients and animation polish on the game background (#98 → PR #101)
   - [x] M14-T3 Refine color palette and visual details for a more beautiful look (#97 → PR #100)
-- [ ] M15 — Game mechanics rules (issue #102, planned 2026-08-24). Rules 1 & 2
-  (move-onto-unoccupied-site captures; same/higher-rank enemy cannot be
-  beaten) are already implemented in `src/core` — verified under M15-T1. Rules
-  3 & 4 (protection/safety zones) are new: codify them in the rules doc first,
-  then implement in the core.
-  - [ ] M15-T1 Verify & test rules 1-2 of #102 in the core (#104) — `pi:ready`
-  - [ ] M15-T2 Codify protection-zone mechanics (rules 3-4) in the rules doc (#105) — `pi:ready`
-- [ ] M16 — Game image assets (issue #103, planned 2026-08-24). Extract the 8
-  pixel-art icons from the uploaded image (#103), remove white background, save
-  as clean PNGs, then wire into the web client as a theme-independent brand
-  asset set.
-  - [ ] M16-T1 Extract pixel-art game icons from uploaded image (#106) — `pi:ready`
+- [x] M15 — Game mechanics rules (issue #102). Rules 1 & 2 (move-onto-unoccupied-site
+  captures; same/higher-rank enemy cannot be beaten) verified under M15-T1. Rule
+  3-4 protection/safety zones codified in the rules doc under M15-T2. **Complete**
+  (PRs #108, #109 merged).
+  - [x] M15-T1 Verify & test rules 1-2 of #102 in the core (#104 → PR #108)
+  - [x] M15-T2 Codify protection-zone mechanics (rules 3-4) in the rules doc (#105 → PR #109)
+- [x] M16 — Game image assets (issue #103). Extracted the 8 pixel-art icons from
+  the uploaded image (#103), removed white background, saved as clean PNGs, and
+  wired them into the Atom components as a theme-independent brand asset set.
+  **Complete** (PRs #110, #112 merged).
+  - [x] M16-T1 Extract pixel-art game icons from uploaded image (#106 → PR #110)
+  - [x] M16-T2 Wire pixel-art icons into the Atom components (#111 → PR #112)
+- [ ] M17 — UI adjustments follow-ups (issue #113, planned 2026-08-24). Pure
+  UI/visual changes (no `src/core` change): no text selection on map drag,
+  hover-highlight instead of move, circular End Turn button, hide AI bananas,
+  cell gap + glass effect, remove Kingdom color from units, dark map canvas
+  background, neutral green land, and bottom-left selected-hexagon display.
+  - [ ] M17-T1 No text selection on map drag + hover highlight instead of move (#114) — `pi:ready`
+  - [ ] M17-T2 Circular End Turn button & hide AI bananas (#115) — `pi:ready`
+  - [ ] M17-T3 Cell & terrain visual overhaul (#116) — `pi:ready`

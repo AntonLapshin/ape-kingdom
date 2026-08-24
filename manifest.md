@@ -2,11 +2,12 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13/M14 done; M15/M16 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M16 done; M17 planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
 (issue #88) are planned under milestone M13, the follow-on design-polish
 request (issue #94) under milestone M14, the game-mechanics rules (issue #102)
-under milestone M15, and the game image assets (issue #103) under milestone M16.
+under milestone M15, the game image assets (issue #103) under milestone M16,
+and the new post-ship UI adjustments (issue #113) under milestone M17.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -380,3 +381,18 @@ GUIDELINES-WEB-THEME.md.
 
 **Sub-issues (first slice):**
   - [ ] M16-T1 Extract pixel-art game icons from uploaded image (#106)
+
+### M17 — UI adjustments follow-ups (#113)
+
+**Goal:** Implement the 9 post-ship UI adjustments from issue #113: forbid
+text selection on map drag, hover-highlight instead of move, a single circular
+"End Turn" button replacing the Step indicator, hide AI bananas, cell gap +
+glass effect on hexagons, remove Kingdom color from units (owner color only on
+the hexagon), dark map canvas background, neutral green default land, and a
+bottom-left selection panel showing the actual selected hexagon instead of
+labels. These are pure UI/visual changes — no `src/core` business logic change.
+
+**Sub-issues (first slice):**
+  - [ ] M17-T1 Forbid text selection on map drag + hover highlight instead of move (#114)
+  - [ ] M17-T2 Replace Step indicator with circular End Turn button & hide AI bananas (#115)
+  - [ ] M17-T3 Cell & terrain visual overhaul (#116)
