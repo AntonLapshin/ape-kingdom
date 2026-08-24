@@ -12,11 +12,15 @@ export const name = "ActionControls";
 
 const noop = () => {};
 
-/** The income step: a single "Collect Income" action. */
-export const Income = () => (
+/** The opening of the human's turn: income is collected automatically, so the
+ *  turn begins on the recruit step with recruit/move/attack actions. */
+export const Opening = () => (
   <ActionControls
-    legalActions={[{ type: "collectIncome" }]}
-    step="income"
+    legalActions={[
+      { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } },
+      { type: "move", unitHex: { q: 1, r: 0 }, targetHex: { q: 2, r: 0 } },
+    ]}
+    step="recruit"
     isDone={false}
     onSelect={noop}
     onClear={noop}

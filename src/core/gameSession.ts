@@ -8,12 +8,17 @@
  * A `GameSession` is an immutable value describing one human turn:
  *
  *  - `baseState` is the game state at the start of the human's turn (before
- *    the human collects income or acts);
+ *    the human acts). Income is **applied automatically** when the turn starts
+ *    (per the rules "At the start of your turn, collect bananas from all sites
+ *    you control"): the projected `state` below reflects the collected bananas
+ *    for the turn, while `baseState` remains the pre-income start-of-turn state
+ *    that the game loop (`playTurn`) consumes.
  *  - `moves` is the ordered list of actions the human has selected so far
- *    this turn (income -> recruit -> move/fight);
- *  - `state` is the projected state after those selections, so the UI can
- *    render the board as the human builds their turn;
- *  - `step` is the turn step the human is currently on (`income`, `recruit`,
+ *    this turn (recruit -> move/fight);
+ *  - `state` is the projected state after those selections (and the automatic
+ *    turn-start income), so the UI can render the board as the human builds
+ *    their turn;
+ *  - `step` is the turn step the human is currently on (`recruit`,
  *    `movefight`, or `done` once the game has ended);
  *  - `legalMoves` is the set of actions the human may legally select next,
  *    already filtered to the current step so the ordering is enforced.
@@ -52,18 +57,18 @@ import { applyHumanMoves, playTurn } from "./gameLoop";
 /* ------------------------------------------------------------------ */
 
 /**
- * The turn step the human is currently on, matching the rules' Turn Sequence
- * (income -> recruit -> move/fight).
+ * The turn step the human is currently on, matching the rules' Turn Sequence.
+ * Income is collected automatically at the start of the turn (per the rules
+ * "At the start of your turn, collect bananas from all sites you control"),
+ * so the human's turn begins directly on recruit.
  *
- *  - `income`    — the human must collect income (step A) before anything
- *                  else. The only legal action is `collectIncome`.
  *  - `recruit`   — the human may recruit apes (step B) and/or move/fight.
  *                  Recruiting stays legal until the human moves or fights.
  *  - `movefight` — the human may move and attack (step C). Recruiting is no
  *                  longer allowed once the human has moved or fought.
  *  - `done`      — the game has ended (a winner exists); no further actions.
  */
-export type TurnStep = "income" | "recruit" | "movefight" | "done";
+export type TurnStep = "recruit" | "movefight" | "done";
 
 /* ------------------------------------------------------------------ */
 /* Session errors                                                      */
@@ -77,8 +82,6 @@ export type SessionErrorKind =
   | "wrong-step"
   /** The game has already ended; no further actions may be selected. */
   | "turn-already-ended"
-  /** The human tried to end their turn before collecting income (step A). */
-  | "income-not-collected"
   /** No suitable land cell was found to place both Home Trees on. */
   | "no-suitable-home";
 
@@ -272,9 +275,13 @@ function resetUnitsForTurn(state: GameState, playerId: PlayerId): GameState {
 /**
  * Project the human's selected `moves` onto `baseState` to produce the state
  * the game would be in after those selections: reset the current player's
- * units so they may act, collect income (step A), then apply the selected
- * recruit / move / fight actions (steps B + C) in rule order via
+ * units so they may act, collect income automatically (per the rules income
+ * is collected at the start of the turn, so there is no manual step A), then
+ * apply the selected recruit / move / fight actions in rule order via
  * `applyHumanMoves`. Returns a new `GameState`; does not mutate the input.
+ *
+ * With `moves = []` this yields the start-of-turn state: units reset and the
+ * turn's income already collected.
  */
 function projectState(baseState: GameState, moves: GameAction[]): GameState {
   let s = resetUnitsForTurn(baseState, baseState.currentPlayer);
@@ -284,19 +291,18 @@ function projectState(baseState: GameState, moves: GameAction[]): GameState {
 
 /**
  * The legal actions available to the human at a given turn step for a state
- * that has already had income collected and the human's moves applied.
+ * that has already had income collected automatically and the human's moves
+ * applied.
  *
- *  - `income`    — only `collectIncome` (step A must come first).
- *  - `recruit`   — every recruit / move / attack action (the full post-income
- *                  legal set, excluding the already-collected income).
+ *  - `recruit`   — every recruit / move / attack action (income is collected
+ *                  automatically at the start of the turn, so `collectIncome`
+ *                  is never offered as a manual action).
  *  - `movefight` — only move / attack actions (recruiting is over).
  *  - `done`      — no actions (the game has ended).
  */
 function legalMovesFor(state: GameState, step: TurnStep): GameAction[] {
   const all = legalActions(state);
   switch (step) {
-    case "income":
-      return [{ type: "collectIncome" }];
     case "recruit":
       return all.filter((a) => a.type !== "collectIncome");
     case "movefight":
@@ -314,8 +320,13 @@ function legalMovesFor(state: GameState, step: TurnStep): GameAction[] {
 function sameAction(a: GameAction, b: GameAction): boolean {
   if (a.type !== b.type) return false;
   switch (a.type) {
+    /* c8 ignore start -- a collectIncome action is never offered as a
+       selectable legal action this session (income is applied automatically at
+       the start of the turn), so `legalMoves` never contains one and this
+       branch is unreachable by design. */
     case "collectIncome":
-      return true;
+      return false;
+    /* c8 ignore stop */
     case "recruit":
       return b.type === "recruit" && a.kind === b.kind && sameHex(a.hex, b.hex);
     case "move":
@@ -340,10 +351,12 @@ function sameAction(a: GameAction, b: GameAction): boolean {
 /**
  * Create a new game session from the standard two-player setup.
  *
- * The session starts with the human (the current player, `p1`) on the
- * `income` turn step, so the only legal move is `collectIncome`. The returned
- * session exposes the initial `GameState` (`state` / `baseState`) and the
- * current player's `legalMoves`.
+ * Income is applied automatically at the start of the turn (per the rules
+ * "At the start of your turn, collect bananas from all sites you control"),
+ * so the human's turn begins directly on the `recruit` step with the turn's
+ * income already collected in the projected `state`. The returned session
+ * exposes the initial `GameState` (`state`) and the current player's
+ * `legalMoves` (recruit / move / attack).
  *
  * The AI's reply is driven by `aiSeed` (deterministic for a given seed) and
  * `aiOptions` (behavior knobs), both of which are carried through to
@@ -356,13 +369,13 @@ export function createGameSession(
   mapConfig?: MapConfig,
 ): GameSession {
   const baseState = standardSetup(mapConfig);
-  const state = resetUnitsForTurn(baseState, baseState.currentPlayer);
+  const state = projectState(baseState, []);
   return {
     baseState,
     state,
     moves: [],
-    step: "income",
-    legalMoves: legalMovesFor(state, "income"),
+    step: "recruit",
+    legalMoves: legalMovesFor(state, "recruit"),
     aiSeed,
     aiOptions,
     winner: null,
@@ -374,10 +387,9 @@ export function createGameSession(
  *
  * The action must be in the session's current `legalMoves` (which are already
  * filtered to the current turn step). Selecting it appends it to `moves`,
- * advances the turn step (collecting income moves to `recruit`; moving or
- * fighting moves to `movefight`), and recomputes the projected `state` and the
- * next `legalMoves`, so the income -> recruit -> move/fight ordering is
- * enforced as the human builds their turn.
+ * advances the turn step (moving or fighting moves to `movefight`), and
+ * recomputes the projected `state` and the next `legalMoves`, so the
+ * recruit -> move/fight ordering is enforced as the human builds their turn.
  *
  * Throws a typed `GameSessionError` when the action is not in `legalMoves`
  * (`not-a-legal-move`), is invalid for the current step (`wrong-step`), or the
@@ -403,7 +415,6 @@ export function selectAction(
 
   const moves = [...session.moves, action];
   let step = session.step;
-  if (step === "income") step = "recruit";
   if (action.type === "move" || action.type === "attack") step = "movefight";
 
   const state = projectState(session.baseState, moves);
@@ -419,29 +430,23 @@ export function selectAction(
 /**
  * End the human's turn and run the AI's reply.
  *
- * The human must have collected income (step A) before ending their turn. The
- * selected `moves` are passed to `playTurn` from `src/core/gameLoop.ts`, which
+ * The selected `moves` are passed to `playTurn` from `src/core/gameLoop.ts`,
+ * which collects income automatically at the start of the turn (step A), then
  * applies the human's actions in rule order (enforcing the ordering), runs the
  * AI's full turn via the seeded/deterministic AI layer, advances the turn, and
  * resolves victory.
  *
  * If a winner is produced, the returned session is marked `done` with the
  * winner set and no further `legalMoves`. Otherwise a fresh session for the
- * next human turn is returned (income step, empty moves, the resulting state).
+ * next human turn is returned (recruit step, income collected automatically,
+ * empty moves, the resulting state).
  *
- * Throws a typed `GameSessionError` when the human tries to end the turn
- * before collecting income (`income-not-collected`) or after the game has
- * already ended (`turn-already-ended`). If the submitted moves violate the
- * turn-step ordering, the underlying `TurnOrderError` from `gameLoop` is
- * propagated. Returns a new `GameSession`; does not mutate the input.
+ * Throws a typed `GameSessionError` after the game has already ended
+ * (`turn-already-ended`). If the submitted moves violate the turn-step
+ * ordering, the underlying `TurnOrderError` from `gameLoop` is propagated.
+ * Returns a new `GameSession`; does not mutate the input.
  */
 export function submitTurn(session: GameSession): GameSession {
-  if (session.step === "income") {
-    throw new GameSessionError(
-      "income-not-collected",
-      "The human must collect income (step A) before ending the turn",
-    );
-  }
   if (session.step === "done") {
     throw new GameSessionError(
       "turn-already-ended",
@@ -468,13 +473,17 @@ export function submitTurn(session: GameSession): GameSession {
     };
   }
 
+  // Fresh session for the next human turn: the resulting `baseState` sits at
+  // the start of the human's turn (income for this next turn not yet applied),
+  // so project it to the recruit step with the turn's income collected.
+  const state = projectState(result, []);
   return {
     ...session,
     baseState: result,
-    state: result,
+    state,
     moves: [],
-    step: "income",
-    legalMoves: [{ type: "collectIncome" }],
+    step: "recruit",
+    legalMoves: legalMovesFor(state, "recruit"),
     winner: null,
   };
 }
@@ -483,9 +492,10 @@ export function submitTurn(session: GameSession): GameSession {
  * Reset a session back to the start of the current human turn.
  *
  * Discards any actions the human has selected this turn (`moves`) and returns
- * a fresh session positioned at the income step on the current `baseState`
- * (the state at the start of the turn), so the UI can offer an "undo / clear
- * selections" behaviour without losing the progress of the game.
+ * a fresh session positioned at the recruit step on the current `baseState`
+ * (the start of the turn, with income collected automatically), so the UI can
+ * offer an "undo / clear selections" behaviour without losing the progress of
+ * the game.
  *
  * If the game has already ended (`step === "done"`), the session is returned
  * unchanged — there is nothing to reset. Returns a new `GameSession`; does not
@@ -493,12 +503,13 @@ export function submitTurn(session: GameSession): GameSession {
  */
 export function resetTurn(session: GameSession): GameSession {
   if (session.step === "done") return session;
+  const state = projectState(session.baseState, []);
   return {
     ...session,
-    state: session.baseState,
+    state,
     moves: [],
-    step: "income",
-    legalMoves: legalMovesFor(session.baseState, "income"),
+    step: "recruit",
+    legalMoves: legalMovesFor(state, "recruit"),
     winner: null,
   };
 }

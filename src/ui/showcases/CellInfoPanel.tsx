@@ -1,6 +1,6 @@
 import { CellInfoPanel } from "../components/CellInfoPanel";
 import { selectedCellInfo } from "../viewModels/useGameSession";
-import { standardSetup, createGameSession, selectAction } from "../../core/gameSession";
+import { standardSetup, createGameSession } from "../../core/gameSession";
 
 /**
  * Showcase demos for the `CellInfoPanel` atom component (M10-T3).
@@ -28,8 +28,7 @@ export const HomeTree = () => {
 
 /** A selected friendly buildable hex on the recruit step, listing recruit items. */
 export const BuildableRecruit = () => {
-  let session = createGameSession();
-  session = selectAction(session, { type: "collectIncome" });
+  const session = createGameSession();
   const recruit = session.legalMoves.find((a) => a.type === "recruit");
   const hex = recruit && recruit.type === "recruit" ? recruit.hex : null;
   if (!hex) return <CellInfoPanel info={null} onSelectAction={noop} />;

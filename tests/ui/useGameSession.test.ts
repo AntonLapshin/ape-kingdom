@@ -147,16 +147,18 @@ describe("toGameSessionView", () => {
   it("exposes board, players, current player, legal actions, step, winner", () => {
     const session = {
       state: standardSetup(),
-      step: "income" as const,
+      step: "recruit" as const,
       winner: null,
-      legalMoves: [{ type: "collectIncome" as const }],
+      legalMoves: [{ type: "recruit" as const, kind: "Monkey" as const, hex: { q: 0, r: 0 } }],
     };
     const view = toGameSessionView(session);
     expect(view.board.length).toBeGreaterThan(0);
     expect(view.players).toHaveLength(2);
     expect(view.currentPlayer).toBe("p1");
-    expect(view.legalActions).toEqual([{ type: "collectIncome" }]);
-    expect(view.step).toBe("income");
+    expect(view.legalActions).toEqual([
+      { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } },
+    ]);
+    expect(view.step).toBe("recruit");
     expect(view.winner).toBeNull();
     expect(view.isDone).toBe(false);
   });
@@ -258,62 +260,65 @@ describe("selectedMovement / isMoveTarget", () => {
 /* ------------------------------------------------------------------ */
 
 describe("useGameSession", () => {
-  it("starts with a fresh session on the income step", () => {
+  it("starts with a fresh session on the recruit step (income applied automatically)", () => {
     const { result } = renderHook(() => useGameSession());
     const view: GameSessionView = result.current.view;
-    expect(view.step).toBe("income");
+    expect(view.step).toBe("recruit");
     expect(view.isDone).toBe(false);
     expect(view.currentPlayer).toBe("p1");
     expect(view.winner).toBeNull();
-    // The only legal action on the income step is collect income.
-    expect(view.legalActions).toEqual([{ type: "collectIncome" }]);
+    // Income is collected automatically at the start of the turn, so the
+    // human's turn begins directly on recruit/move actions — never a manual
+    // collect-income step.
+    expect(view.legalActions.some((a) => a.type === "collectIncome")).toBe(false);
+    expect(view.legalActions.some((a) => a.type === "recruit")).toBe(true);
     expect(view.board.length).toBeGreaterThan(0);
     expect(view.players).toHaveLength(2);
+    // The projected start-of-turn state reflects the automatic income (2 base +
+    // 3 from p1's Home Tree = 5 bananas).
+    expect(view.players.find((p) => p.id === "p1")!.bananas).toBe(5);
   });
 
   it("selectAction delegates to the core controller and advances the view", () => {
     const { result } = renderHook(() => useGameSession());
+    // The session starts directly on the recruit step, so pick the first
+    // legal recruit/move action (no manual income step).
+    const first = result.current.view.legalActions[0];
     act(() => {
-      result.current.selectAction({ type: "collectIncome" });
+      result.current.selectAction(first);
     });
-    expect(result.current.view.step).toBe("recruit");
-    // Recruit/move/attack actions are now legal; collectIncome is not.
-    expect(
-      result.current.view.legalActions.some((a) => a.type === "recruit"),
-    ).toBe(true);
+    // Recruiting keeps the recruit step; collectIncome is never legal.
     expect(
       result.current.view.legalActions.some((a) => a.type === "collectIncome"),
     ).toBe(false);
   });
 
-  it("clearActions discards this turn's selections and returns to income", () => {
+  it("clearActions discards this turn's selections and returns to recruit", () => {
     const { result } = renderHook(() => useGameSession());
+    const first = result.current.view.legalActions[0];
     act(() => {
-      result.current.selectAction({ type: "collectIncome" });
+      result.current.selectAction(first);
     });
-    expect(result.current.view.step).toBe("recruit");
     act(() => {
       result.current.clearActions();
     });
-    // Back at the start of the turn: income step, only collect income legal.
-    expect(result.current.view.step).toBe("income");
-    expect(result.current.view.legalActions).toEqual([
-      { type: "collectIncome" },
-    ]);
+    // Back at the start of the turn: recruit step, income already collected,
+    // recruit/move/attack actions legal (no separate income step).
+    expect(result.current.view.step).toBe("recruit");
+    expect(result.current.view.legalActions.some((a) => a.type === "collectIncome")).toBe(false);
+    expect(result.current.view.legalActions.some((a) => a.type === "recruit")).toBe(true);
   });
 
   it("submitTurn runs the AI reply and advances to the next human turn", () => {
     const { result } = renderHook(() => useGameSession());
     act(() => {
-      result.current.selectAction({ type: "collectIncome" });
-    });
-    act(() => {
       result.current.submitTurn();
     });
-    // The next human turn starts on the income step again.
-    expect(result.current.view.step).toBe("income");
+    // The next human turn starts again on the recruit step.
+    expect(result.current.view.step).toBe("recruit");
     expect(result.current.view.isDone).toBe(false);
     expect(result.current.view.currentPlayer).toBe("p1");
+    expect(result.current.view.legalActions.some((a) => a.type === "collectIncome")).toBe(false);
   });
 
   it("starts with no cell selected", () => {
@@ -361,10 +366,8 @@ describe("useGameSession", () => {
 
   it("clicking a reachable target issues a move action and clears the selection", () => {
     const { result } = renderHook(() => useGameSession());
-    // Advance to the recruit step so moves are legal.
-    act(() => {
-      result.current.selectAction({ type: "collectIncome" });
-    });
+    // The session starts directly on the recruit step, so moves are already
+    // legal (income is applied automatically).
     const unitHex = result.current.view.board.find(
       (c) => c.unit && c.unit.owner === "p1",
     )!.hex;
@@ -387,9 +390,6 @@ describe("useGameSession", () => {
 
   it("clicking a non-reachable cell does not issue a move (no illegal move)", () => {
     const { result } = renderHook(() => useGameSession());
-    act(() => {
-      result.current.selectAction({ type: "collectIncome" });
-    });
     const unitHex = result.current.view.board.find(
       (c) => c.unit && c.unit.owner === "p1",
     )!.hex;
@@ -413,45 +413,19 @@ describe("useGameSession", () => {
     expect(original?.unit?.owner).toBe("p1");
   });
 
-  it("does not issue a move on the income step (move not legal yet)", () => {
-    const { result } = renderHook(() => useGameSession());
-    const unitHex = result.current.view.board.find(
-      (c) => c.unit && c.unit.owner === "p1",
-    )!.hex;
-    act(() => {
-      result.current.selectCell(unitHex);
-    });
-    const target = result.current.reachableHexes[0];
-    act(() => {
-      result.current.selectCell(target);
-    });
-    // Move isn't legal on the income step, so no move is issued — the target
-    // is simply selected and the session stays on income.
-    expect(result.current.view.step).toBe("income");
-    expect(result.current.selectedHex).toEqual(target);
-  });
-
   it("marks the view done with a winner when the game ends", () => {
-    // Use a small map so a full (greedy) human-vs-AI game reliably terminates.
+    // Use a small map + seed where a full (greedy) human-vs-AI game reliably
+    // terminates. Income is applied automatically, so the turn begins directly
+    // on recruit/move actions (no manual income step).
     const { result } = renderHook(() =>
       useGameSession(0, { width: 7, height: 7, seed: 0 }),
     );
-    // Force a win by selecting income, then submit with p1 controlling all
-    // Home Trees — the core session resolves victory and marks the turn done.
-    act(() => {
-      result.current.selectAction({ type: "collectIncome" });
-    });
-    // We cannot reach a win through the public API in one turn of the standard
-    // setup, so drive the session to "done" via a game that ends: play many
-    // turns until it ends (the core guarantees a winner).
+    // Drive the session to "done" via a game that ends: on each turn keep
+    // selecting the first legal action until none remain, then submit, until
+    // the core resolves a winner (the core guarantees a winner).
     let guard = 0;
     while (!result.current.view.isDone && guard < 500) {
-      act(() => {
-        if (result.current.view.legalActions.length > 0) {
-          result.current.selectAction(result.current.view.legalActions[0]);
-        }
-      });
-      // Keep selecting while actions remain, then submit.
+      // Keep selecting while actions remain.
       let safety = 0;
       while (result.current.view.legalActions.length > 0 && safety < 128) {
         const action = result.current.view.legalActions[0];

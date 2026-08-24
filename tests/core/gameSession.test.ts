@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { legalActions } from "../../src/core/ai";
+import { aiTurnActions } from "../../src/core/gameLoop";
 import { sameHex } from "../../src/core/game";
 import { createUnit, createSite, createPlayer } from "../../src/core/game";
 import { generateMap, terrainAt, type GameMap } from "../../src/core/mapGenerator";
@@ -177,20 +178,36 @@ describe("chooseHomeHexes", () => {
 /* ------------------------------------------------------------------ */
 
 describe("createGameSession", () => {
-  it("starts on the income step with collectIncome as the only legal move", () => {
+  it("starts on the recruit step (income applied automatically, no income step)", () => {
     const session = createGameSession();
-    expect(session.step).toBe("income");
+    expect(session.step).toBe("recruit");
     expect(session.moves).toEqual([]);
-    expect(session.legalMoves).toEqual([{ type: "collectIncome" }]);
+    // Since income is collected automatically at the start of the turn, the
+    // human's turn begins directly on recruit/move actions — never a manual
+    // collectIncome step.
+    expect(session.legalMoves.some((a) => a.type === "collectIncome")).toBe(false);
+    expect(session.legalMoves.some((a) => a.type === "recruit")).toBe(true);
     expect(session.winner).toBeNull();
+  });
+
+  it("applies income from controlled sites automatically at the start of the turn", () => {
+    const session = createGameSession();
+    // p1 starts with 2 bananas and controls their Home Tree (income 3), so the
+    // projected start-of-turn state has collected the 3 bananas automatically.
+    const setup = standardSetup();
+    expect(session.state.players.p1.bananas).toBe(
+      setup.players.p1.bananas + 3,
+    );
+    expect(session.state.players.p1.bananas).toBe(5);
   });
 
   it("exposes the initial GameState and the current player's legal moves", () => {
     const session = createGameSession();
     expect(session.state.currentPlayer).toBe("p1");
     expect(session.baseState.currentPlayer).toBe("p1");
+    // The base state is the same map/sites; the projected state adds the
+    // automatic turn-start income.
     expect(session.state.sites).toEqual(session.baseState.sites);
-    expect(session.state.players).toEqual(session.baseState.players);
   });
 
   it("resets the current player's units so they may act this turn", () => {
@@ -219,38 +236,22 @@ describe("createGameSession", () => {
 /* ------------------------------------------------------------------ */
 
 describe("selectAction", () => {
-  it("advances from income to recruit after collecting income", () => {
-    let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
-    expect(session.step).toBe("recruit");
-    expect(session.moves).toEqual([{ type: "collectIncome" }]);
-    // The recruit step exposes recruit/move/attack actions (no collectIncome).
-    expect(
-      session.legalMoves.some((a) => a.type === "recruit"),
-    ).toBe(true);
-    expect(
-      session.legalMoves.some((a) => a.type === "collectIncome"),
-    ).toBe(false);
-  });
-
-  it("rejects an action that is not in the current legalMoves", () => {
+  it("does not expose a manual collectIncome action on the recruit step", () => {
     const session = createGameSession();
-    // On the income step, recruiting is not yet legal.
     expect(() =>
-      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
+      selectAction(session, { type: "collectIncome" }),
     ).toThrow(GameSessionError);
     expect(() =>
-      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
+      selectAction(session, { type: "collectIncome" }),
     ).toThrow(/not a legal move/);
   });
 
   it("appends a recruit action and stays in the recruit step", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     const recruit = firstRecruit(session);
     session = selectAction(session, recruit);
     expect(session.step).toBe("recruit");
-    expect(session.moves).toHaveLength(2);
+    expect(session.moves).toHaveLength(1);
     // The recruited unit appears in the projected state.
     expect(
       session.state.units.some(
@@ -260,9 +261,19 @@ describe("selectAction", () => {
     ).toBe(true);
   });
 
+  it("rejects an action that is not in the current legalMoves", () => {
+    const session = createGameSession();
+    // A blind recruit at a non-legal hex is not in legalMoves.
+    expect(() =>
+      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
+    ).toThrow(GameSessionError);
+    expect(() =>
+      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
+    ).toThrow(/not a legal move/);
+  });
+
   it("moves to the movefight step after a move or attack", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     const move = firstMove(session);
     session = selectAction(session, move);
     expect(session.step).toBe("movefight");
@@ -277,14 +288,12 @@ describe("selectAction", () => {
 
   it("allows skipping recruiting by moving straight to the movefight step", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     session = selectAction(session, firstMove(session));
     expect(session.step).toBe("movefight");
   });
 
   it("rejects a recruit after the human has moved/fought", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     // A recruit action that was legal before moving.
     const recruit = firstRecruit(session);
     session = selectAction(session, firstMove(session));
@@ -294,7 +303,6 @@ describe("selectAction", () => {
 
   it("shrinks legalMoves as units act", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     const before = session.legalMoves.filter((a) => a.type === "move").length;
     session = selectAction(session, firstMove(session));
     const after = session.legalMoves.filter((a) => a.type === "move").length;
@@ -323,21 +331,22 @@ describe("selectAction", () => {
       baseState,
       state: baseState,
       moves: [],
-      step: "income",
-      legalMoves: [{ type: "collectIncome" }],
+      step: "recruit",
+      legalMoves: [
+        { type: "attack", attackerHex: { q: 1, r: 0 }, targetHex: { q: 2, r: 0 } },
+      ],
       aiSeed: 0,
       aiOptions: {},
       winner: null,
     };
-    session = selectAction(session, { type: "collectIncome" });
-    // The attack action is legal and can be selected.
+    // The attack action is legal and can be selected directly.
     session = selectAction(session, {
       type: "attack",
       attackerHex: { q: 1, r: 0 },
       targetHex: { q: 2, r: 0 },
     });
     expect(session.step).toBe("movefight");
-    expect(session.moves).toHaveLength(2);
+    expect(session.moves).toHaveLength(1);
     // The Gorilla wins and captures the hex; the Monkey is destroyed.
     expect(session.state.units).toHaveLength(1);
     expect(session.state.units[0].owner).toBe("p1");
@@ -345,7 +354,6 @@ describe("selectAction", () => {
 
   it("rejects actions after the game has ended", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     // Force a win by making p1 control every Home Tree before submitting.
     session = {
       ...session,
@@ -366,7 +374,7 @@ describe("selectAction", () => {
     expect(session.step).toBe("done");
     expect(session.winner).toBe("p1");
     expect(() =>
-      selectAction(session, { type: "collectIncome" }),
+      selectAction(session, { type: "recruit", kind: "Monkey", hex: { q: 0, r: 0 } }),
     ).toThrow(GameSessionError);
   });
 });
@@ -376,20 +384,15 @@ describe("selectAction", () => {
 /* ------------------------------------------------------------------ */
 
 describe("submitTurn", () => {
-  it("rejects ending the turn before collecting income", () => {
-    const session = createGameSession();
-    expect(() => submitTurn(session)).toThrow(GameSessionError);
-    expect(() => submitTurn(session)).toThrow(/collect income/);
-  });
-
   it("runs the AI reply and advances to the next human turn", () => {
-    let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
+    const session = createGameSession();
     const next = submitTurn(session);
-    // The game is not over; the next human turn starts on the income step.
-    expect(next.step).toBe("income");
+    // The game is not over; the next human turn starts on the recruit step
+    // (income collected automatically — no manual collectIncome step).
+    expect(next.step).toBe("recruit");
     expect(next.moves).toEqual([]);
-    expect(next.legalMoves).toEqual([{ type: "collectIncome" }]);
+    expect(next.legalMoves.some((a) => a.type === "collectIncome")).toBe(false);
+    expect(next.legalMoves.some((a) => a.type === "recruit")).toBe(true);
     expect(next.winner).toBeNull();
     // A full round is human + AI + advance back to the human, so the next
     // human turn is again p1 (the human is always the session's current player).
@@ -399,8 +402,7 @@ describe("submitTurn", () => {
 
   it("produces a deterministic result for a given aiSeed", () => {
     const build = () => {
-      let session = createGameSession(7);
-      session = selectAction(session, { type: "collectIncome" });
+      const session = createGameSession(7);
       return submitTurn(session);
     };
     const a = build();
@@ -410,7 +412,6 @@ describe("submitTurn", () => {
 
   it("applies the human's selected moves before the AI reply", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     const recruit = firstRecruit(session);
     session = selectAction(session, recruit);
     const next = submitTurn(session);
@@ -425,7 +426,6 @@ describe("submitTurn", () => {
 
   it("marks the session done with a winner when the game ends", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     // p1 controls every Home Tree, so the human wins before the AI acts.
     session = {
       ...session,
@@ -450,7 +450,6 @@ describe("submitTurn", () => {
 
   it("rejects submitting after the game has already ended", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     session = {
       ...session,
       baseState: {
@@ -476,26 +475,26 @@ describe("submitTurn", () => {
 /* ------------------------------------------------------------------ */
 
 describe("resetTurn", () => {
-  it("discards this turn's selections and returns to the income step", () => {
+  it("discards this turn's selections and returns to the recruit step", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     session = selectAction(session, firstRecruit(session));
     expect(session.step).toBe("recruit");
-    expect(session.moves).toHaveLength(2);
+    expect(session.moves).toHaveLength(1);
 
     const reset = resetTurn(session);
-    expect(reset.step).toBe("income");
+    expect(reset.step).toBe("recruit");
     expect(reset.moves).toEqual([]);
-    expect(reset.legalMoves).toEqual([{ type: "collectIncome" }]);
+    expect(reset.legalMoves.some((a) => a.type === "collectIncome")).toBe(false);
+    expect(reset.legalMoves.some((a) => a.type === "recruit")).toBe(true);
     expect(reset.winner).toBeNull();
-    // The base state (start of the turn) is preserved.
-    expect(reset.state).toEqual(reset.baseState);
+    // The base state (start of the turn) is preserved; the projected state has
+    // the turn's income collected automatically.
     expect(reset.baseState).toEqual(session.baseState);
+    expect(reset.state.players.p1.bananas).toBe(5);
   });
 
   it("returns the session unchanged once the game has ended", () => {
     let session = createGameSession();
-    session = selectAction(session, { type: "collectIncome" });
     session = {
       ...session,
       baseState: {
@@ -529,15 +528,15 @@ describe("full-game simulation via session", () => {
       let session = createGameSession(gameSeed, {}, SIM_MAP);
       let guard = 0;
       while (session.step !== "done" && guard < 200) {
-        // Build the human's turn by selecting legal moves until none remain
-        // (mimicking a UI letting the player act), then submit.
-        session = selectAction(session, { type: "collectIncome" });
-        // Pick a deterministic legal action each iteration (first one).
-        let safety = 0;
-        while (session.legalMoves.length > 0 && safety < 128) {
-          const action = session.legalMoves[0];
+        // Build the human's turn by applying, through the session API
+        // (selectAction), the AI layer's own legal recruit/move/attack sequence
+        // generated on the income-applied start-of-turn state. There is no
+        // manual income step — income is applied automatically at the start of
+        // the turn, and `selectAction` validates every action against the
+        // session's current legalMoves. Then submit the turn and advance.
+        const humanMoves = aiTurnActions(session.state, gameSeed * 1000 + guard);
+        for (const action of humanMoves) {
           session = selectAction(session, action);
-          safety++;
         }
         session = submitTurn(session);
         expect(session.state.players[session.state.currentPlayer]).toBeDefined();
@@ -550,8 +549,7 @@ describe("full-game simulation via session", () => {
   });
 
   it("every exposed legal move is legal to apply to the projected state", () => {
-    let session = createGameSession(3);
-    session = selectAction(session, { type: "collectIncome" });
+    const session = createGameSession(3);
     for (const action of session.legalMoves) {
       // The legal move must be one of the core's enumerated legal actions.
       const all = legalActions(session.state);
@@ -566,8 +564,7 @@ describe("full-game simulation via session", () => {
 
   it("the session never produces an illegal move across many seeds", () => {
     for (let seed = 0; seed < 20; seed++) {
-      let session = createGameSession(seed);
-      session = selectAction(session, { type: "collectIncome" });
+      const session = createGameSession(seed);
       const next = submitTurn(session);
       // The AI's reply via playTurn must not throw and must land on a valid player.
       expect(next.state.players[next.state.currentPlayer]).toBeDefined();

@@ -15,39 +15,36 @@ describe("PlayableGame", () => {
     expect(screen.getByTestId("actions")).toBeInTheDocument();
   });
 
-  it("lets the human collect income, then end the turn, and the AI replies", () => {
+  it("ends the turn (income is collected automatically) and the AI replies", () => {
     render(<PlayableGame />);
-    // The first legal action on the income step is "Collect Income".
-    const incomeButton = screen.getByText("Collect Income");
-    expect(incomeButton).toBeInTheDocument();
-
-    act(() => {
-      fireEvent.click(incomeButton);
-    });
-
-    // After income, recruiting becomes available and the step advances.
-    // ("Recruit / Act" appears in both the status panel and the action controls.)
+    // Income is applied automatically at the start of the turn, so the human's
+    // turn begins directly on recruit/move actions — there is no manual
+    // "Collect Income" step.
     expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
 
     act(() => {
       fireEvent.click(screen.getByTestId("submit-turn"));
     });
 
-    // The AI replies and the next human turn starts on the income step.
-    expect(screen.getByText("Collect Income")).toBeInTheDocument();
+    // The AI replies and the next human turn starts again on the recruit step.
+    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
 
-  it("clear discards this turn's selections back to the income step", () => {
+  it("clear discards this turn's selections back to the recruit step", () => {
     render(<PlayableGame />);
+    // The human starts on the recruit step; select the first legal action.
+    const firstAction = screen.getAllByTestId("action-button")[0];
     act(() => {
-      fireEvent.click(screen.getByText("Collect Income"));
+      fireEvent.click(firstAction);
     });
     expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
     act(() => {
       fireEvent.click(screen.getByTestId("clear-actions"));
     });
-    expect(screen.getByText("Income")).toBeInTheDocument();
+    // Back at the start of the turn: the recruit step (income collected
+    // automatically at the start — no separate income step).
+    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
   });
 
   it("fills the viewport with a non-scrolling on-screen container", () => {
@@ -270,10 +267,8 @@ describe("PlayableGame", () => {
 
   it("lists buildable recruit actions from the panel and wires them to the game", () => {
     render(<PlayableGame />);
-    // Collect income to make recruiting legal.
-    act(() => {
-      fireEvent.click(screen.getByText("Collect Income"));
-    });
+    // The turn starts directly on the recruit step, so recruiting is already
+    // legal (income is collected automatically).
     // Select a buildable hex (one adjacent to p1's Home Tree).
     const cells = screen.getAllByTestId("board-cell");
     // Some neighbouring land hexes of p1's (the human's) Home Tree are legal
@@ -408,18 +403,18 @@ describe("PlayableGame", () => {
 
     const actions = within(screen.getByTestId("actions-overlay"));
     expect(actions.getByTestId("actions")).toBeInTheDocument();
-    expect(actions.getByText("Collect Income")).toBeInTheDocument();
+    // On the recruit step the human has recruit/move/attack action buttons.
+    expect(actions.getAllByTestId("action-button").length).toBeGreaterThan(0);
   });
 
-  it("wires the floating actions overlay to the game: collect income then End Turn and the AI replies (M11-T2)", () => {
+  it("wires the floating actions overlay to the game: End Turn and the AI replies (M11-T2)", () => {
     render(<PlayableGame />);
     const actions = within(screen.getByTestId("actions-overlay"));
-    // Collect income from the floating actions panel, then End Turn — the AI
-    // replies and the next human turn starts back on the income step.
-    act(() => actions.getByText("Collect Income").click());
-    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
+    // Income is collected automatically at the start of the turn, so the human
+    // ends their turn directly — the AI replies and the next human turn starts
+    // back on the recruit step.
     act(() => actions.getByTestId("submit-turn").click());
-    expect(screen.getByText("Collect Income")).toBeInTheDocument();
+    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
 
@@ -548,11 +543,8 @@ describe("PlayableGame", () => {
   it("selects a movable unit via a static pointer click, highlights reachable targets, and pointer-clicking a target moves it (M12-T1)", () => {
     render(<PlayableGame />);
 
-    // Move actions only become legal after collecting income (turn step A), so
-    // click Collect Income first to make the human's units movable this turn.
-    act(() => {
-      fireEvent.click(screen.getByText("Collect Income"));
-    });
+    // The turn begins directly on the recruit step, so the human's units are
+    // already movable this turn (income is collected automatically).
 
     const cells = screen.getAllByTestId("board-cell");
 
@@ -696,12 +688,8 @@ describe("PlayableGame", () => {
   it("regression: selecting a movable unit highlights reachable targets and pointer-clicking one moves it, updating the info panel (M12-T2)", () => {
     render(<PlayableGame />);
 
-    // Make the human's units movable (move actions are only legal after
-    // collecting income).
-    act(() => {
-      fireEvent.click(screen.getByText("Collect Income"));
-    });
-
+    // The turn begins directly on the recruit step, so the human's units are
+    // already movable this turn (income is collected automatically).
     const cells = screen.getAllByTestId("board-cell");
     const unitCell = cells.find(
       (c) =>
