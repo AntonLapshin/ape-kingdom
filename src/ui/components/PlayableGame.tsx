@@ -4,7 +4,7 @@ import { usePan } from "../viewModels/usePan";
 import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
 import { exceedsDragThreshold } from "../viewModels/usePointer";
 import { Board } from "./Board";
-import { ActionControls } from "./ActionControls";
+import { EndTurnButton } from "./EndTurnButton";
 import { StatusPanel } from "./StatusPanel";
 import { CellInfoPanel } from "./CellInfoPanel";
 
@@ -268,24 +268,28 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         className="pointer-events-none absolute bottom-4 left-4 z-10"
       >
         <div className="glass menu-pop pointer-events-auto w-72 rounded-2xl p-4">
-          <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
+          <CellInfoPanel
+            info={selectedCell}
+            legalActions={view.legalActions}
+            onSelectAction={selectAction}
+            onClear={clearActions}
+          />
         </div>
       </div>
 
+      {/* Bottom-right corner: a single beautiful circular End Turn button
+          (M17-T2). The old ActionControls step indicator + action-list
+          panel is gone from this corner (issue 113-2); the non-recruit legal
+          actions now live in the bottom-left cell-info panel so the game stays
+          fully playable. */}
       <div
         data-testid="actions-overlay"
         className="pointer-events-none absolute bottom-4 right-4 z-10"
       >
-        <div className="glass menu-pop pointer-events-auto w-72 rounded-2xl p-4">
-          <ActionControls
-            legalActions={view.legalActions}
-            step={view.step}
-            isDone={view.isDone}
-            onSelect={selectAction}
-            onClear={clearActions}
-            onSubmit={submitTurn}
-          />
-        </div>
+        <EndTurnButton
+          enabled={!view.isDone && view.currentPlayer === "p1"}
+          onSubmit={submitTurn}
+        />
       </div>
     </div>
   );

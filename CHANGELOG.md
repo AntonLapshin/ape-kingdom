@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace the bottom-right `Step: Recruit / Act` indicator and its selectable
+  action-list panel with a single circular "End Turn" button, and stop
+  revealing the AI's banana count (M17-T2, #115). The old `ActionControls`
+  component (and its Showcase) is removed; the bottom-right corner now hosts
+  only the new token-backed circular `EndTurnButton` (a glass disc with an
+  accent gradient, drop shadow and hover lift), which ends the human's turn
+  and is disabled while it is not the human's turn or the game has ended. The
+  turn's non-recruit legal actions (move / attack) and the Clear action — no
+  longer reachable from the bottom-right — were relocated into the bottom-left
+  `CellInfoPanel` so the game stays fully playable. The `StatusPanel` now shows
+  the human player's banana balance but hides the AI's (the AI's footprint is
+  no longer revealed). Pure thin-component/theme change with updated and added
+  component tests; no `src/core` business logic was touched (core stays 100%
+  covered).
+
 - Forbid text selection on the map and replace hover-move with a brighten
   filter (M17-T1, #114). The full-screen board layer, the board container, and
   every hex cell now disable `user-select` (Tailwind `select-none` + CSS

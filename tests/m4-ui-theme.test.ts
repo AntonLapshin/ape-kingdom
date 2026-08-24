@@ -19,7 +19,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 /** The five M4 UI files refactored to semantic theme tokens (issue #32). */
 const M4_UI_FILES = [
   "src/ui/components/Board.tsx",
-  "src/ui/components/ActionControls.tsx",
+  "src/ui/components/CellInfoPanel.tsx",
+  "src/ui/components/EndTurnButton.tsx",
   "src/ui/components/StatusPanel.tsx",
   "src/ui/components/PlayableGame.tsx",
   "src/App.tsx",

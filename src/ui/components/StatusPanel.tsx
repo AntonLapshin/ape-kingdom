@@ -62,7 +62,11 @@ export function StatusPanel({
                 <span className="ml-2 text-xs text-danger">eliminated</span>
               )}
             </span>
-            <span className="text-text-body">🍌 {player.bananas}</span>
+            {/* Show the human's banana balance, but keep the AI's hidden so the
+                AI's footprint is not revealed (M17-T2, issue 113-3). */}
+            {player.id === "p1" && (
+              <span className="text-text-body">🍌 {player.bananas}</span>
+            )}
           </li>
         ))}
       </ul>

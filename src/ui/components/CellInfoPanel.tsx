@@ -1,6 +1,6 @@
 import type { CellInfo } from "../../core/cellInfo";
 import type { GameAction } from "../../core/ai";
-import { SITE_LABELS } from "../presentation";
+import { SITE_LABELS, actionLabel } from "../presentation";
 
 export interface CellInfoPanelProps {
   /**
@@ -9,10 +9,20 @@ export interface CellInfoPanelProps {
    */
   info: CellInfo | null;
   /**
-   * Select one of the listed action items (delegates to the view model / core
-   * `selectAction` flow).
+   * The legal actions the human may select this turn (from the view model).
+   * The move/attack ones (which are not reachable through the selected-cell
+   * recruit section) are listed here so the game stays fully playable now that
+   * the bottom-right action list is replaced by the circular End Turn button
+   * (M17-T2).
+   */
+  legalActions: GameAction[];
+  /**
+   * Select one legal action (delegates to the view model / core `selectAction`
+   * flow).
    */
   onSelectAction: (action: GameAction) => void;
+  /** Discard this turn's selections (delegates to the view model / core). */
+  onClear: () => void;
 }
 
 /**
@@ -28,17 +38,19 @@ export interface CellInfoPanelProps {
  * It is purely presentational — it renders the `info` props it is given and
  * calls `onSelectAction`. No business logic, no hooks, no side effects.
  */
-export function CellInfoPanel({ info, onSelectAction }: CellInfoPanelProps) {
-  if (!info) {
-    return (
-      <div data-testid="cell-info" className="text-sm text-text-muted">
-        Click a hex to inspect it.
-      </div>
-    );
-  }
+export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: CellInfoPanelProps) {
+  const nonRecruit = nonRecruitActions(legalActions);
 
   return (
     <div data-testid="cell-info" className="space-y-2">
+      {!info && (
+        <div className="text-sm text-text-muted">
+          Click a hex to inspect it.
+        </div>
+      )}
+
+      {info && (
+        <>
       {/* The selected hex coordinates and terrain. */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-text-primary">
@@ -104,6 +116,55 @@ export function CellInfoPanel({ info, onSelectAction }: CellInfoPanelProps) {
           Nothing here.
         </p>
       ) : null}
+        </>
+      )}
+
+      {/* The turn's non-recruit legal actions (move / attack / collect-income)
+          plus Clear, moved here from the old bottom-right ActionControls so
+          the game stays fully playable while the bottom-right corner shows
+          only the circular End Turn button (M17-T2). Recruits are
+          already listed per selected hex above, so only the other action types
+          are shown here to avoid duplicate recruit buttons. This section is
+          always visible so the player can reach move/attack actions and Clear
+          even before selecting a hex. */}
+      {nonRecruit.length > 0 && (
+        <div className="space-y-1.5 border-t border-line pt-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Your actions
+          </p>
+          <div className="grid grid-cols-1 gap-1.5">
+            {nonRecruit.map((action, i) => (
+              <button
+                key={i}
+                type="button"
+                data-testid="action-button"
+                onClick={() => onSelectAction(action)}
+                className="btn-action rounded-md border border-line-strong bg-panel px-3 py-1.5 text-left text-xs text-text-primary transition hover:border-accent hover:bg-accent-soft"
+              >
+                {actionLabel(action)}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            data-testid="clear-actions"
+            onClick={onClear}
+            className="btn-action rounded-md border border-line-strong bg-panel px-3 py-1.5 text-xs font-medium text-text-body transition hover:bg-accent-soft"
+          >
+            Clear
+          </button>
+        </div>
+      )}
     </div>
   );
+}
+
+/**
+ * Pure presentation filter: the non-recruit legal actions (move / attack /
+ * collect-income) for the current turn. Recruit actions are excluded because
+ * they are already offered per-selected-hex in the "Recruit here" section
+ * above, so they are not duplicated here. Not game logic — just a UI grouping.
+ */
+function nonRecruitActions(actions: GameAction[]): GameAction[] {
+  return actions.filter((a) => a.type !== "recruit");
 }

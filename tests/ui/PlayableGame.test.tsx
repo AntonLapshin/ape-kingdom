@@ -12,39 +12,37 @@ describe("PlayableGame", () => {
     expect(screen.getByTestId("playable-game")).toBeInTheDocument();
     expect(screen.getByTestId("board")).toBeInTheDocument();
     expect(screen.getByTestId("status")).toBeInTheDocument();
-    expect(screen.getByTestId("actions")).toBeInTheDocument();
+    // The bottom-right corner now hosts the circular End Turn button, and the
+    // turn's legal actions live in the bottom-left cell-info panel (M17-T2).
+    expect(screen.getByTestId("submit-turn")).toBeInTheDocument();
+    expect(screen.getByTestId("cell-info")).toBeInTheDocument();
   });
 
   it("ends the turn (income is collected automatically) and the AI replies", () => {
     render(<PlayableGame />);
     // Income is applied automatically at the start of the turn, so the human's
-    // turn begins directly on recruit/move actions — there is no manual
-    // "Collect Income" step.
-    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
-
+    // turn begins directly on recruit/move actions.
     act(() => {
       fireEvent.click(screen.getByTestId("submit-turn"));
     });
 
-    // The AI replies and the next human turn starts again on the recruit step.
-    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
+    // The AI replies and the next human turn starts again.
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
 
   it("clear discards this turn's selections back to the recruit step", () => {
     render(<PlayableGame />);
-    // The human starts on the recruit step; select the first legal action.
+    // Select the first legal move/attack action (listed in the bottom-left
+    // cell-info panel); then Clear discards it back to the start of the turn.
     const firstAction = screen.getAllByTestId("action-button")[0];
     act(() => {
       fireEvent.click(firstAction);
     });
-    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
     act(() => {
       fireEvent.click(screen.getByTestId("clear-actions"));
     });
-    // Back at the start of the turn: the recruit step (income collected
-    // automatically at the start — no separate income step).
-    expect(screen.getAllByText(/Recruit \/ Act/).length).toBeGreaterThan(0);
+    // Back at the start of the turn.
+    expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
 
   it("fills the viewport with a non-scrolling on-screen container", () => {
@@ -363,17 +361,21 @@ describe("PlayableGame", () => {
   it("keeps the board interactive outside the floating panels (only panels intercept pointer input) (M11-T2)", () => {
     render(<PlayableGame />);
     // The overlay containers are pointer-events-none so the surrounding space
-    // never intercepts the board; only the panel card inside is auto.
+    // never intercepts the board; only the panel card inside is auto. The
+    // bottom-right corner is now the standalone circular End Turn button (a
+    // native <button>, inherently pointer-interactive), so only the glass panel
+    // cards (status + cell-info) carry the explicit pointer-events-auto.
     const overlays = [
       screen.getByTestId("status-overlay"),
       screen.getByTestId("cell-info-overlay"),
-      screen.getByTestId("actions-overlay"),
     ];
     for (const overlay of overlays) {
       expect(overlay.className).toContain("pointer-events-none");
       const card = overlay.firstElementChild as HTMLElement;
       expect(card.className).toContain("pointer-events-auto");
     }
+    // The circular End Turn button is enabled and clickable.
+    expect(screen.getByTestId("submit-turn")).toBeEnabled();
 
     // Panning still works while the floating panels are present: dragging
     // across the viewport translates the board.
@@ -415,11 +417,14 @@ describe("PlayableGame", () => {
     const cellInfo = within(screen.getByTestId("cell-info-overlay"));
     expect(cellInfo.getByTestId("cell-info")).toBeInTheDocument();
     expect(cellInfo.getByText(/click a hex to inspect/i)).toBeInTheDocument();
+    // The turn's legal action buttons now live in the bottom-left cell-info
+    // panel (moved from the bottom-right ActionControls, M17-T2 / #115).
+    expect(cellInfo.getAllByTestId("action-button").length).toBeGreaterThan(0);
 
+    // The bottom-right corner hosts only the circular End Turn button.
     const actions = within(screen.getByTestId("actions-overlay"));
-    expect(actions.getByTestId("actions")).toBeInTheDocument();
-    // On the recruit step the human has recruit/move/attack action buttons.
-    expect(actions.getAllByTestId("action-button").length).toBeGreaterThan(0);
+    expect(actions.getByTestId("submit-turn")).toBeInTheDocument();
+    expect(actions.queryAllByTestId("action-button")).toHaveLength(0);
   });
 
   it("wires the floating actions overlay to the game: End Turn and the AI replies (M11-T2)", () => {
@@ -443,11 +448,12 @@ describe("PlayableGame", () => {
     // translucent fill over the map with a backdrop blur — so the HUD reads as
     // a polished over-map game HUD that stays readable over any terrain. The
     // panels now use the translucent `glass` surface (M14-T1 / #96) so the
-    // glassmorphism effect is actually visible over the map.
+    // glassmorphism effect is actually visible over the map. The bottom-right
+    // corner is now the standalone circular End Turn button (not a panel card),
+    // so only the card-based status and cell-info panels are checked here.
     const overlays = [
       screen.getByTestId("status-overlay"),
       screen.getByTestId("cell-info-overlay"),
-      screen.getByTestId("actions-overlay"),
     ];
     for (const overlay of overlays) {
       const card = overlay.firstElementChild as HTMLElement;
@@ -466,7 +472,6 @@ describe("PlayableGame", () => {
     const overlays = [
       screen.getByTestId("status-overlay"),
       screen.getByTestId("cell-info-overlay"),
-      screen.getByTestId("actions-overlay"),
     ];
     for (const overlay of overlays) {
       const card = overlay.firstElementChild as HTMLElement;
@@ -479,11 +484,11 @@ describe("PlayableGame", () => {
     render(<PlayableGame />);
     // Each floating panel card animates in on mount via the token `menu-pop`
     // animation class defined in the theme styles (M5-T3), giving the HUD a
-    // polished, non-jarring appearance over the map.
+    // polished, non-jarring appearance over the map. The bottom-right End Turn
+    // button is not a panel card, so only the card-based panels are checked.
     const overlays = [
       screen.getByTestId("status-overlay"),
       screen.getByTestId("cell-info-overlay"),
-      screen.getByTestId("actions-overlay"),
     ];
     for (const overlay of overlays) {
       const card = overlay.firstElementChild as HTMLElement;
@@ -822,5 +827,51 @@ describe("PlayableGame", () => {
     staticClick(homeCell);
     expect(homeCell.className).toContain("hex-selected");
     expect(homeCell.dataset.selected).toBe("true");
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* Circular End Turn + hidden AI bananas (M17-T2 / #115)              */
+  /* ------------------------------------------------------------------ */
+
+  it("shows only a circular End Turn button in the bottom-right corner (M17-T2 / #115)", () => {
+    render(<PlayableGame />);
+    const actions = within(screen.getByTestId("actions-overlay"));
+    // The bottom-right corner hosts exactly one control: the circular End Turn
+    // button (issue #113-2).
+    const buttons = actions.getAllByRole("button");
+    expect(buttons).toHaveLength(1);
+    const endTurn = actions.getByTestId("submit-turn");
+    expect(endTurn.className).toContain("rounded-full");
+    // No separate "Step: Recruit / Act" label in the bottom-right corner.
+    expect(actions.queryByText(/Step:/i)).toBeNull();
+    // The moved move/attack action buttons now live in the bottom-left panel.
+    const cellInfo = within(screen.getByTestId("cell-info-overlay"));
+    expect(cellInfo.getAllByTestId("action-button").length).toBeGreaterThan(0);
+  });
+
+  it("enables the End Turn button during the human's turn and disables it when done (M17-T2 / #115)", () => {
+    render(<PlayableGame />);
+    // On the human's turn the button is enabled.
+    expect(screen.getByTestId("submit-turn")).toBeEnabled();
+    // Ending the turn still advances it (the AI replies) and the next human
+    // turn begins, leaving the button enabled again.
+    act(() => fireEvent.click(screen.getByTestId("submit-turn")));
+    expect(screen.getByText(/Current: You/)).toBeInTheDocument();
+    expect(screen.getByTestId("submit-turn")).toBeEnabled();
+  });
+
+  it("does not reveal how many bananas the AI has (M17-T2 / #115)", () => {
+    render(<PlayableGame />);
+    // The status/scores panel lists one entry per player but only the human's
+    // player-score row carries a banana count (issue #113-3).
+    const status = within(screen.getByTestId("status"));
+    const aiRow = status
+      .getAllByTestId("player-score")
+      .find((row) => row.textContent!.includes("AI"))!;
+    expect(aiRow.textContent).not.toMatch(/🍌/);
+    const youRow = status
+      .getAllByTestId("player-score")
+      .find((row) => row.textContent!.includes("You"))!;
+    expect(youRow.textContent).toMatch(/🍌/);
   });
 });
