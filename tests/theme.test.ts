@@ -141,3 +141,52 @@ describe("src/styles/index.css — selected-hex blue border (M13-T3/#90)", () =>
     expect(combined).not.toMatch(/brand-amber/);
   });
 });
+
+describe("src/styles/index.css — frosted-glass HUD surface (M14-T1/#96)", () => {
+  it("defines the translucent frosted-glass `glass` utility backed by glass tokens", () => {
+    // The `glass` surface is the translucent frosted-glass utility the
+    // floating HUD panels use. It must pull its translucent fill, border and
+    // inner highlight from the `--color-glass*` token family (no raw color)
+    // and provide a backdrop blur so the glassmorphism reads over the map.
+    const glass = STYLES.match(/@utility glass\s*\{([^}]*)\}/)?.[1];
+    expect(glass).toBeTruthy();
+    expect(glass).toContain("var(--color-glass)");
+    expect(glass).toContain("var(--color-glass-line)");
+    expect(glass).toContain("var(--color-glass-inner)");
+    expect(glass).toMatch(/backdrop-filter\s*:/);
+    expect(glass).toMatch(/-webkit-backdrop-filter\s*:/);
+  });
+
+  it("uses a translucent glass fill so the glassmorphism is visible over the map", () => {
+    // The HUD needs the frosted-glass effect visible over the map (per the
+    // glass-design polish #94), which requires a genuinely translucent fill
+    // (`glass`) rather than the near-opaque content sheet (`glass-panel`).
+    expect(THEME).toContain("--color-glass: rgba(251, 247, 244, 0.72);");
+    // glass-panel stays available for the heavy primary-content sheet, but
+    // the HUD panels must not use it (they use `glass`, asserted below).
+    expect(THEME).toContain("--color-glass-panel:");
+  });
+
+  it("floats the HUD panels on the token-backed translucent glass surface", () => {
+    // The floating HUD panels (status, cell-info, actions) in PlayableGame
+    // must carry the token-backed `glass` frosted surface — the acceptance
+    // criterion that the panels use a tokenized frosted-glass surface with no
+    // raw hex in the component.
+    const GAME = readFileSync(
+      resolve(ROOT, "src/ui/components/PlayableGame.tsx"),
+      "utf8",
+    );
+    const overlayCards = [
+      /className="glass menu-pop pointer-events-auto rounded-2xl p-4"/g,
+      /className="glass menu-pop pointer-events-auto w-72 rounded-2xl p-4"/g,
+    ];
+    // Three floating HUD panels (status, cell-info, actions) use the glass
+    // surface: count the two distinct glass card class strings.
+    let glassCards = 0;
+    for (const re of overlayCards) {
+      glassCards += (GAME.match(re) || []).length;
+    }
+    expect(glassCards).toBe(3);
+    expect(GAME).not.toMatch(/className="glass-panel/);
+  });
+});

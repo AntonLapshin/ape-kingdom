@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Apply a translucent frosted-glass (glassmorphism) surface to the floating
+  HUD panels so the glass-design polish (#94) reads over the map (M14-T1,
+  #96). The status, cell-info and action panels in `src/ui/components/`
+  (`PlayableGame.tsx`) now use the design-token `glass` surface — a genuinely
+  translucent fill (`--color-glass`) with a `backdrop-filter` blur — instead
+  of the near-opaque `glass-panel` content sheet, so the frosted-glass effect
+  is clearly visible over the board while the token-backed text roles stay
+  legible. This is a pure token/CSS surface change: no `src/core` business
+  logic was touched (core stays 100% covered), no raw hex was added to
+  components, and the panels still pop in with the `menu-pop` animation and
+  stay `pointer-events-auto` so the board remains fully interactive outside
+  them. Added structural tests in `tests/theme.test.ts` asserting the `glass`
+  utility is backed by the `--color-glass*` token family and that the three
+  HUD panels use it (not `glass-panel`), plus a component test asserting the
+  floating panels render on the translucent glass surface.
+
 - Collect banana income automatically at the start of each player's turn so the
   human no longer takes a manual "Collect Income" step (M13-T1, #91). The core
   session controller (`src/core/gameSession.ts`) no longer has an `income` turn
