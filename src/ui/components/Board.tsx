@@ -72,7 +72,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
 
   return (
     <div
-      className="relative mx-auto"
+      className="relative mx-auto select-none"
       style={{ width, height, transform }}
       data-testid="board"
     >

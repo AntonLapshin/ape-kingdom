@@ -228,7 +228,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     >
       {/* Full-screen map: fills the whole viewport, no longer constrained by
           a max-width container or a glass panel wrapper (M11-T1). */}
-      <div data-testid="board-layer" className="absolute inset-0">
+      <div data-testid="board-layer" className="absolute inset-0 select-none">
         <Board
           board={view.board}
           currentPlayer={view.currentPlayer}

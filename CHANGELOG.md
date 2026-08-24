@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Forbid text selection on the map and replace hover-move with a brighten
+  filter (M17-T1, #114). The full-screen board layer, the board container, and
+  every hex cell now disable `user-select` (Tailwind `select-none` + CSS
+  `user-select: none`), so dragging/panning the map never produces an HTML
+  text-selection (blue highlight). Hovering a hex now brightens it with a CSS
+  `filter` (brightness/saturate) instead of the previous translate/scale
+  transform, so cells no longer move or shrink under the pointer — and the
+  highlight applies consistently at the shell to units, sites, and empty
+  terrain cells alike (the `hex-pop` mount transform is left untouched). Pure
+  UI/UX change in the thin components and `src/styles/index.css`; no
+  `src/core` business logic was touched (core stays 100% covered).
+
 ### Added
 
 - Wire the 8 pixel-art game icons into the Atom components (M16-T2, #111).

@@ -58,6 +58,17 @@ describe("PlayableGame", () => {
     expect(game.className).toContain("overflow-hidden");
   });
 
+  it("forbids text selection on the map board layer/board so dragging never selects text (M17-T1/#114)", () => {
+    render(<PlayableGame />);
+    // Both the wrapping board layer and the board root forbid user text
+    // selection, so dragging/panning the map never produces a blue HTML
+    // selection highlight.
+    const boardLayer = screen.getByTestId("board-layer");
+    expect(boardLayer.className).toContain("select-none");
+    const board = screen.getByTestId("board");
+    expect(board.className).toContain("select-none");
+  });
+
   it("lays out the board full-screen without a max-width grid or a wrapping glass panel (M11-T1)", () => {
     const { container } = render(<PlayableGame />);
     const game = screen.getByTestId("playable-game");

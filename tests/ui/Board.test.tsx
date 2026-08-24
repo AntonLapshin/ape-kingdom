@@ -230,4 +230,12 @@ describe("Board", () => {
     const cells = screen.getAllByTestId("board-cell");
     expect(cells[0]).not.toHaveAttribute("role", "button");
   });
+
+  it("forbids text selection on the board so dragging never highlights text (M17-T1/#114)", () => {
+    const { container } = render(<Board board={board} currentPlayer="p1" />);
+    // The board root carries the `select-none` utility so panning the map
+    // never produces an HTML text-selection highlight.
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    expect(boardEl.className).toContain("select-none");
+  });
 });
