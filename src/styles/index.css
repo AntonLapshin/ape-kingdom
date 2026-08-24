@@ -265,6 +265,23 @@
     0 2px 6px var(--color-shadow);
 }
 
+/* SVG glass edge (M18-T3). Drawn along the true hexagon edges inside the
+   SVG hexagon layer, this accent stroke reads as a polished glassy rim: a
+   translucent fill-free outline with a soft inner glow. Token only — no raw
+   color. The `hexagon-svg` layer is fully inset in its box (not clipped by
+   the cell's own clip-path) so the rim stays crisp along every edge even
+   though the cell's background fill is clipped to the hexagon shape. */
+.hexagon-svg {
+  overflow: visible;
+}
+
+.hex-glass-edge {
+  fill: none;
+  stroke: var(--color-glass-line);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 3px var(--color-glass-inner));
+}
+
 /* Current player's territory is visually distinct (accent glow ring). */
 .hex-cell.hex-current {
   box-shadow:

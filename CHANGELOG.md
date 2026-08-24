@@ -42,6 +42,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Rework the hexagon presentation with an SVG render, a tighter inter-cell gap
+  and a glass-edge highlight (M18-T3, #125). Board hexagons (both the board
+  `Cell`s and the `Hexagon` atom used by the bottom-left selection preview) are
+  now drawn with an **SVG approach**: an inline `<svg>` layer renders the
+  pointy-top hexagon as a `<polygon>` (via the new pure `hexagonPoints`
+  presentation helper) and the hexagon's clip-path references that SVG polygon
+  (`clip-path: url(#…)`) instead of a literal CSS `clip-path` polygon string,
+  so the shape no longer relies solely on `HEX_CLIP`. The inter-hexagon gap is
+  tightened from the previous 8px to ~4px (`HEX_GAP = 4`, roughly half of
+  before) so the board reads cleaner and tighter while staying visibly
+  separated by the dark board. Each hexagon now also carries a token-driven
+  **glass edge**: a new `.hex-glass-edge` rule draws a translucent
+  fill-free outline stroke (referencing `--color-glass-line` with a soft
+  `--color-glass-inner` drop-shadow glow) along the true hexagon edges inside
+  the SVG layer, keeping the M17 glass treatment. Ownership tints and terrain
+  colours are unchanged. Pure thin-component/theme/presentation change with
+  added and updated component + presentation + theme tests; no `src/core`
+  business logic was touched (core stays 100% covered).
+
 - Overhaul the cell & terrain visuals (M17-T3, #116). Board hexagons are now
   rendered slightly smaller than their layout box (a new `HEX_GAP` of 8px,
   `CELL_SIZE = HEX_SIZE*2 − HEX_GAP`) so a few pixels of the dark board show

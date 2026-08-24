@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Cell } from "../../src/ui/components/Cell";
 import { gameIcons } from "../../src/assets/icons";
-import { CELL_SIZE, HEX_SIZE } from "../../src/ui/presentation";
+import { CELL_SIZE, HEX_SIZE, hexagonPoints } from "../../src/ui/presentation";
 
 /* ------------------------------------------------------------------ */
 /* Cell atom component                                                 */
@@ -58,12 +58,24 @@ describe("Cell", () => {
     expect(cell.className).toContain("bg-terrain-land");
   });
 
-  it("applies the hex-cell/hex-pop classes and clip-path", () => {
+  it("applies the hex-cell/hex-pop classes and clips to the SVG hexagon silhouette", () => {
     render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
     const cell = screen.getByTestId("board-cell");
     expect(cell.className).toContain("hex-cell");
     expect(cell.className).toContain("hex-pop");
-    expect(cell.style.clipPath).toContain("polygon");
+    // The hexagon silhouette is clipped via the SVG polygon (SVG approach,
+    // M18-T3), not a literal CSS clip-path polygon string.
+    expect(cell.style.clipPath).toMatch(/^url\(#hex-clip-board-0-0\)$/);
+  });
+
+  it("renders the hexagon with an SVG layer + a token glass-edge highlight (M18-T3/#125)", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    // An inline SVG hexagon layer draws the silhouette + glass edge.
+    const svg = screen.getByTestId("board-cell-svg-0-0");
+    expect(svg.tagName).toBe("svg");
+    const edge = svg.querySelector(".hex-glass-edge");
+    expect(edge).not.toBeNull();
+    expect(edge?.getAttribute("points")).toBe(hexagonPoints(CELL_SIZE));
   });
 
   it("adds the hex-current highlight when marked as current territory", () => {

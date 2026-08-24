@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HEX_CLIP } from "../presentation";
+import { hexagonPoints } from "../presentation";
 
 export interface HexagonProps {
   /**
@@ -15,7 +15,8 @@ export interface HexagonProps {
   size?: number;
   /**
    * Whether to apply the glass hexagon treatment (translucent fill + inner
-   * highlight) used on the board's cells (M17-T3). Defaults to true.
+   * highlight + SVG glass edge) used on the board's cells (M17-T3, extended
+   * with an SVG glass-edge highlight in M18-T3, #125). Defaults to true.
    */
   glass?: boolean;
   /** Optional data-testid used by tests (defaults to "hexagon"). */
@@ -23,15 +24,20 @@ export interface HexagonProps {
 }
 
 /**
- * Thin, dumb `Hexagon` atom component (M17-T3).
+ * Thin, dumb `Hexagon` atom component (M17-T3, SVG render in M18-T3, #125).
  *
- * Renders a single pointy-top hexagon (the shared `HEX_CLIP` clip-path) with a
- * token-driven background fill and an optional glass treatment and content
- * slot. It is a pure presentational building block shared by the board ``Cell`
- * (via the glass effect) and by the bottom-left selection panel's "exact
- * selected hexagon" preview. It receives its colour as a plain class string
- * (`bgClass`) from the caller / a pure presentation helper — no hooks, no
- * context, no side effects, no business logic.
+ * Renders a single pointy-top hexagon drawn with an **SVG approach**: an
+ * inline `<svg>` layer draws the hexagon `<polygon>` silhouette (via the pure
+ * `hexagonPoints` helper) and hosts a token-driven glass-edge highlight along
+ * the true hexagon edges, while a clipped content layer carries the token
+ * background fill (`bgClass`), the glass treatment and the content slot. The
+ * hexagon shape no longer relies on a literal CSS `clip-path` polygon — it is
+ * sourced from the SVG polygon (`clip-path: url(#…)`), keeping `bgClass`
+ * Tailwind colouring intact. It is a pure presentational building block shared
+ * by the board `Cell` and by the bottom-left selection panel's "exact selected
+ * hexagon" preview. It receives its colour as a plain class string (`bgClass`)
+ * from the caller / a pure presentation helper — no hooks, no context, no side
+ * effects, no business logic.
  */
 export function Hexagon({
   bgClass,
@@ -40,6 +46,8 @@ export function Hexagon({
   glass = true,
   testId = "hexagon",
 }: HexagonProps) {
+  const clipId = `hex-clip-${testId}`;
+  const points = hexagonPoints(size);
   return (
     <div
       data-testid={testId}
@@ -49,9 +57,25 @@ export function Hexagon({
       style={{
         width: size,
         height: size,
-        clipPath: HEX_CLIP,
+        clipPath: `url(#${clipId})`,
       }}
     >
+      {/* SVG hexagon layer: draws the silhouette polygon + the glass-edge
+          highlight along the true hexagon edges (M18-T3, #125). */}
+      <svg
+        data-testid={`${testId}-svg`}
+        className="hexagon-svg pointer-events-none absolute inset-0 h-full w-full"
+        viewBox={`0 0 ${size} ${size}`}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <polygon points={points} />
+          </clipPath>
+        </defs>
+        {glass && <polygon points={points} className="hex-glass-edge" />}
+      </svg>
       {children}
     </div>
   );

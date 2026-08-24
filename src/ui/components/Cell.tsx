@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { PlayerId } from "../../core/game";
 import type { Terrain } from "../../core/mapGenerator";
 import { gameIcons } from "../../assets/icons";
-import { CELL_SIZE, HEX_CLIP, TERRAIN_BG } from "../presentation";
+import { CELL_SIZE, hexagonPoints, TERRAIN_BG } from "../presentation";
 
 export interface CellProps {
   /** The axial hex coordinates (q, r) of this cell. */
@@ -59,8 +59,9 @@ const IS_MOUNTAIN: Record<Terrain, boolean> = {
  * Renders a single pointy-top hexagon board cell, extracted from the inline
  * hex rendering previously in `Board.tsx`. It is purely presentational — it
  * receives the cell's hex coords, terrain, owner, position, and highlight
- * state as props and renders the hexagon shell (clip-path, token terrain
- * background, border, `hex-cell`/`hex-pop`/`hex-current` classes,
+ * state as props and renders the hexagon shell (SVG hexagon silhouette +
+ * glass-edge highlight (M18-T3, #125), token terrain background, border,
+ * `hex-cell`/`hex-pop`/`hex-current` classes,
  * `data-testid="board-cell"` / `data-hex` / `data-owner` / `data-terrain`
  * attributes) with any content passed via the `children` slot. No hooks, no
  * context, no side effects, no business logic.
@@ -83,6 +84,8 @@ export function Cell({
   // The view-model-derived owner tint overrides the terrain background for
   // owned territories; neutral cells keep their terrain colour.
   const bg = ownerBg ?? TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
+  const clipId = `hex-clip-board-${q}-${r}`;
+  const points = hexagonPoints(CELL_SIZE);
   return (
     <div
       role={onSelect ? "button" : undefined}
@@ -114,10 +117,26 @@ export function Cell({
         height: CELL_SIZE,
         left: x,
         top: y,
-        clipPath: HEX_CLIP,
+        clipPath: `url(#${clipId})`,
         animationDelay: `${animationDelay}ms`,
       }}
     >
+      {/* SVG hexagon layer: draws the hexagon silhouette + the token glass-edge
+          highlight along the true hexagon edges (M18-T3, #125). */}
+      <svg
+        data-testid={`board-cell-svg-${q}-${r}`}
+        className="hexagon-svg pointer-events-none absolute inset-0 h-full w-full"
+        viewBox={`0 0 ${CELL_SIZE} ${CELL_SIZE}`}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <polygon points={points} />
+          </clipPath>
+        </defs>
+        <polygon points={points} className="hex-glass-edge" />
+      </svg>
       {IS_MOUNTAIN[terrain] && (
         <img
           src={gameIcons.mountain}

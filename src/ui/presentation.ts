@@ -101,11 +101,13 @@ export function actionLabel(action: GameAction): string {
 export const HEX_SIZE = 44;
 
 /**
- * The visible gap (in px) left between adjacent board hexagons (M17-T3, #116).
- * The rendered hexagon is this many pixels smaller than its layout box so a
- * few pixels of the (dark) board show through between neighbouring cells.
+ * The visible gap (in px) left between adjacent board hexagons (M17-T3, #116,
+ * tightened M18-T3, #125). The rendered hexagon is this many pixels smaller
+ * than its layout box so a few pixels of the (dark) board show through between
+ * neighbouring cells. M18-T3 halves the original 8px gap to ~4px so the board
+ * reads cleaner and tighter while the SVG glass edges still separate cells.
  */
-export const HEX_GAP = 8;
+export const HEX_GAP = 4;
 
 /**
  * The rendered width/height of each board cell's bounding box (px). The layout
@@ -114,7 +116,39 @@ export const HEX_GAP = 8;
  */
 export const CELL_SIZE = HEX_SIZE * 2 - HEX_GAP;
 
-/** A CSS clip-path polygon that draws a pointy-top hexagon. */
+/**
+ * The proportional corner ratios of a pointy-top hexagon inscribed in a
+ * square box (M18-T3, #125). These mirror the legacy `HEX_CLIP` polygon
+ * percentages, expressed as [x, y] fractions of the box so they can generate
+ * an SVG polygon for any size.
+ */
+const HEXAGON_CORNERS: ReadonlyArray<readonly [number, number]> = [
+  [0.5, 0],
+  [0.93, 0.25],
+  [0.93, 0.75],
+  [0.5, 1],
+  [0.07, 0.75],
+  [0.07, 0.25],
+];
+
+/**
+ * The SVG `points` string for a pointy-top hexagon inscribed in a
+ * `size`×`size` box (M18-T3, #125). Pure geometry — used to draw the hexagon
+ * silhouette as an SVG `<polygon>` (and its clip-path) instead of a literal
+ * CSS `clip-path` string, so the hexagon is rendered with an SVG approach and
+ * the glass-edge highlight can be drawn crisply along the true hexagon edges.
+ */
+export function hexagonPoints(size: number): string {
+  return HEXAGON_CORNERS.map(
+    ([x, y]) => `${(x * size).toFixed(1)},${(y * size).toFixed(1)}`,
+  ).join(" ");
+}
+
+/**
+ * Legacy CSS clip-path polygon that draws a pointy-top hexagon. Retained only
+ * for backward-compatibility of the exported API; components now render the
+ * hexagon with the SVG approach (`hexagonPoints`) rather than this string.
+ */
 export const HEX_CLIP =
   "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)";
 /**
