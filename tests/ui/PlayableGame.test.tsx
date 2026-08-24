@@ -422,11 +422,13 @@ describe("PlayableGame", () => {
   /* Theme-polished floating full-screen UI (M11-T3 / #76)             */
   /* ------------------------------------------------------------------ */
 
-  it("styles each floating panel card with the token glass-panel HUD surface (M11-T3)", () => {
+  it("styles each floating panel card with the frosted-glass HUD surface (M11-T3 / M14-T1)", () => {
     render(<PlayableGame />);
-    // Each floating panel card is a `glass-panel` surface — the design-token
-    // backdrop-blur + shadow HUD surface — so the panels read as a polished
-    // over-map game HUD that stays readable over any terrain.
+    // Each floating panel card is a design-token frosted-glass surface — a
+    // translucent fill over the map with a backdrop blur — so the HUD reads as
+    // a polished over-map game HUD that stays readable over any terrain. The
+    // panels now use the translucent `glass` surface (M14-T1 / #96) so the
+    // glassmorphism effect is actually visible over the map.
     const overlays = [
       screen.getByTestId("status-overlay"),
       screen.getByTestId("cell-info-overlay"),
@@ -434,9 +436,27 @@ describe("PlayableGame", () => {
     ];
     for (const overlay of overlays) {
       const card = overlay.firstElementChild as HTMLElement;
-      expect(card.className).toContain("glass-panel");
+      // A token-backed frosted-glass utility (translucent fill + blur).
+      expect(card.className).toMatch(/\bglass(?:-\w+)?\b/);
       // Rounded HUD card (blur + shadow surface with rounded corners).
       expect(card.className).toContain("rounded-2xl");
+    }
+  });
+
+  it("floats the HUD panels on a translucent glass surface, not a near-opaque sheet (M14-T1)", () => {
+    render(<PlayableGame />);
+    // The M14 glass-design polish (#96) wants the frosted-glass effect visible
+    // over the map, so the HUD panels must use the translucent `glass` surface
+    // rather than the near-opaque `glass-panel` content sheet.
+    const overlays = [
+      screen.getByTestId("status-overlay"),
+      screen.getByTestId("cell-info-overlay"),
+      screen.getByTestId("actions-overlay"),
+    ];
+    for (const overlay of overlays) {
+      const card = overlay.firstElementChild as HTMLElement;
+      expect(card.className).toContain("glass");
+      expect(card.className).not.toContain("glass-panel");
     }
   });
 

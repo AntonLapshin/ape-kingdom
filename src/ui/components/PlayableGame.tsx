@@ -67,6 +67,13 @@ export interface PlayableGameProps {
  *    them and pan/zoom/selection/move remain fully interactive outside the
  *    panels.
  *
+ * For the frosted-glass HUD (M14-T1 / #96):
+ *  - The floating HUD panels (status, cell-info, actions) now use the
+ *    translucent `glass` surface instead of the near-opaque `glass-panel`,
+ *    so the glassmorphism (translucent fill + backdrop blur) is clearly
+ *    visible over the map while the token-backed text roles stay legible.
+ *    This is a pure token/CSS surface change — no business logic touched.
+ *
  * This is the only "stateful" layer in the UI (it calls the view-model hooks);
  * the components it renders stay pure and dumb. The pointer/wheel wiring here
  * is thin view glue (accumulating drag deltas / wheel deltas into the view
@@ -242,7 +249,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         data-testid="status-overlay"
         className="pointer-events-none absolute left-4 top-4 z-10"
       >
-        <div className="glass-panel menu-pop pointer-events-auto rounded-2xl p-4">
+        <div className="glass menu-pop pointer-events-auto rounded-2xl p-4">
           <h2 className="mb-2 text-lg font-bold text-text-primary">
             Ape Kingdom
           </h2>
@@ -260,7 +267,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         data-testid="cell-info-overlay"
         className="pointer-events-none absolute bottom-4 left-4 z-10"
       >
-        <div className="glass-panel menu-pop pointer-events-auto w-72 rounded-2xl p-4">
+        <div className="glass menu-pop pointer-events-auto w-72 rounded-2xl p-4">
           <CellInfoPanel info={selectedCell} onSelectAction={selectAction} />
         </div>
       </div>
@@ -269,7 +276,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         data-testid="actions-overlay"
         className="pointer-events-none absolute bottom-4 right-4 z-10"
       >
-        <div className="glass-panel menu-pop pointer-events-auto w-72 rounded-2xl p-4">
+        <div className="glass menu-pop pointer-events-auto w-72 rounded-2xl p-4">
           <ActionControls
             legalActions={view.legalActions}
             step={view.step}
