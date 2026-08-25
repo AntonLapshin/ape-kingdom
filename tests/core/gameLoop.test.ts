@@ -317,12 +317,13 @@ describe("applyHumanMoves", () => {
       players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
       currentPlayer: "p1",
     });
-    // Out-of-range move (distance 2 > movement 1) throws a MoveError.
+    // Out-of-range move (distance 2 > standard movement 1, with no owned-land
+    // route to the target) throws a MoveError.
     expect(() =>
       applyHumanMoves(state, [
         { type: "move", unitHex: { q: 1, r: 0 }, targetHex: { q: 3, r: 0 } },
       ]),
-    ).toThrow(/out-of-range|exceeds movement/);
+    ).toThrow(/out-of-range|standard movement|owned-land/);
   });
 
   it("returns an unchanged state for an empty move list", () => {

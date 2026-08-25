@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { Site, Player, GameState, ApeUnit, ApeKind } from "../../src/core/game";
-import { generateMap } from "../../src/core/mapGenerator";
+import type { Site, Player, GameState, ApeUnit, ApeKind, Hex } from "../../src/core/game";
+import { generateMap, type GameMap } from "../../src/core/mapGenerator";
 import {
   APE_TYPES,
   APE_KINDS,
@@ -33,6 +33,10 @@ import {
   eliminatePlayers,
   checkVictory,
   resolveVictory,
+  OWN_LAND_RANGE,
+  isOwnedBy,
+  bfsReachable,
+  reachableForUnit,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -489,6 +493,265 @@ describe("hexDistance", () => {
   });
 });
 
+/* ------------------------------------------------------------------ */
+/* Owned-land movement (M20-T3, #148)                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A flat, all-land map for deterministic owned-land movement tests. Every
+ * cell in a wide band is `land`, so no water/mountain interferes with the
+ * BFS traversal unless the test explicitly introduces one.
+ */
+function flatMap(width = 12, height = 12): GameMap {
+  const cells: GameMap["cells"] = [];
+  for (let q = 0; q < width; q++) {
+    for (let r = 0; r < height; r++) {
+      cells[q * height + r] = { hex: { q, r }, terrain: "land" };
+    }
+  }
+  return { width, height, cells };
+}
+
+/** A gameState variant built on the flat all-land map. */
+function flatState(opts: {
+  sites?: Site[];
+  units?: ApeUnit[];
+  currentPlayer?: string;
+} = {}): GameState {
+  return {
+    sites: opts.sites ?? [],
+    units: opts.units ?? [],
+    players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+    currentPlayer: opts.currentPlayer ?? "p1",
+    turnOrder: ["p1", "p2"],
+    winner: null,
+    map: flatMap(),
+  };
+}
+
+describe("OWN_LAND_RANGE", () => {
+  it("is 4 (up to 4 hexes through own land)", () => {
+    expect(OWN_LAND_RANGE).toBe(4);
+  });
+});
+
+describe("isOwnedBy", () => {
+  it("returns true for a site owned by the player's kingdom", () => {
+    const state = flatState({ sites: [createSite("Grove", 4, 3, "p1")] });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(true);
+  });
+
+  it("returns true for a hex occupied by the player's unit", () => {
+    const state = flatState({ units: [createUnit("Monkey", "p1", { q: 4, r: 3 })] });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(true);
+  });
+
+  it("returns false for a site owned by an enemy kingdom", () => {
+    const state = flatState({ sites: [createSite("Grove", 4, 3, "p2")] });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(false);
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p2")).toBe(true);
+  });
+
+  it("returns false for a neutral site", () => {
+    const state = flatState({ sites: [createSite("Grove", 4, 3)] });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(false);
+  });
+
+  it("returns false for a site owned by the enemy that also holds the mover's unit (site owner wins)", () => {
+    // Per the territory model, a site owned by p2 on which a p1 unit stands
+    // is owned by p2 (site owner wins over a unit's owner).
+    const state = flatState({
+      sites: [createSite("Grove", 4, 3, "p2")],
+      units: [createUnit("Monkey", "p1", { q: 4, r: 3 })],
+    });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(false);
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p2")).toBe(true);
+  });
+
+  it("returns false for an empty hex with no site and no unit", () => {
+    expect(isOwnedBy(flatState(), { q: 4, r: 3 }, "p1")).toBe(false);
+  });
+});
+
+describe("bfsReachable", () => {
+  it("collects distinct hexes within range, excluding the origin", () => {
+    const result = bfsReachable({ q: 3, r: 3 }, 1, new Set(), () => true);
+    expect(result).toHaveLength(6);
+    expect(result.some((h) => sameHex(h, { q: 3, r: 3 }))).toBe(false);
+  });
+
+  it("respects range (reaches distance-2 hexes but not beyond)", () => {
+    const result = bfsReachable({ q: 3, r: 3 }, 2, new Set(), () => true);
+    expect(result.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(true);
+    expect(result.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+  });
+
+  it("does not move through or onto occupied hexes", () => {
+    const occupied = new Set(["4,3"]);
+    const result = bfsReachable({ q: 3, r: 3 }, 2, occupied, () => true);
+    expect(result.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(false);
+    expect(result.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+  });
+
+  it("only traverses passable hexes", () => {
+    const passable = (hex: Hex) => !sameHex(hex, { q: 4, r: 3 });
+    const result = bfsReachable({ q: 3, r: 3 }, 2, new Set(), passable);
+    expect(result.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(false);
+    expect(result.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+  });
+});
+
+describe("reachableForUnit", () => {
+  /** A p1 unit at (3,3) on a flat map; p1-owned sites along the east row. */
+  function reachableState(opts: {
+    ownedRow?: Array<[number, number]>;
+    unit?: ApeUnit;
+    units?: ApeUnit[];
+    sites?: Site[];
+    map?: GameMap;
+  } = {}): GameState {
+    const row = opts.ownedRow ?? [
+      [4, 3],
+      [5, 3],
+      [6, 3],
+      [7, 3],
+    ];
+    const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = opts.map ? flatState({ units: [unit] }) : flatState({ units: [unit] });
+    return {
+      ...state,
+      map: opts.map ?? state.map,
+      sites: opts.sites ?? row.map(([q, r]) => createSite("Grove", q, r, "p1")),
+    };
+  }
+
+  it("grants the extended own-land range (up to 4) through fully-owned land", () => {
+    const state = reachableState();
+    const reachable = reachableForUnit(state, state.units[0]);
+    // The unit may move up to 4 hexes east through its own land: (4,3)…(7,3).
+    for (let d = 1; d <= OWN_LAND_RANGE; d++) {
+      expect(
+        reachable.some((h) => sameHex(h, { q: 3 + d, r: 3 })),
+      ).toBe(true);
+    }
+    // But not beyond OWN_LAND_RANGE.
+    expect(reachable.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
+  });
+
+  it("caps at the standard range when an intermediate cell is not owned", () => {
+    // (5,3) is neutral — the own-land route east stops before it, so the
+    // unit may only reach the owned cells up to (4,3) via own land plus the
+    // standard single-step neighbours.
+    const state = reachableState({
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3), // neutral gap
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    // Owned cell before the gap is reachable.
+    expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    // Cells beyond the neutral gap are NOT reachable via own land.
+    expect(reachable.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("caps at the standard range when the destination is not owned", () => {
+    // The route through (4,3),(5,3),(6,3) is owned but the destination (7,3)
+    // is neutral — the final step off own land is not allowed, so the unit
+    // may move up to (6,3) but not (7,3).
+    const state = reachableState({
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p1"),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3), // neutral destination
+      ],
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    expect(reachable.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(true);
+    expect(reachable.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("does not allow the extended range into enemy-owned land", () => {
+    // (4,3) is owned by p1, (5,3)… owned by p2 — the own-land route may not
+    // enter enemy territory.
+    const state = reachableState({
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p2"),
+        createSite("Grove", 6, 3, "p2"),
+        createSite("Grove", 7, 3, "p2"),
+      ],
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(reachable.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+  });
+
+  it("never allows moving onto or through a mountain cell", () => {
+    // Owned row (4,3),(5,3),(6,3),(7,3) but (5,3) is a mountain.
+    const map = flatMap();
+    map.cells[5 * map.height + 3] = { hex: { q: 5, r: 3 }, terrain: "mountain" };
+    const state = reachableState({
+      map,
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p1"),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(reachable.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("never allows moving onto or through a water cell", () => {
+    // Owned row (4,3),(5,3),(6,3),(7,3) but (5,3) is water.
+    const map = flatMap();
+    map.cells[5 * map.height + 3] = { hex: { q: 5, r: 3 }, terrain: "water" };
+    const state = reachableState({
+      map,
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p1"),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(reachable.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("does not cross a hex occupied by another unit", () => {
+    // A p2 unit on the owned (5,3) blocks both entry and passing through.
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const blocker = createUnit("Monkey", "p2", { q: 5, r: 3 });
+    const state = flatState({
+      units: [mover, blocker],
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p1"),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    const reachable = reachableForUnit(state, mover);
+    expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(reachable.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+  });
+});
+
 describe("moveUnit", () => {
   /** A p1 unit at (2,1) that has not yet acted, with a neutral Grove at (3,1). */
   function moveState(opts: {
@@ -688,6 +951,157 @@ describe("moveUnit", () => {
     expect(state.units[0].hex).toEqual({ q: 2, r: 1 });
     expect(state.units[0].hasActed).toBe(false);
     expect(state.sites[0].owner).toBeNull();
+  });
+
+  /* ----- Owned-land range (M20-T3, #148) ----- */
+
+  it("allows moving up to OWN_LAND_RANGE hexes through fully-owned land", () => {
+    // A p1 unit at (3,3) with p1-owned Groves along the row (4,3)…(7,3): a
+    // move 4 hexes east through own land is legal.
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = flatState({
+      units: [mover],
+      sites: [4, 5, 6, 7].map((q) => createSite("Grove", q, 3, "p1")),
+    });
+    const next = moveUnit(state, mover, { q: 7, r: 3 });
+    expect(next.units[0].hex).toEqual({ q: 7, r: 3 });
+    expect(next.units[0].hasActed).toBe(true);
+    // A 3-hex move also works.
+    expect(moveUnit(state, mover, { q: 6, r: 3 }).units[0].hex).toEqual({ q: 6, r: 3 });
+  });
+
+  it("rejects a move beyond OWN_LAND_RANGE even through fully-owned land", () => {
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = flatState({
+      units: [mover],
+      // Owned row continues past (7,3)
+      sites: [4, 5, 6, 7, 8].map((q) => createSite("Grove", q, 3, "p1")),
+    });
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 8, r: 3 }); // distance 5 > 4
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("out-of-range");
+  });
+
+  it("rejects a distance-4 move when an intermediate cell is not owned", () => {
+    // (5,3) is neutral, so the own-land route east is blocked — the unit
+    // cannot jump to (7,3).
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = flatState({
+      units: [mover],
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3), // neutral gap
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 7, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("out-of-range");
+    // The unit stays put — it has not jumped across the gap.
+    expect(state.units[0].hex).toEqual({ q: 3, r: 3 });
+  });
+
+  it("rejects a distance-4 move when the destination is not owned", () => {
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = flatState({
+      units: [mover],
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p1"),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3), // neutral destination
+      ],
+    });
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 7, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("out-of-range");
+  });
+
+  it("rejects a distance-4 move through an enemy-owned cell", () => {
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = flatState({
+      units: [mover],
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p2"),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 7, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("out-of-range");
+  });
+
+  it("rejects a distance-4 move that crosses a water cell", () => {
+    // A p1 unit at (4,3) with (5,3) water on an otherwise-owned row.
+    const mover = createUnit("Monkey", "p1", { q: 4, r: 3 }, false);
+    const map = flatMap();
+    map.cells[5 * map.height + 3] = { hex: { q: 5, r: 3 }, terrain: "water" };
+    const state = {
+      ...flatState({
+        units: [mover],
+        sites: [4, 5, 6, 7].map((q) => createSite("Grove", q, 3, "p1")),
+      }),
+      map,
+    };
+    // Moving onto the adjacent water cell is rejected (M20-T1 defence).
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 5, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("water");
+    // And the longer move across the water never succeeds.
+    expect(() => moveUnit(state, mover, { q: 7, r: 3 })).toThrowError(MoveError);
+  });
+
+  it("rejects a distance-4 move that crosses a mountain cell", () => {
+    // A p1 unit at (4,3) with (5,3) mountain on an otherwise-owned row.
+    const mover = createUnit("Monkey", "p1", { q: 4, r: 3 }, false);
+    const map = flatMap();
+    map.cells[5 * map.height + 3] = { hex: { q: 5, r: 3 }, terrain: "mountain" };
+    const state = {
+      ...flatState({
+        units: [mover],
+        sites: [4, 5, 6, 7].map((q) => createSite("Grove", q, 3, "p1")),
+      }),
+      map,
+    };
+    // Moving onto the adjacent mountain cell is rejected (M20-T2 defence).
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 5, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("mountain");
+    // And the longer move across the mountain never succeeds.
+    expect(() => moveUnit(state, mover, { q: 7, r: 3 })).toThrowError(MoveError);
   });
 });
 

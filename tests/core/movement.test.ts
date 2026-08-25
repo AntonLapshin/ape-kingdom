@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { standardSetup } from "../../src/core/gameSession";
 import { movementInfo } from "../../src/core/movement";
-import { sameHex, createUnit, moveUnit, adjacentHexes, type GameState, type Hex } from "../../src/core/game";
+import { sameHex, createUnit, createSite, createPlayer, moveUnit, adjacentHexes, type GameState, type Hex } from "../../src/core/game";
+import type { GameMap } from "../../src/core/mapGenerator";
 
 /**
  * Reset the current player's units so they may act this turn (mirrors the
@@ -116,5 +117,35 @@ describe("movementInfo", () => {
     const info = movementInfo(newState, origin.hex);
     expect(info.movable).toBe(true);
     expect(info.reachable).toEqual([]);
+  });
+
+  it("highlights the extended owned-land range for a unit moving through its own territory (#148)", () => {
+    // A p1 unit at (3,3) on a flat all-land map with p1-owned Groves along the
+    // east row (4,3)…(7,3). The UI highlight (via movementInfo → legalActions)
+    // must include cells up to OWN_LAND_RANGE away through that own land.
+    const width = 10;
+    const height = 10;
+    const cells: GameMap["cells"] = [];
+    for (let q = 0; q < width; q++) {
+      for (let r = 0; r < height; r++) {
+        cells[q * height + r] = { hex: { q, r }, terrain: "land" };
+      }
+    }
+    const state: GameState = {
+      sites: [4, 5, 6, 7].map((q) => createSite("Grove", q, 3, "p1")),
+      units: [createUnit("Monkey", "p1", { q: 3, r: 3 }, false)],
+      players: { p1: createPlayer("p1"), p2: createPlayer("p2") },
+      currentPlayer: "p1",
+      turnOrder: ["p1", "p2"],
+      winner: null,
+      map: { width, height, cells },
+    };
+    const info = movementInfo(state, { q: 3, r: 3 });
+    expect(info.movable).toBe(true);
+    for (const q of [4, 5, 6, 7]) {
+      expect(info.reachable.some((h) => sameHex(h, { q, r: 3 }))).toBe(true);
+    }
+    // Beyond the own-land range is never highlighted.
+    expect(info.reachable.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
   });
 });
