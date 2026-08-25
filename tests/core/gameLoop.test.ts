@@ -484,7 +484,11 @@ describe("full-game simulation", () => {
     for (let gameSeed = 0; gameSeed < 20; gameSeed++) {
       let state = standardSetup();
       let turn = 0;
-      while (!state.winner && turn < 200) {
+      // Persistent site-less territory (M24-T2, #160) makes games resolve
+      // slightly slower (owned cells are retained, so decisive captures take
+      // longer), but they still terminate — a 300-turn cap comfortably bounds
+      // every seeded game while proving termination.
+      while (!state.winner && turn < 300) {
         // Generate the human's full turn (recruit/move/fight) via the AI layer.
         const humanMoves = aiTurnActions(state, gameSeed * 1000 + turn);
         expect(() => {

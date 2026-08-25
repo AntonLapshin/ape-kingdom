@@ -59,9 +59,15 @@ export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: C
    */
   const recruitActions = legalRecruitActions(info?.actions ?? [], legalActions);
   // The selected hexagon's owner: an owned site persists as a territory even
-  // when empty, so the site owner always wins; a unit's owner only colours a
-  // site-less hex (M19-T1). A hex with neither is neutral.
-  const hexagonOwner = cellOwner(info?.site ?? null, info?.unit ?? null);
+  // when empty, so the site owner always wins; else persistent site-less
+  // territory (retained after a unit vacates, M24-T2 / issue 160) colours the
+  // hex; a unit's owner only colours a site-less hex that is not yet recorded
+  // as territory (M19-T1). A hex with none of these is neutral.
+  const hexagonOwner = cellOwner(
+    info?.site ?? null,
+    info?.unit ?? null,
+    info?.territoryOwner ?? null,
+  );
 
   return (
     <div data-testid="cell-info" className="space-y-2">

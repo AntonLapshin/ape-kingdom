@@ -117,6 +117,26 @@ describe("cellOwner", () => {
     expect(cellOwner(neutral, p1)).toBe("p1");
     expect(cellOwner(neutral, null)).toBeNull();
   });
+
+  it("persistent site-less territory colours an empty hex", () => {
+    // A site-less, empty cell stays owned by its recorded territory after the
+    // unit leaves (M24-T2, #160).
+    expect(cellOwner(null, null, "p1")).toBe("p1");
+    expect(cellOwner(null, null, "p2")).toBe("p2");
+  });
+
+  it("the territory owner wins over the standing unit's owner", () => {
+    // Even with a unit standing on the site-less hex, the recorded territory
+    // (which persists after the unit leaves) colours the cell.
+    expect(cellOwner(null, p2, "p1")).toBe("p1");
+    expect(cellOwner(null, p1, "p2")).toBe("p2");
+  });
+
+  it("a site owner always wins over territory", () => {
+    // The site owner is the strongest precedence — it beats recorded territory.
+    expect(cellOwner(p2, null, "p1")).toBe("p2");
+    expect(cellOwner(p1, null, "p2")).toBe("p1");
+  });
 });
 
 /* ------------------------------------------------------------------ */
