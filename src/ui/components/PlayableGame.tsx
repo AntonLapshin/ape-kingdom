@@ -292,13 +292,22 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         data-testid="actions-overlay"
         className="pointer-events-none absolute bottom-4 right-4 z-10"
       >
-        <EndTurnButton
-          enabled={isEndTurnEnabled({
-            currentPlayer: view.currentPlayer,
-            isDone: view.isDone,
-          })}
-          onSubmit={submitTurn}
-        />
+        {/* The circular End Turn button (M17-T2) is the actions overlay's own
+            interactive control, so unlike the surrounding overlay space it
+            must opt back in to pointer events (pointer-events-auto). Without
+            this it inherits the overlay's pointer-events: none and clicks
+            pass straight through it, so the turn would never end (M25-T1 -
+            End Turn interactivity fix). Matching the status/cell-info panel
+            cards, the button's wrapper is the clickable region. */}
+        <div className="pointer-events-auto">
+          <EndTurnButton
+            enabled={isEndTurnEnabled({
+              currentPlayer: view.currentPlayer,
+              isDone: view.isDone,
+            })}
+            onSubmit={submitTurn}
+          />
+        </div>
       </div>
     </div>
   );

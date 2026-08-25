@@ -114,6 +114,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix the circular "End Turn" button so clicks register (M25-T1). The
+  bottom-right `actions-overlay` floating container is `pointer-events-none`
+  (so the board stays interactive everywhere except on a panel), but the
+  `<EndTurnButton>` placed directly inside it had no `pointer-events-auto`
+  wrapper — unlike the status/cell-info overlay panel cards, each of which
+  wraps its card in `pointer-events-auto`. Because `pointer-events: none` is
+  inherited by the button (it does not opt back in), the button received no
+  pointer events and clicks "went through" it, so the turn never ended
+  (issue #164). The End Turn button is now wrapped in a `pointer-events-auto`
+  container (matching the other floating panels), so a real pointer/mouse
+  click on it fires `onSubmit`/`submitTurn` and ends the human's turn; its
+  `enabled`/disabled state is untouched (it still disables when it is not the
+  human's turn or the game has ended). Pure `src/ui` change — `src/core`
+  unchanged and stays 100% covered.
+
 - Prevent any unit from moving onto a mountain cell (M20-T2, #147). A unit may
   not step onto a mountain: `reachableHexes`/`legalActions` (in `src/core/ai.ts`)
   take the generated map and never enumerate mountain cells as move targets (and
