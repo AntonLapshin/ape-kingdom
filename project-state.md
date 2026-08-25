@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20 (terrain & movement, #146/#147/#148), M21 (#143), M22 (#144), M23 (#145) PLANNED (first slices `pi:ready`).**
+**M1–M19 COMPLETE and shipped; M20 (terrain & movement, #146/#147/#148), M21 (#143), M22 (#144), M23 (#145) PLANNED (first slices `pi:ready`); M24 (#158) PLANNED.**
 The four already-implemented feedback issues (#136 End Turn, #139 gap,
 #140 selected preview, #141 reachable-highlight) were closed as resolved
 (M19-T2/#131, M18-T3/#125, M17-T3/#116, M10-T4/#63 respectively). New
@@ -13,6 +13,9 @@ water), M20-T2 #147 (no mountain), M20-T3 #148 (move up to 4 through own
 land) — all `pi:ready`. The remaining feedback was then planned: M21-T1
 #149 (comprehensive RULES.md, #143), M22-T1 #151 (core vision/fog-of-war,
 #144), M23-T1 #150 (remove "Turn: you" indicator, #145) — all `pi:ready`.
+New post-ship feedback issue #158 (three "still not working" items: fog-of-war
+UI, persistent site-less territory, remove the bottom-left move list) is
+split as milestone M24 — M24-T1 #159, M24-T2 #160, M24-T3 #161, all `pi:ready`.
 Next slices (documented in manifest): M21-T2 graves, M22-T2 fog UI,
 M23-T2 analysis, M23-T3 smarter AI, M23-T4 circular map.
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
