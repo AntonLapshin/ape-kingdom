@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add fog-of-war / map-exploration UI (M22-T2, #159). The board now renders
+  fog of war: cells the human player cannot yet see are hidden (dark,
+  `bg-fog` shroud, no site/unit/mountain content) and revealed cells show
+  normally. The fog is derived entirely from the pure core vision model
+  (`visibleHexes(state, "p1", true)`, M22-T1/#151) via a new `revealedHexKeys`
+  view-model helper — no game logic is reinvented in the UI — so revealing is
+  cumulative, monotonic, and per-player (the human always sees only from their
+  own Home Tree/unit sight lines, never the opponent's). The `boardCells` view
+  helper takes an optional revealed-hex set, the `Cell` component renders a
+  `fogged` variant (data flag + fog background, content hidden), and a new
+  `--color-fog` theme token backs the shroud. Core stays 100% covered.
+
 - Add core vision / fog-of-war exploration model (M22-T1, #151). A new pure
   `src/core/vision.ts` module derives, from a `GameState`, the set of hexes a
   player can currently see (`visibleHexes(state, player, fog?)`), usable by

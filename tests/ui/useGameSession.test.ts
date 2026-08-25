@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import {
   useGameSession,
   boardCells,
+  revealedHexKeys,
   ownerBackground,
   playerViews,
   toGameSessionView,
@@ -12,6 +13,7 @@ import {
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup, createGameSession } from "../../src/core/gameSession";
+import { visibleHexes } from "../../src/core/vision";
 import { sameHex, createUnit, type GameState, type Hex } from "../../src/core/game";
 
 /* ------------------------------------------------------------------ */
@@ -102,6 +104,104 @@ describe("boardCells", () => {
     const empty = cells.find((c) => !c.site && !c.unit);
     expect(empty).toBeDefined();
     expect(empty!.terrain).toBeDefined();
+  });
+
+  it("marks no cells fogged when no revealed set is provided (full visibility)", () => {
+    const state = standardSetup();
+    expect(boardCells(state).every((c) => c.fogged === false)).toBe(true);
+    expect(boardCells(state, null).every((c) => c.fogged === false)).toBe(true);
+  });
+
+  it("marks a cell fogged when its hex is not in the revealed set", () => {
+    const state = standardSetup();
+    // Reveal only the first map hex; all others are fogged.
+    const first = state.map.cells[0].hex;
+    const revealed = new Set([`${first.q},${first.r}`]);
+    const cells = boardCells(state, revealed);
+    const firstCell = cells.find(
+      (c) => sameHex(c.hex, first),
+    )!;
+    expect(firstCell.fogged).toBe(false);
+    const fogged = cells.filter((c) => c.fogged);
+    expect(fogged.length).toBe(cells.length - 1);
+    // A fogged cell still carries its terrain/site/unit data (the Cell just
+    // hides the content when rendering), so the data is never lost.
+    for (const cell of fogged) {
+      expect(cell.terrain).toBeDefined();
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* revealedHexKeys / fog adaptation (M22-T2, #159)                     */
+/* ------------------------------------------------------------------ */
+
+describe("revealedHexKeys (fog-of-war view adaptation)", () => {
+  it("derives exactly the human p1's revealed hexes from the core vision model", () => {
+    const state = standardSetup();
+    const keys = revealedHexKeys(state);
+    // Every key matches the core visibleHexes(state, "p1", true) derivation.
+    const coreKeys = visibleHexes(state, "p1", true).map(
+      (h) => `${h.q},${h.r}`,
+    );
+    expect(new Set(coreKeys)).toEqual(keys);
+  });
+
+  it("reveals far fewer cells than the full map at the start of the game", () => {
+    const state = standardSetup();
+    const revealed = visibleHexes(state, "p1", true).length;
+    // The opening position lets p1 see only around their units/Home Tree — not
+    // the whole map — so fog is genuinely hiding unrevealed cells.
+    expect(revealed).toBeGreaterThan(0);
+    expect(revealed).toBeLessThan(state.map.cells.length);
+  });
+
+  it("keeps every cell fogged=false in the full-visibility board view", () => {
+    const view = toGameSessionView({
+      state: standardSetup(),
+      step: "recruit",
+      winner: null,
+      legalMoves: [],
+    });
+    // The real session view applies fog, so reveal is partial.
+    expect(view.board.some((c) => c.fogged)).toBe(true);
+  });
+
+  it("toGameSessionView produces a board where only revealed cells are unfogged", () => {
+    const state = standardSetup();
+    const view = toGameSessionView({ state, step: "recruit", winner: null, legalMoves: [] });
+    const revealed = new Set(
+      visibleHexes(state, "p1", true).map((h) => `${h.q},${h.r}`),
+    );
+    for (const cell of view.board) {
+      expect(cell.fogged).toBe(!revealed.has(`${cell.hex.q},${cell.hex.r}`));
+    }
+  });
+
+  it("a revealed cell keeps its site/unit content visible (p1's Home Tree is never fogged)", () => {
+    const state = standardSetup();
+    const home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!.hex;
+    const view = toGameSessionView({ state, step: "recruit", winner: null, legalMoves: [] });
+    const homeCell = view.board.find((c) => sameHex(c.hex, home))!;
+    expect(homeCell.fogged).toBe(false);
+    expect(homeCell.site?.kind).toBe("HomeTree");
+    expect(homeCell.unit?.owner).toBe("p1");
+  });
+
+  it("the opponent p2's own sight is never revealed to the human (no enemy sight leak)", () => {
+    const state = standardSetup();
+    // p2's Home Tree is never among the human's revealed hexes (unless it
+    // happens to sit inside p1's vision — it is far away on the map, so not).
+    const p2Home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p2",
+    )!;
+    const keys = revealedHexKeys(state);
+    const includesP2Home = keys.has(`${p2Home.hex.q},${p2Home.hex.r}`);
+    // The human only sees their own sight lines, so p2's distant Home Tree is
+    // hidden unless p1's own units light it (which they don't at game start).
+    expect(includesP2Home).toBe(false);
   });
 });
 

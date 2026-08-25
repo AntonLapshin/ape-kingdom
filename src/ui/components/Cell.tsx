@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { PlayerId } from "../../core/game";
 import type { Terrain } from "../../core/mapGenerator";
 import { gameIcons } from "../../assets/icons";
-import { CELL_SIZE, hexagonPoints, TERRAIN_BG } from "../presentation";
+import { CELL_SIZE, FOG_BG, hexagonPoints, TERRAIN_BG } from "../presentation";
 
 export interface CellProps {
   /** The axial hex coordinates (q, r) of this cell. */
@@ -30,6 +30,12 @@ export interface CellProps {
    * (move-target highlight, M10-T4).
    */
   isMoveTarget?: boolean;
+  /**
+   * Whether this cell is hidden by fog of war (M22-T2, #159). A fogged cell
+   * renders dark with no content so the human cannot see unrevealed cells;
+   * revealed cells render normally.
+   */
+  fogged?: boolean;
   /** The pixel x offset of this cell from the board origin. */
   x: number;
   /** The pixel y offset of this cell from the board origin. */
@@ -75,6 +81,7 @@ export function Cell({
   isCurrent = false,
   isSelected = false,
   isMoveTarget = false,
+  fogged = false,
   x,
   y,
   animationDelay = 0,
@@ -82,8 +89,11 @@ export function Cell({
   children,
 }: CellProps) {
   // The view-model-derived owner tint overrides the terrain background for
-  // owned territories; neutral cells keep their terrain colour.
-  const bg = ownerBg ?? TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
+  // owned territories; neutral cells keep their terrain colour. A fogged cell
+  // is hidden regardless — it takes the dark fog background and no content.
+  const bg = fogged
+    ? FOG_BG
+    : ownerBg ?? TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
   const clipId = `hex-clip-board-${q}-${r}`;
   const points = hexagonPoints(CELL_SIZE);
   return (
@@ -107,6 +117,7 @@ export function Cell({
       data-terrain={terrain}
       data-selected={isSelected ? "true" : "false"}
       data-move-target={isMoveTarget ? "true" : "false"}
+      data-fogged={fogged ? "true" : "false"}
       className={`hex-cell hex-glass hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
         isCurrent ? "hex-current" : ""
       } ${isSelected ? "hex-selected" : ""} ${
@@ -137,7 +148,7 @@ export function Cell({
         </defs>
         <polygon points={points} className="hex-glass-edge" />
       </svg>
-      {IS_MOUNTAIN[terrain] && (
+      {IS_MOUNTAIN[terrain] && !fogged && (
         <img
           src={gameIcons.mountain}
           alt="Mountain terrain"
@@ -146,7 +157,7 @@ export function Cell({
           className="h-8 w-8 object-contain"
         />
       )}
-      {children}
+      {!fogged && children}
     </div>
   );
 }
