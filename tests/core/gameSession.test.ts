@@ -301,13 +301,30 @@ describe("selectAction", () => {
     expect(() => selectAction(session, recruit)).toThrow(GameSessionError);
   });
 
-  it("shrinks legalMoves as units act", () => {
+  it("removes the moved unit from legalMoves as it acts", () => {
     let session = createGameSession();
-    const before = session.legalMoves.filter((a) => a.type === "move").length;
-    session = selectAction(session, firstMove(session));
-    const after = session.legalMoves.filter((a) => a.type === "move").length;
-    // The moved unit is no longer selectable, so the move count drops.
-    expect(after).toBeLessThan(before);
+    const first = firstMove(session);
+    const movedFrom = first.unitHex;
+    // The moved unit is selectable before the move.
+    expect(
+      session.legalMoves.some(
+        (a) => a.type === "move" && sameHex(a.unitHex, movedFrom),
+      ),
+    ).toBe(true);
+    session = selectAction(session, first);
+    // Once a unit acts it is no longer selectable: no move action originates
+    // from the hex it vacated.
+    expect(
+      session.legalMoves.some(
+        (a) => a.type === "move" && sameHex(a.unitHex, movedFrom),
+      ),
+    ).toBe(false);
+    // The unit's new position has already acted, so it is not a move source.
+    expect(
+      session.legalMoves.some(
+        (a) => a.type === "move" && sameHex(a.unitHex, first.targetHex),
+      ),
+    ).toBe(false);
   });
 
   it("selects an attack action on the movefight step", () => {

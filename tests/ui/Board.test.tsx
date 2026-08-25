@@ -5,6 +5,7 @@ import { hexToPixel, SITE_LABELS } from "../../src/ui/presentation";
 import { gameIcons } from "../../src/assets/icons";
 import { boardCells } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
+import { terrainAt } from "../../src/core/mapGenerator";
 import {
   moveUnit,
   attackUnit,
@@ -272,7 +273,7 @@ describe("Board territory-ownership display (M19-T1/#130)", () => {
     };
   }
 
-  /** An empty (unoccupied) hex at distance 1 from `from`. */
+  /** An empty (unoccupied), passable (land) hex at distance 1 from `from`. */
   function adjacentEmpty(
     state: ReturnType<typeof standardSetup>,
     from: Hex,
@@ -283,7 +284,8 @@ describe("Board territory-ownership display (M19-T1/#130)", () => {
       .find(
         (c) =>
           Math.abs(c.q - from.q) + Math.abs(c.r - from.r) === 1 &&
-          !occupied.has(`${c.q},${c.r}`),
+          !occupied.has(`${c.q},${c.r}`) &&
+          terrainAt(state.map, c) === "land",
       )!;
     expect(h).toBeDefined();
     return h;
