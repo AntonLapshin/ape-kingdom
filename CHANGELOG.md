@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add persistent site-less territory (M24-T2, #160). A site-less cell a
+  kingdom's unit stood on / claimed now **stays owned by that kingdom after
+  the unit vacates** it — it no longer reverts to neutral the moment the unit
+  leaves. A pure core model (`territory` on `GameState`, `territoryOwner`)
+  tracks, per hex, the last kingdom that held a site-less cell: a site owner
+  always wins on a cell that has a site; else a persistent site-less
+  territory owner (retained until an **enemy captures** the cell by moving
+  onto it or defeating a unit on it) colours the hex; else a unit currently
+  standing on it. `isOwnedBy`, the owned-land 4-hex movement
+  (`reachableForUnit` / `reachableHexes`) and `moveUnit` all resolve through
+  `territoryOwner`, so movement and capture reflect the persistent
+  territory; `standardSetup` seeds every starting unit cell as its kingdom's
+  territory and off-map hexes are never recorded (territory cannot expand
+  beyond the board). The UI (board `Cell` owner tint and the selector
+  panel's hexagon preview via `cellOwner`) shows the persistent ownership
+  after a unit leaves. The rules (`guidelines/ape-kingdom-rules.md` and
+  `RULES.md`) codify persistent site-less territory as the single source of
+  truth. `src/core` stays 100% covered.
+
 - Add fog-of-war / map-exploration UI (M22-T2, #159). The board now renders
   fog of war: cells the human player cannot yet see are hidden (dark,
   `bg-fog` shroud, no site/unit/mountain content) and revealed cells show

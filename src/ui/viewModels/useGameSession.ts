@@ -9,7 +9,7 @@ import type {
   ApeKind,
   ApeRank,
 } from "../../core/game";
-import { rankOf, sameHex } from "../../core/game";
+import { rankOf, sameHex, territoryOwner } from "../../core/game";
 import { visibleHexes } from "../../core/vision";
 import type { MapConfig, Terrain } from "../../core/mapGenerator";
 import type { GameAction } from "../../core/ai";
@@ -52,6 +52,14 @@ export interface BoardCell {
   site: Site | null;
   /** The unit on this hex, or null if there is none. */
   unit: UnitView | null;
+  /**
+   * The territory owner of this hex (M24-T2, #160): the kingdom that owns the
+   * cell's site, or the persistent owner of a site-less cell (retained after
+   * a unit vacates). Derived from core `territoryOwner` so the board tints
+   * persistent site-less territory even once the unit has left. Null when the
+   * cell is neutral.
+   */
+  owner: PlayerId | null;
   /**
    * Whether this cell is hidden by fog of war (M22-T2, #159): the human
    * player cannot see it yet, so it renders dark with no site/unit content.
@@ -156,6 +164,7 @@ export function boardCells(
         unit: unit
           ? { kind: unit.kind, rank: rankOf(unit.kind), owner: unit.owner }
           : null,
+        owner: territoryOwner(state.sites, state.units, state.territory, hex),
         fogged: revealed !== null && !revealed.has(key),
       };
     });

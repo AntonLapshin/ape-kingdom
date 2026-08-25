@@ -238,6 +238,17 @@ export function standardSetup(config?: MapConfig): GameState {
   const p1 = startingForce("p1", p1Home);
   const p2 = startingForce("p2", p2Home);
 
+  // Seed persistent site-less territory (M24-T2, #160): every site-less cell a
+  // player's starting unit stands on becomes that kingdom's territory and
+  // stays owned after the unit vacates. The Home Tree cells are already owned
+  // via their site, so only the site-less force cells are recorded.
+  const territory: Record<string, PlayerId> = {};
+  const homeSites = new Set<string>([hexKey(p1Home), hexKey(p2Home)]);
+  for (const unit of [...p1.units, ...p2.units]) {
+    if (homeSites.has(hexKey(unit.hex))) continue;
+    territory[hexKey(unit.hex)] = unit.owner;
+  }
+
   return {
     map,
     sites: [
@@ -250,6 +261,7 @@ export function standardSetup(config?: MapConfig): GameState {
     currentPlayer: "p1",
     turnOrder: ["p1", "p2"],
     winner: null,
+    territory,
   };
 }
 

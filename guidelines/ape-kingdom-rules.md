@@ -125,7 +125,9 @@ Moving through your own land (optional movement variant)
 
 When a unit's entire route stays within cells its own kingdom owns, the unit may move up to 4 hexes instead of the standard 1.
 
-A cell is owned by a kingdom when the kingdom owns the site on it or one of its units occupies it. A kingdom's owned cells form its territory: the Home Tree it controls, surrounding Groves and Nests it has captured, and the cells its own units stand on.
+A cell is owned by a kingdom when the kingdom owns the site on it, when it is persistent site-less territory of that kingdom, or when one of its units occupies it. A kingdom's owned cells form its territory: the Home Tree it controls, surrounding Groves and Nests it has captured, and the cells its own units stand on.
+
+Persistent site-less territory: a site-less cell a kingdom's unit stood on or claimed stays owned by that kingdom after the unit vacates it — it does not revert to neutral when the unit leaves. It is only lost when an enemy captures the cell (by moving onto it or defeating a unit on it). A site-owned cell always follows its site's owner; site-less territory is retained until an enemy captures the cell.
 
 Owned-land movement requires every intermediate cell and the destination to be owned by the mover's kingdom and to be passable land — it may never enter enemy or neutral territory, and it may never cross water or mountain cells. When any cell on the route is not owned by the mover's kingdom (or is water or a mountain), the unit falls back to the standard 1-hex movement.
 

@@ -3,7 +3,7 @@ import type { BoardCell } from "../viewModels/useGameSession";
 import { ownerBackground } from "../viewModels/useGameSession";
 import type { Hex, PlayerId } from "../../core/game";
 import type { PanOffset } from "../viewModels/usePan";
-import { HEX_SIZE, hexToPixel, cellOwner } from "../presentation";
+import { HEX_SIZE, hexToPixel } from "../presentation";
 import { boardTransform } from "../viewModels/useZoom";
 import { Cell } from "./Cell";
 import { Content } from "./Content";
@@ -78,7 +78,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
     >
       {board.map((cell, index) => {
         const { x, y } = hexToPixel(cell.hex.q, cell.hex.r);
-        const owner = cellOwner(cell.site, cell.unit);
+        const owner = cell.owner;
         const isSelected =
           !!selectedHex &&
           selectedHex.q === cell.hex.q &&

@@ -22,7 +22,7 @@ import type {
   Hex,
   GameState,
 } from "./game";
-import { sameHex, rankOf, costOf, incomeOf, adjacentHexes } from "./game";
+import { sameHex, rankOf, costOf, incomeOf, adjacentHexes, territoryOwner } from "./game";
 import { terrainAt, type Terrain } from "./mapGenerator";
 import { legalActions, type GameAction } from "./ai";
 
@@ -78,6 +78,14 @@ export interface CellInfo {
   site: CellSiteInfo | null;
   /** The unit on this hex, or null if there is none. */
   unit: CellUnitInfo | null;
+  /**
+   * The territory owner of this hex (M24-T2, #160): the kingdom that owns the
+   * cell's site, or the persistent owner of a site-less cell (retained after
+   * a unit vacates). Derived from core `territoryOwner` so the selector
+   * panel's hexagon preview tints persistent site-less territory too. Null
+   * when the cell is neutral.
+   */
+  territoryOwner: PlayerId | null;
   /**
    * Whether this hex is actionable this turn: the current player has at least
    * one legal recruit/placement option here (a placement hex, or a controlled
@@ -165,6 +173,7 @@ export function cellInfo(state: GameState, hex: Hex): CellInfo {
   return {
     hex,
     terrain,
+    territoryOwner: territoryOwner(state.sites, state.units, state.territory, hex),
     site: site
       ? { kind: site.kind, owner: site.owner, income: incomeOf(site.kind) }
       : null,

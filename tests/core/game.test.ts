@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Site, Player, GameState, ApeUnit, ApeKind, Hex } from "../../src/core/game";
+import type { Site, Player, GameState, ApeUnit, ApeKind, Hex, PlayerId } from "../../src/core/game";
 import { generateMap, type GameMap } from "../../src/core/mapGenerator";
 import {
   APE_TYPES,
@@ -35,6 +35,8 @@ import {
   resolveVictory,
   OWN_LAND_RANGE,
   isOwnedBy,
+  territoryOwner,
+  hexKey,
   bfsReachable,
   reachableForUnit,
 } from "../../src/core/game";
@@ -232,6 +234,7 @@ function gameState(opts: {
   currentPlayer?: string;
   turnOrder?: string[];
   winner?: string | null;
+  territory?: Record<string, PlayerId>;
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
@@ -241,6 +244,7 @@ function gameState(opts: {
     turnOrder: opts.turnOrder ?? ["p1", "p2"],
     winner: opts.winner ?? null,
     map: generateMap({ width: 7, height: 7, seed: 0 }),
+    territory: opts.territory,
   };
 }
 
@@ -517,6 +521,7 @@ function flatState(opts: {
   sites?: Site[];
   units?: ApeUnit[];
   currentPlayer?: string;
+  territory?: Record<string, PlayerId>;
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
@@ -526,6 +531,7 @@ function flatState(opts: {
     turnOrder: ["p1", "p2"],
     winner: null,
     map: flatMap(),
+    territory: opts.territory,
   };
 }
 
@@ -570,6 +576,62 @@ describe("isOwnedBy", () => {
 
   it("returns false for an empty hex with no site and no unit", () => {
     expect(isOwnedBy(flatState(), { q: 4, r: 3 }, "p1")).toBe(false);
+  });
+});
+
+describe("territoryOwner", () => {
+  it("returns the site owner when the cell has a site", () => {
+    const state = flatState({ sites: [createSite("Grove", 4, 3, "p2")] });
+    expect(territoryOwner(state.sites, state.units, state.territory, { q: 4, r: 3 })).toBe("p2");
+  });
+
+  it("returns the persistent site-less territory owner even after the unit vacates", () => {
+    const territory = { [hexKey({ q: 4, r: 3 })]: "p1" as PlayerId };
+    const state = flatState({ units: [], territory });
+    expect(territoryOwner(state.sites, state.units, state.territory, { q: 4, r: 3 })).toBe("p1");
+  });
+
+  it("site owner wins over persistent site-less territory", () => {
+    const territory = { [hexKey({ q: 4, r: 3 })]: "p1" as PlayerId };
+    const state = flatState({ sites: [createSite("Grove", 4, 3, "p2")], territory });
+    expect(territoryOwner(state.sites, state.units, state.territory, { q: 4, r: 3 })).toBe("p2");
+  });
+
+  it("persistent site-less territory wins over the unit standing on it", () => {
+    const territory = { [hexKey({ q: 4, r: 3 })]: "p2" as PlayerId };
+    const state = flatState({ units: [createUnit("Monkey", "p1", { q: 4, r: 3 })], territory });
+    expect(territoryOwner(state.sites, state.units, state.territory, { q: 4, r: 3 })).toBe("p2");
+  });
+
+  it("falls back to the unit owner for a site-less cell with no territory record", () => {
+    const state = flatState({ units: [createUnit("Monkey", "p1", { q: 4, r: 3 })] });
+    expect(territoryOwner(state.sites, state.units, state.territory, { q: 4, r: 3 })).toBe("p1");
+  });
+
+  it("returns null for a neutral site-less cell with no unit", () => {
+    expect(territoryOwner(flatState().sites, flatState().units, undefined, { q: 4, r: 3 })).toBe(null);
+  });
+});
+
+describe("isOwnedBy (persistent site-less territory, M24-T2)", () => {
+  it("returns true for a site-less cell that is persistent territory of the player's kingdom", () => {
+    const territory = { [hexKey({ q: 4, r: 3 })]: "p1" as PlayerId };
+    const state = flatState({ territory });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(true);
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p2")).toBe(false);
+  });
+
+  it("site-less territory stays owned even when no unit stands on it", () => {
+    const territory = { [hexKey({ q: 4, r: 3 })]: "p1" as PlayerId };
+    const state = flatState({ territory });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(true);
+  });
+
+  it("a site-less cell claimed by the enemy is not owned by the player", () => {
+    const territory = { [hexKey({ q: 4, r: 3 })]: "p2" as PlayerId };
+    const state = flatState({ territory });
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p1")).toBe(false);
+    expect(isOwnedBy(state, { q: 4, r: 3 }, "p2")).toBe(true);
   });
 });
 
@@ -1204,6 +1266,89 @@ describe("territory ownership persistence & loss", () => {
     // p2 moves onto the empty hex (2,5) adjacent to the Nest, not on it.
     const next = moveUnit(state, enemy, { q: 2, r: 5 });
     expect(next.sites.find((s) => sameHex(s.hex, { q: 4, r: 1 }))?.owner).toBe("p1");
+  });
+
+  it("site-less territory persists after the unit vacates (M24-T2)", () => {
+    // p1's Monkey stands on a site-less cell (2,1), not yet acted.
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = gameState({ units: [mover], currentPlayer: "p1", territory: {} });
+    // The unit moves off (2,1) → (3,1); the vacated site-less cell stays p1's,
+    // and the newly entered cell (3,1) is also claimed as p1's territory.
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.territory?.[hexKey({ q: 2, r: 1 })]).toBe("p1");
+    expect(next.territory?.[hexKey({ q: 3, r: 1 })]).toBe("p1");
+    // isOwnedBy reflects the persistent territory with no unit on the cell.
+    expect(isOwnedBy(next, { q: 2, r: 1 }, "p1")).toBe(true);
+  });
+
+  it("moving onto a site-less cell claims it as the mover's persistent territory", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = gameState({ units: [mover], currentPlayer: "p1", territory: {} });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.territory?.[hexKey({ q: 3, r: 1 })]).toBe("p1");
+  });
+
+  it("does not record site-less territory for a cell outside the map", () => {
+    // A unit on the edge moves to a site-less hex beyond the board. Such a
+    // hex is not recorded as persistent territory (territory never expands
+    // off-map), while the on-map vacated cell (0,0) still becomes own land.
+    const mover = createUnit("Monkey", "p1", { q: 0, r: 0 }, false);
+    const state = flatState({ units: [mover], currentPlayer: "p1", territory: {} });
+    const next = moveUnit(state, mover, { q: -1, r: 0 });
+    expect(next.territory?.[hexKey({ q: -1, r: 0 })]).toBeUndefined();
+    expect(next.territory?.[hexKey({ q: 0, r: 0 })]).toBe("p1");
+  });
+
+  it("moving into an enemy's site-less territory flips it to the mover's kingdom (capture)", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = gameState({
+      units: [mover],
+      currentPlayer: "p1",
+      territory: { [hexKey({ q: 3, r: 1 })]: "p2" },
+    });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.territory?.[hexKey({ q: 3, r: 1 })]).toBe("p1");
+  });
+
+  it("recruiting a unit on a site-less cell claims it as persistent territory (M24-T2)", () => {
+    // p1 controls a Home Tree at (3,3); it recruits a Monkey on the adjacent
+    // site-less cell (2,3), which becomes p1 persistent territory even after
+    // the unit later moves off.
+    const state = gameState({
+      sites: [createSite("HomeTree", 3, 3, "p1")],
+      units: [createUnit("Monkey", "p1", { q: 3, r: 3 })],
+      currentPlayer: "p1",
+      territory: {},
+    });
+    state.players.p1.bananas = 10;
+    const recruited = recruitUnit(state, "Monkey", { q: 2, r: 3 });
+    expect(recruited.territory?.[hexKey({ q: 2, r: 3 })]).toBe("p1");
+  });
+
+  it("defeating an enemy unit on a site-less cell flips the territory to the attacker (M24-T2)", () => {
+    const attacker = createUnit("Gorilla", "p1", { q: 1, r: 5 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 5 });
+    const state = gameState({
+      units: [attacker, defender],
+      currentPlayer: "p1",
+      territory: { [hexKey({ q: 2, r: 5 })]: "p2" },
+    });
+    const next = attackUnit(state, attacker, { q: 2, r: 5 });
+    expect(next.territory?.[hexKey({ q: 2, r: 5 })]).toBe("p1");
+  });
+
+  it("a site-less cell never reverts to neutral merely when its unit dies elsewhere", () => {
+    // p2's site-less territory at (4,3) has no unit on it; it persists.
+    const attacker = createUnit("Monkey", "p1", { q: 5, r: 5 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 4, r: 5 });
+    const state = gameState({
+      units: [attacker, defender],
+      currentPlayer: "p1",
+      territory: { [hexKey({ q: 4, r: 3 })]: "p2" },
+    });
+    const next = attackUnit(state, attacker, { q: 4, r: 5 }); // both die
+    expect(next.territory?.[hexKey({ q: 4, r: 3 })]).toBe("p2");
+    expect(isOwnedBy(next, { q: 4, r: 3 }, "p2")).toBe(true);
   });
 });
 

@@ -156,6 +156,18 @@ export interface GameState {
   winner: PlayerId | null;
   /** The generated board the game is played on. */
   map: GameMap;
+  /**
+   * Persistent site-less territory (M24-T2, #160): hex-key → owning kingdom
+   * for cells established as a kingdom's territory that carry no site. A
+   * site-less cell a kingdom's unit stood on / claimed stays owned by that
+   * kingdom after the unit vacates (it does not revert to neutral), and only
+   * an enemy capturing the cell flips it. Site-owned cells are not recorded
+   * here — their ownership always follows the site. Optional for
+   * backward-compatibility with hand-built test states; `standardSetup`
+   * always seeds it, and `isOwnedBy`/`territoryOwner` treat an absent value
+   * as empty.
+   */
+  territory?: Record<string, PlayerId>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -404,6 +416,11 @@ export function recruitUnit(state: GameState, kind: ApeKind, hex: Hex): GameStat
       },
     },
     units: [...state.units, createUnit(kind, state.currentPlayer, hex)],
+    // A newly placed ape stands on a site-less cell, so that cell becomes the
+    // kingdom's persistent site-less territory (M24-T2, #160).
+    territory: state.sites.some((s) => sameHex(s.hex, hex))
+      ? state.territory
+      : { ...(state.territory ?? {}), [hexKey(hex)]: state.currentPlayer },
   };
 }
 
@@ -460,31 +477,62 @@ export function hexDistance(a: Hex, b: Hex): number {
 export const OWN_LAND_RANGE = 4;
 
 /** A stable string key for a hex, used to deduplicate sets of hexes. */
-function hexKey(hex: Hex): string {
+export function hexKey(hex: Hex): string {
   return `${hex.q},${hex.r}`;
+}
+
+/**
+ * Resolve the territory owner of a single hex from a game state's components
+ * (M24-T2, #160). Independent of which unit (if any) stands on the cell, so a
+ * site-less cell a kingdom's unit stood on / claimed stays owned by that
+ * kingdom after the unit vacates.
+ *
+ * Ownership precedence on a cell:
+ *  1. the site owner always wins when the cell has a site (a captured Grove,
+ *     Nest, or Home Tree persists as that kingdom's territory independently
+ *     of any unit);
+ *  2. else the persistent site-less territory owner (a cell a kingdom's unit
+ *     once occupied, retained until an enemy captures it);
+ *  3. else the unit standing on it (a just-placed unit whose cell has not yet
+ *     been recorded as territory owns the cell while it stands there).
+ *
+ * `territory` may be absent (empty) for hand-built states; site-less cells
+ * then devolve to unit presence as before.
+ */
+export function territoryOwner(
+  sites: Site[],
+  units: ApeUnit[],
+  territory: Record<string, PlayerId> | undefined,
+  hex: Hex,
+): PlayerId | null {
+  const site = sites.find((s) => sameHex(s.hex, hex));
+  if (site?.owner) return site.owner;
+  const claimed = territory?.[hexKey(hex)];
+  if (claimed) return claimed;
+  const unit = units.find((u) => sameHex(u.hex, hex));
+  return unit?.owner ?? null;
 }
 
 /**
  * Whether a hex is owned by `playerId`'s kingdom.
  *
  * A cell is owned by a kingdom when the kingdom owns the site on it (a
- * captured Grove, Nest, or Home Tree) or when one of its units occupies it.
- * This is the pure core equivalent of the UI territory-owner derivation
- * (see `territoryOwner` in `src/ui/presentation.ts`): the site owner always
- * wins on a cell that has a site, and a unit's owner only colours a site-less
- * cell. So a cell whose site is owned by an enemy is enemy territory even if
- * one of the mover's units stands on it, and the extended own-land movement
- * never treats it as own land.
+ * captured Grove, Nest, or Home Tree), when it is persistent site-less
+ * territory of that kingdom (a cell one of its units once stood on / claimed,
+ * which stays owned after the unit vacates — M24-T2, #160), or when one of
+ * its units currently occupies it. This is the pure core model behind the UI
+ * territory-owner derivation: the site owner always wins on a cell that has a
+ * site, and persistent site-less territory is retained until an enemy
+ * captures the cell. So a cell whose site is owned by an enemy is enemy
+ * territory even if one of the mover's units stands on it, and the extended
+ * own-land movement never treats it as own land.
  */
 export function isOwnedBy(
   state: GameState,
   hex: Hex,
   playerId: PlayerId,
 ): boolean {
-  const site = state.sites.find((s) => sameHex(s.hex, hex));
-  if (site) return site.owner === playerId;
-  const unit = state.units.find((u) => sameHex(u.hex, hex));
-  return !!unit && unit.owner === playerId;
+  return territoryOwner(state.sites, state.units, state.territory, hex) === playerId;
 }
 
 /**
@@ -712,7 +760,26 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     sameHex(site.hex, targetHex) ? { ...site, owner: existing.owner } : site,
   );
 
-  return { ...state, units, sites };
+  // Persist site-less territory (M24-T2, #160): a site-less cell a kingdom's
+  // unit moves onto (and the site-less cell it vacates) stays owned by that
+  // kingdom after the unit leaves. Site-owned cells are not recorded here —
+  // their ownership follows the site. Re-claiming a cell here is a capture
+  // when the cell already belonged to the enemy: moving onto (or out of) an
+  // enemy's site-less cell flips its territory to the mover's kingdom.
+  const territory = { ...(state.territory ?? {}) };
+  // Only site-less cells on the map become persistent territory (M24-T2,
+  // #160). A hex outside the generated map (reachable only on contrived
+  // terrain-free test boards) is never recorded, so territory cannot expand
+  // beyond the map and inflate the own-land range.
+  const onMap = (hex: Hex): boolean =>
+    state.map.cells.some((c) => sameHex(c.hex, hex));
+  for (const hex of [existing.hex, targetHex]) {
+    if (state.sites.some((s) => sameHex(s.hex, hex))) continue;
+    if (!onMap(hex)) continue;
+    territory[hexKey(hex)] = existing.owner;
+  }
+
+  return { ...state, units, sites, territory };
 }
 
 /* ------------------------------------------------------------------ */
@@ -832,6 +899,14 @@ export function attackUnit(
     sites = state.sites.map((site) =>
       sameHex(site.hex, targetHex) ? { ...site, owner: existing.owner } : site,
     );
+    // Capture site-less territory too (M24-T2, #160): defeating an enemy unit
+    // on a site-less cell flips that cell's persistent territory to the
+    // attacker's kingdom. Site-owned cells follow the site instead.
+    const territory = { ...(state.territory ?? {}) };
+    if (!state.sites.some((s) => sameHex(s.hex, targetHex))) {
+      territory[hexKey(targetHex)] = existing.owner;
+    }
+    return { ...state, units, sites, territory };
   } else if (attackerRank === defenderRank) {
     // Equal ranks: both units are destroyed; site ownership does not change.
     units = state.units.filter((u) => u !== existing && u !== defender);

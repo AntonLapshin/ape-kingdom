@@ -205,24 +205,34 @@ interface Owned {
 
 /**
  * Resolve the territory owner of a hexagon from its site and/or unit (M19-T1,
- * #130). Pure presentation — no game logic.
+ * #130, extended M24-T2, #160). Pure presentation — no game logic.
  *
  * Ownership of a cell is a *territory* property that lives on the site and
  * persists independently of which (if any) unit stands on it: a site captured
  * by a kingdom stays owned by that kingdom even once the unit moves off, and
  * it is only lost when an enemy unit occupies the cell (moving onto it or
- * defeating its defender). So the site owner always wins; a unit's owner only
- * colours a site-less hex while the unit is standing on it, and reverts to
- * neutral once the unit leaves. This is the exact rule the board Cell and the
- * selector panel's hexagon preview both relied on with a duplicated
- * `site?.owner ?? unit?.owner` expression — centralised here so both render
- * consistently from one source of truth.
+ * defeating its defender). Since M24-T2 (#160) the same persistence applies to
+ * site-less cells: a cell a kingdom's unit stood on / claimed stays owned by
+ * that kingdom after the unit vacates (it does not revert to neutral) until an
+ * enemy captures it.
+ *
+ * So the site owner always wins; a persistent site-less territory owner (the
+ * third argument, derived from the core `territoryOwner` model) colours a
+ * site-less hex even once the unit has left; and a unit's owner only colours a
+ * site-less hex when it is not yet recorded as that kingdom's territory. This
+ * mirrors the core `territoryOwner` precedence (site → territory → unit) so
+ * the board and the selector panel render one consistent territory. This is
+ * the exact rule the board Cell and the selector panel's hexagon preview both
+ * relied on with a duplicated `site?.owner ?? unit?.owner` expression —
+ * centralised here so both render consistently from one source of truth.
  */
 export function cellOwner(
   site: Owned | null,
   unit: Owned | null,
+  territoryOwner: PlayerId | null = null,
 ): PlayerId | null {
   if (site?.owner) return site.owner;
+  if (territoryOwner) return territoryOwner;
   return unit?.owner ?? null;
 }
 
