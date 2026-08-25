@@ -125,9 +125,11 @@ describe("Board", () => {
     expect(badge!.textContent).toBe("1");
   });
 
-  it("labels the current player in the board footer", () => {
+  it("does not render a turn indicator over the map (M23-T1/#150)", () => {
     render(<Board board={board} currentPlayer="p1" />);
-    expect(screen.getByText(/Turn: You \(p1\)/)).toBeInTheDocument();
+    // The turn is clear from the active state / End Turn flow, so no "Turn:"
+    // label is shown over the board.
+    expect(screen.queryByText(/Turn:/i)).not.toBeInTheDocument();
   });
 
   it("applies the pan offset as a translate to the board transform", () => {

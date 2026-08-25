@@ -44,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mountain still block, and the AI never exceeds the legal range). Pure core
   change (core stays 100% covered, no UI business logic).
 
+- Remove the "Turn: you" indicator from the map (M23-T1, #150). The
+  bottom-right "Turn: You (p1) / AI (p2)" label in `Board.tsx` is removed
+  (post-ship feedback #145), since the player's turn is already clear from the
+  active state and the circular End Turn flow. Thin UI-only change — `src/core`
+  is untouched (core stays 100% covered); the Board render test that asserted
+  the label now asserts it is not rendered.
+
 ### Fixed
 
 - Prevent any unit from moving onto a mountain cell (M20-T2, #147). A unit may
