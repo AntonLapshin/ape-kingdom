@@ -60,6 +60,27 @@ For more players, add roughly 2 Groves and 1 Nest per extra player, and give eac
 
 Neutral sites produce no income until captured.
 
+Vision / Exploration
+
+When starting the game the map is hidden (black). Cells become visible as a player
+moves units and gains territory; each kingdom sees only through its own sight lines.
+
+A sight source reveals every cell within its vision radius (in hexes), measured as
+rings of surrounding cells from the source hex. Visibility is cumulative: a hex once
+revealed by any owned sight line stays visible while that sight line endures.
+
+| Sight source | Vision radius |
+|---|---:|
+| Monkey | 1 ring |
+| Gibbon | 2 rings |
+| Home Tree | 3 rings |
+| Chimpanzee | 3 rings |
+| Gorilla | 3 rings |
+| All other units | 3 rings |
+
+A player sees only from the Home Trees and units they control; an opponent's Home
+Trees and units are never sight sources for them.
+
 Turn Sequence
 
 On your turn, do the following in order:

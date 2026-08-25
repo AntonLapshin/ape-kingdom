@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add core vision / fog-of-war exploration model (M22-T1, #151). A new pure
+  `src/core/vision.ts` module derives, from a `GameState`, the set of hexes a
+  player can currently see (`visibleHexes(state, player, fog?)`), usable by
+  both the human UI and the AI. Vision is cumulative and monotonic (a hex
+  revealed by any owned sight line stays revealed) and per-player: a player
+  sees only from the Home Trees and units they control, never an opponent's.
+  A **Monkey** reveals 1 ring, a **Gibbon** 2 rings, a **Home Tree** and all
+  other unit kinds (Chimpanzee, Gorilla) 3 rings — the radii are exposed as
+  `UNIT_VISION`, `HOME_TREE_VISION` and the `unitVision` helper. The default
+  `fog = false` returns every map cell so existing logic is unaffected until
+  the UI slice (M22-T2) enables fog. The vision values are codified in a new
+  "Vision / Exploration" rule in `guidelines/ape-kingdom-rules.md` (single
+  source of truth). `src/core` stays 100% covered.
+
 - Add comprehensive `RULES.md` (M21-T1, #149). A new player/developer-facing
   rules document describing the full game — economics (banana income from
   Groves, Nests, and the Home Tree), the four ape units (rank, cost,
