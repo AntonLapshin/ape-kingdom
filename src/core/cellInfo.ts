@@ -22,7 +22,7 @@ import type {
   Hex,
   GameState,
 } from "./game";
-import { sameHex, rankOf, costOf, incomeOf } from "./game";
+import { sameHex, rankOf, costOf, incomeOf, adjacentHexes } from "./game";
 import { terrainAt, type Terrain } from "./mapGenerator";
 import { legalActions, type GameAction } from "./ai";
 
@@ -80,7 +80,8 @@ export interface CellInfo {
   unit: CellUnitInfo | null;
   /**
    * Whether this hex is actionable this turn: the current player has at least
-   * one legal recruit/placement option here. When true the panel shows the
+   * one legal recruit/placement option here (a placement hex, or a controlled
+   * Home Tree with a legal adjacent placement). When true the panel shows the
    * recruit action items; when false it shows read-only info only.
    */
   actionable: boolean;
@@ -101,11 +102,21 @@ export interface CellInfo {
  * summary carries its rank (from `rankOf`) and its recruit `cost` (from the
  * `APE_TYPES` table).
  *
- * The hex is actionable when the current player has a legal `recruit` action
- * targeting it this turn (a controlled Home Tree hex or an adjacent empty
- * hex). For each such recruit action an item is produced carrying the ape
- * kind, its recruit cost, and the exact `recruit` `GameAction` that can be fed
- * straight into the existing `selectAction` flow.
+ * The actions offered for the selected hex (M19-T3, #132):
+ *
+ *  - Selecting a **placement hex** (an empty hex a new ape may legally be
+ *    placed on) offers the recruit actions targeting exactly that hex.
+ *  - Selecting a **controlled Home Tree** (a Home Tree the current player
+ *    controls) offers recruiting "arboreally" from that tree: per the rules a
+ *    new ape may be placed on the Home Tree hex (if empty) or in an adjacent
+ *    empty hex, so the Home Tree surfaces every recruit available at it (its
+ *    own hex plus each legal adjacent placement hex). This restores the
+ *    "create new unit" flow at the Home Tree — the player selects the Home
+ *    Tree and sees the recruit options with their cost.
+ *
+ * For each recruit action surfaced, an item is produced carrying the ape
+ * kind, its recruit cost, and the exact `recruit` `GameAction` that can be
+ * fed straight into the existing `selectAction` flow.
  *
  * This is pure derivation — no React, no browser APIs, no mutation.
  */
@@ -115,11 +126,36 @@ export function cellInfo(state: GameState, hex: Hex): CellInfo {
   const site = state.sites.find((s) => sameHex(s.hex, hex)) ?? null;
   const unit = state.units.find((u) => sameHex(u.hex, hex)) ?? null;
 
+  // The hexes at which a new ape may be placed for the selected hex. For a
+  // controlled Home Tree this is the tree's own hex plus its adjacent hexes
+  // (recruiting is "arboreal" — a player recruits at a Home Tree they
+  // control, placing new apes on the tree hex if empty or in an adjacent
+  // empty hex). For any other hex it is the selected hex itself, so recruits
+  // are only surfaced when the selected hex is a legal placement target.
+  const isControlledHomeTree =
+    site?.kind === "HomeTree" && site.owner === state.currentPlayer;
+  const targetHexes = isControlledHomeTree
+    ? [hex, ...adjacentHexes(hex)]
+    : [hex];
+
+  // Surface each recruitable ape kind at most once per selected hex, so a
+  // controlled Home Tree (which offers recruits at several placement hexes)
+  // lists each kind once with its cost instead of once per placement hex (the
+  // panel keys its buttons by kind). The first placement (the Home Tree hex
+  // itself when empty, else an adjacent hex, per `legalActions` ordering) is
+  // kept.
+  const seenKinds = new Set<ApeKind>();
   const actions = legalActions(state)
     .filter(
       (action): action is { type: "recruit"; kind: ApeKind; hex: Hex } =>
-        action.type === "recruit" && sameHex(action.hex, hex),
+        action.type === "recruit" &&
+        targetHexes.some((h) => sameHex(h, action.hex)),
     )
+    .filter((action) => {
+      if (seenKinds.has(action.kind)) return false;
+      seenKinds.add(action.kind);
+      return true;
+    })
     .map((action) => ({
       kind: action.kind,
       cost: costOf(action.kind),

@@ -245,11 +245,14 @@ describe("CellInfoPanel read-only", () => {
   });
 
   it("shows no action buttons for a read-only cell", () => {
-    // An occupied Home Tree is read-only (no recruit offered on an occupied hex).
+    // A neutral Grove hex is read-only (no recruit offered on a non-Home-Tree
+    // hex that is not itself a legal placement). Here we also pass an empty
+    // step-filtered legal set, so no recruit button can ever render.
     const state = standardSetup();
+    const grove = state.sites.find((s) => s.kind === "Grove")!;
     render(
       <CellInfoPanel
-        info={cellInfo(state, p1Home(state))}
+        info={cellInfo(state, grove.hex)}
         legalActions={[]}
         onSelectAction={vi.fn()}
         onClear={vi.fn()}
@@ -306,6 +309,48 @@ describe("CellInfoPanel actionable", () => {
     const action = onSelectAction.mock.calls[0][0] as { type: string; kind: string; hex: Hex };
     expect(action.type).toBe("recruit");
     expect(sameHex(action.hex, recruit.hex)).toBe(true);
+  });
+
+  it("offers recruit buttons when selecting a controlled Home Tree (M19-T3)", () => {
+    // Selecting the player's own Home Tree surfaces the "create new unit"
+    // recruit options (arboreally) with their cost, so the player can recruit
+    // without hunting for an empty adjacent hex first.
+    const session = recruitSession();
+    render(
+      <CellInfoPanel
+        info={cellInfo(session.state, p1Home(session.state))}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Recruit here/i)).toBeInTheDocument();
+    expect(screen.getAllByTestId("cell-action-button").length).toBeGreaterThan(0);
+    // Each button carries both the ape kind and its banana cost.
+    for (const button of screen.getAllByTestId("cell-action-button")) {
+      expect(button.textContent).toMatch(/🍌/);
+    }
+  });
+
+  it("hides Home-Tree recruit buttons on the movefight step (M19-T3)", () => {
+    // Once the player has moved/fought, recruiting is no longer legal, so
+    // selecting the Home Tree must not offer recruit buttons (the step-filtered
+    // legal set excludes recruits; `legalRecruitActions` drops them).
+    const session = movefightSession();
+    expect(session.step).toBe("movefight");
+    expect(
+      session.legalMoves.some((a) => a.type === "recruit"),
+    ).toBe(false);
+    render(
+      <CellInfoPanel
+        info={cellInfo(session.state, p1Home(session.state))}
+        legalActions={session.legalMoves}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("cell-action-button")).toBeNull();
+    expect(screen.queryByText(/Recruit here/i)).toBeNull();
   });
 });
 

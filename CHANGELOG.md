@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Restore a way to create new units at the Home Tree (M19-T3, #132). Selecting a
+  controlled Home Tree now surfaces the available recruit option(s) arboreally:
+  per the rules a new ape may be placed on a controlled Home Tree hex (if empty)
+  or in an adjacent empty hex, so `cellInfo` (in `src/core/cellInfo.ts`) derives
+  the recruit items for a selected controlled Home Tree from its own hex plus each
+  legal adjacent placement hex (each ape kind listed at most once with its cost),
+  restoring the missing "create new unit" flow — the player selects the Home Tree
+  and sees the recruit buttons instead of having to hunt for an empty adjacent
+  placement hex first. The recruit option still appears only while recruiting is
+  legal: the panel's `legalRecruitActions` filter already drops Home-Tree-surfaced
+  recruits once the player has moved/fought (the `movefight` step), so a mid-turn
+  recruit remains impossible and can never crash the app via `selectAction` (the
+  #123 fix is preserved). Pure core change (core stays 100% covered, no UI business
+  logic); adds core `cellInfo` tests (controlled-Home-Tree actionability, opponent
+  Home Tree excluded, kind dedup, end-to-end recruit through `selectAction`) plus
+  `CellInfoPanel` and `PlayableGame` component/render tests that select the Home
+  Tree, see the recruit options with cost, and recruit without crashing.
+
 - Make the End Turn button work any time during the human's turn, even when
   some units haven't moved/fought (M19-T2, #131). The core session's
   `submitTurn` already ends the human's turn and runs the AI reply regardless
