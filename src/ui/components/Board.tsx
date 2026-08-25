@@ -119,9 +119,6 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
           </Cell>
         );
       })}
-      <div className="pointer-events-none absolute bottom-0 right-0 text-xs text-text-muted">
-        Turn: {currentPlayer === "p1" ? "You (p1)" : "AI (p2)"}
-      </div>
     </div>
   );
 }
