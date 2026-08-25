@@ -247,6 +247,32 @@ export function legalRecruitActions(
   );
 }
 
+/** Anything needed to decide whether the human's End Turn button is enabled. */
+interface EndTurnState {
+  /** The player whose turn it is. */
+  currentPlayer: PlayerId;
+  /** Whether the game has ended. */
+  isDone: boolean;
+}
+
+/**
+ * Whether the human's End Turn button should be enabled (M19-T2, #131).
+ *
+ * The End Turn button must work any time during the human's turn, even when
+ * the player has not moved/fought all of their units — it ends the turn and
+ * runs the AI reply regardless of how many (if any) units have acted. So it is
+ * enabled whenever it is the human's (`p1`) turn and the game is not done, and
+ * disabled otherwise (e.g. the game has ended, so there is no turn to end). It
+ * must NOT be gated on all units having acted.
+ *
+ * Pure presentation — no game logic. Centralised here (like `cellOwner`,
+ * M19-T1) so the dumb End Turn button's enabled state comes from one tested
+ * source of truth instead of an inline expression in the composition layer.
+ */
+export function isEndTurnEnabled(state: EndTurnState): boolean {
+  return state.currentPlayer === "p1" && !state.isDone;
+}
+
 /** Horizontal spacing between adjacent hex columns. */
 const W = Math.sqrt(3) * HEX_SIZE;
 /** Vertical spacing between hex rows. */
