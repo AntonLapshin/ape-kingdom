@@ -4,7 +4,14 @@
 
 ## Status
 
-**M1–M18 COMPLETE and shipped; M19 (new post-ship bug fixes & UI tweaks, #129) PLANNED (pi:ready).**
+**M1–M19 COMPLETE and shipped; M20 (terrain & movement legality, #137/#142/#138) PLANNED (pi:ready); M21/#143 & M22/#144 & #145 upcoming.**
+The four already-implemented feedback issues (#136 End Turn, #139 gap,
+#140 selected preview, #141 reachable-highlight) were closed as resolved
+(M19-T2/#131, M18-T3/#125, M17-T3/#116, M10-T4/#63 respectively). New
+terrain/movement feedback is split as milestone M20: M20-T1 #146 (no
+water), M20-T2 #147 (no mountain), M20-T3 #148 (move up to 4 through own
+land) — all `pi:ready`. Remaining unplanned: #143 (rules doc + graves
+→ M21), #144 (exploration/fog of war → M22), #145 (analysis).
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,

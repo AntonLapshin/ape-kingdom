@@ -2,14 +2,18 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M18 done; M19 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M20 done/planned; M21–M22 upcoming)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). New post-ship UI adjustments
 (issue #88) are planned under milestone M13, the follow-on design-polish
 request (issue #94) under milestone M14, the game-mechanics rules (issue #102)
 under milestone M15, the game image assets (issue #103) under milestone M16,
 the new post-ship UI adjustments (issue #113) under milestone M17, the new
-UI adjustments & fixes (issue #122) under milestone M18, and the new
-post-ship bug fixes & UI tweaks (issue #129) under milestone M19.
+UI adjustments & fixes (issue #122) under milestone M18, the new
+post-ship bug fixes & UI tweaks (issue #129) under milestone M19, and the
+terrain & movement legality issues (#137/#142/#138) under milestone M20
+The remaining unplanned issues — #143 (game rules + graves economics),
+#144 (map exploration / fog of war), #145 (through analysis + improvements) —
+are slated for future milestones M21/M22.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -434,3 +438,36 @@ covered. Split per plan.md §16.3 — planned 2026-08-24.
   - [ ] M19-T4 (next slice) Glass edge made more subtle (#129-3)
   - [ ] M19-T5 (next slice) Remove the Move {from} => {to} action list (#129-5)
   - [ ] M19-T6 (next slice) Mark moved units as opaque (#129-6)
+
+### M20 — Terrain & movement legality (#137/#142/#138)
+
+**Goal:** Make movement respect the map terrain per the user feedback: a unit
+may never step onto a water cell (#142) or a mountain cell (#137), and a unit
+whose whole route stays within its own kingdom's land may move up to 4 hexes
+(default 1) (#138). Core legality (`reachableHexes`, `legalActions`,
+`moveUnit`) currently only checks unit occupancy, not terrain — so water and
+mountain cells are legal move targets today and must be blocked, and the
+owned-land range rule must be codified in the rules then implemented in the
+core. Pure core mechanic change; `src/core` stays pure and 100% covered.
+Planned 2026-08-25.
+
+**Sub-issues (first slice) — all `pi:ready`:**
+  - [ ] M20-T1 No way to step on the water (#146) — `pi:ready`
+  - [ ] M20-T2 No way to step on the mountain (#147) — `pi:ready`
+  - [ ] M20-T3 Move up to 4 cells through your own land (#148) — `pi:ready`
+
+### M21 — Game rules & graves economics (#143) — upcoming
+
+**Goal:** Create a comprehensive `RULES.md` describing the full game (economics,
+units, movement, capturing territory, winning condition), and add the new
+"graves" mechanic: if a kingdom's money goes negative, all its units die and
+graves appear in their place; each grave costs -1 to the kingdom per turn, a
+unit can harvest a grave by moving onto it for +2 (clearing the grave). Docs +
+core mechanic. Planned next PM slice.
+
+### M22 — Map exploration / fog of war (#144) — upcoming
+
+**Goal:** Add map exploration / fog of war: at start the map is hidden (black)
+and is revealed by unit vision — Monkey vision 1 (reveals surrounding cells),
+Gibbon +2 (2 levels), Home Tree +3, all other units +3. Large core + UI
+feature; split into sub-issues when planned.
