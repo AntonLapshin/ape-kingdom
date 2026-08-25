@@ -16,7 +16,7 @@ const noop = () => {};
 
 /** Empty prompt before any hex has been selected. */
 export const Empty = () => (
-  <CellInfoPanel info={null} legalActions={[]} onSelectAction={noop} onClear={noop} />
+  <CellInfoPanel info={null} legalActions={[]} onSelectAction={noop} />
 );
 
 /** A selected hex occupied by a p1 Home Tree and a starting Monkey (read-only). */
@@ -30,7 +30,6 @@ export const HomeTree = () => {
       info={selectedCellInfo(state, home)}
       legalActions={[]}
       onSelectAction={noop}
-      onClear={noop}
     />
   );
 };
@@ -40,13 +39,12 @@ export const BuildableRecruit = () => {
   const session = createGameSession();
   const recruit = session.legalMoves.find((a) => a.type === "recruit");
   const hex = recruit && recruit.type === "recruit" ? recruit.hex : null;
-  if (!hex) return <CellInfoPanel info={null} legalActions={[]} onSelectAction={noop} onClear={noop} />;
+  if (!hex) return <CellInfoPanel info={null} legalActions={[]} onSelectAction={noop} />;
   return (
     <CellInfoPanel
       info={selectedCellInfo(session.state, hex)}
       legalActions={session.legalMoves}
       onSelectAction={noop}
-      onClear={noop}
     />
   );
 };
@@ -60,7 +58,6 @@ export const NeutralGrove = () => {
       info={selectedCellInfo(state, grove)}
       legalActions={[]}
       onSelectAction={noop}
-      onClear={noop}
     />
   );
 };

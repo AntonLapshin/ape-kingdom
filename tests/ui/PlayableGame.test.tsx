@@ -30,19 +30,15 @@ describe("PlayableGame", () => {
     expect(screen.getByText(/Current: You/)).toBeInTheDocument();
   });
 
-  it("clear discards this turn's selections back to the recruit step", () => {
+  it("does not render the redundant 'Your actions' move/attack list (M24-T3, #161)", () => {
     render(<PlayableGame />);
-    // Select the first legal move/attack action (listed in the bottom-left
-    // cell-info panel); then Clear discards it back to the start of the turn.
-    const firstAction = screen.getAllByTestId("action-button")[0];
-    act(() => {
-      fireEvent.click(firstAction);
-    });
-    act(() => {
-      fireEvent.click(screen.getByTestId("clear-actions"));
-    });
-    // Back at the start of the turn.
-    expect(screen.getByText(/Current: You/)).toBeInTheDocument();
+    // Movement is interactive only (select a unit on the map, then click a
+    // highlighted reachable hex). The bottom-left cell-info panel must no
+    // longer render the old non-recruit move/attack action-button list or its
+    // Clear button.
+    expect(screen.queryByText(/Your actions/i)).toBeNull();
+    expect(screen.queryByTestId("action-button")).toBeNull();
+    expect(screen.queryByTestId("clear-actions")).toBeNull();
   });
 
   it("fills the viewport with a non-scrolling on-screen container", () => {
@@ -457,9 +453,9 @@ describe("PlayableGame", () => {
     const cellInfo = within(screen.getByTestId("cell-info-overlay"));
     expect(cellInfo.getByTestId("cell-info")).toBeInTheDocument();
     expect(cellInfo.getByText(/click a hex to inspect/i)).toBeInTheDocument();
-    // The turn's legal action buttons now live in the bottom-left cell-info
-    // panel (moved from the bottom-right ActionControls, M17-T2 / #115).
-    expect(cellInfo.getAllByTestId("action-button").length).toBeGreaterThan(0);
+    // Movement is interactive only (M24-T3 / #161): the bottom-left panel no
+    // longer renders a non-recruit move/attack action-button list.
+    expect(cellInfo.queryAllByTestId("action-button")).toHaveLength(0);
 
     // The bottom-right corner hosts only the circular End Turn button.
     const actions = within(screen.getByTestId("actions-overlay"));
@@ -884,9 +880,10 @@ describe("PlayableGame", () => {
     expect(endTurn.className).toContain("rounded-full");
     // No separate "Step: Recruit / Act" label in the bottom-right corner.
     expect(actions.queryByText(/Step:/i)).toBeNull();
-    // The moved move/attack action buttons now live in the bottom-left panel.
+    // Movement is interactive only (M24-T3 / #161): the bottom-left panel no
+    // longer renders a move/attack action-button list.
     const cellInfo = within(screen.getByTestId("cell-info-overlay"));
-    expect(cellInfo.getAllByTestId("action-button").length).toBeGreaterThan(0);
+    expect(cellInfo.queryAllByTestId("action-button")).toHaveLength(0);
   });
 
   it("enables the End Turn button during the human's turn and disables it when done (M17-T2 / #115)", () => {
