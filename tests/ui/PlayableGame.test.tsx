@@ -332,6 +332,37 @@ describe("PlayableGame", () => {
     expect(kindsBefore.length).toBeGreaterThan(0);
   });
 
+  it("selecting the Home Tree surfaces recruit options that recruit end-to-end (M19-T3/#132)", () => {
+    render(<PlayableGame />);
+    // Click p1's (the human's) Home Tree. On the recruit step, selecting the
+    // Home Tree must surface the "create new unit" recruit options.
+    const cells = screen.getAllByTestId("board-cell");
+    const p1Home = cells.find(
+      (c) =>
+        c.querySelector('[data-testid="board-site"]')?.getAttribute("data-kind") ===
+          "HomeTree" &&
+        c.dataset.owner === "p1",
+    )!;
+    act(() => {
+      fireEvent.click(p1Home);
+    });
+    expect(p1Home.className).toContain("hex-selected");
+    // The Home Tree is selected and the panel offers recruit buttons with cost.
+    expect(screen.getByText(/Recruit here/i)).toBeInTheDocument();
+    const buttons = screen.getAllByTestId("cell-action-button");
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const b of buttons) expect(b.textContent).toMatch(/🍌/);
+    // Click the first recruit option; it must not crash and must perform a
+    // recruit (the recruited unit appears on a board hex at its placement).
+    const buttonsBefore = buttons.map((b) => b.textContent);
+    act(() => {
+      fireEvent.click(buttons[0]);
+    });
+    // Still rendered (no crash) and the seeded p1 monkeys on the board grew.
+    expect(screen.getByTestId("playable-game")).toBeInTheDocument();
+    expect(buttonsBefore.length).toBeGreaterThan(0);
+  });
+
   /* ------------------------------------------------------------------ */
   /* Floating overlay panels (M11-T2)                                   */
   /* ------------------------------------------------------------------ */

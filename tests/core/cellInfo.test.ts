@@ -141,11 +141,53 @@ describe("cellInfo actionability", () => {
     }
   });
 
-  it("is not actionable for a read-only hex with no legal recruit option", () => {
-    // The p1 Home Tree hex is occupied by a starting unit, so it is not a
-    // buildable placement hex and offers no legal action on the recruit step.
-    const session = createGameSession();
+  it("is actionable for a controlled Home Tree, surfacing its adjacent recruits (M19-T3)", () => {
+    // Selecting a controlled Home Tree must restore the "create new unit"
+    // flow: the tree surfaces every legal recruit available at it (its own
+    // hex plus each legal adjacent empty placement hex). Even though the
+    // tree's own hex is occupied by a starting unit (so it is not itself a
+    // placement hex), the tree is actionable because it still has legal
+    // adjacent placements.
+    const session = toRecruitStep();
     const info = cellInfo(session.state, p1Home(session.state));
+    expect(info.site?.kind).toBe("HomeTree");
+    expect(info.site?.owner).toBe("p1");
+    expect(info.actionable).toBe(true);
+    expect(info.actions.length).toBeGreaterThan(0);
+    // Each surfaced action is a genuinely legal recruit at this Home Tree
+    // (its own hex or an adjacent legal placement hex).
+    for (const item of info.actions) {
+      expect(item.cost).toBeGreaterThan(0);
+      expect(item.action.type).toBe("recruit");
+      expect(
+        session.legalMoves.some(
+          (a) =>
+            a.type === "recruit" &&
+            a.kind === item.kind &&
+            sameHex(a.hex, item.action.hex),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("is not actionable for an opponent's Home Tree (cannot recruit there)", () => {
+    // A Home Tree controlled by the *opponent* must not offer recruit options
+    // — a player may only recruit at a Home Tree they control.
+    const state = standardSetup();
+    const p2Home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p2",
+    )!;
+    const info = cellInfo(state, p2Home.hex);
+    expect(info.actionable).toBe(false);
+    expect(info.actions).toEqual([]);
+  });
+
+  it("is not actionable for a read-only hex with no legal recruit option", () => {
+    // A neutral Grove hex is not a placement hex and not a Home Tree, so it
+    // offers no legal recruit action on the recruit step.
+    const session = toRecruitStep();
+    const grove = session.state.sites.find((s) => s.kind === "Grove")!;
+    const info = cellInfo(session.state, grove.hex);
     expect(info.actionable).toBe(false);
     expect(info.actions).toEqual([]);
   });
@@ -180,6 +222,18 @@ describe("cellInfo actionability", () => {
     const kinds = info.actions.map((a) => a.kind);
     expect(new Set(kinds).size).toBe(kinds.length);
   });
+
+  it("lists each ape kind at most once for a controlled Home Tree (M19-T3)", () => {
+    // A controlled Home Tree offers recruits at several placement hexes (its
+    // own hex when empty, plus each legal adjacent empty hex), so it would
+    // otherwise list the same ape kind once per placement hex. It must still
+    // list each kind at most once.
+    const session = toRecruitStep();
+    const info = cellInfo(session.state, p1Home(session.state));
+    expect(info.actions.length).toBeGreaterThan(0);
+    const kinds = info.actions.map((a) => a.kind);
+    expect(new Set(kinds).size).toBe(kinds.length);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -187,6 +241,30 @@ describe("cellInfo actionability", () => {
 /* ------------------------------------------------------------------ */
 
 describe("cellInfo action items feed the selectAction flow", () => {
+  it("feeding a Home-Tree-surfaced recruit into selectAction works end-to-end (M19-T3)", () => {
+    // The player selects their Home Tree; the surfaced recruit item targets a
+    // legal placement hex (an adjacent empty hex). Selecting it must be
+    // accepted and the recruited unit must appear at that placement hex.
+    let session = toRecruitStep();
+    const info = cellInfo(session.state, p1Home(session.state));
+    expect(info.actions.length).toBeGreaterThan(0);
+    const item = info.actions[0];
+    // The placement hex is (adjacent to) the Home Tree, not the tree hex
+    // itself (which is occupied by a starting unit).
+    expect(item.action.hex).not.toEqual(p1Home(session.state));
+    expect(() => selectAction(session, item.action)).not.toThrow();
+    session = selectAction(session, item.action);
+    // The recruited unit appears in the projected state at the placement hex.
+    expect(
+      session.state.units.some(
+        (u) =>
+          u.owner === "p1" &&
+          u.kind === item.kind &&
+          sameHex(u.hex, item.action.hex),
+      ),
+    ).toBe(true);
+  });
+
   it("selecting a derived action is accepted by the session", () => {
     let session = toRecruitStep();
     const hex = firstRecruit(session);
