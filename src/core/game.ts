@@ -420,7 +420,9 @@ export type MoveErrorKind =
   /** The target hex is occupied by another unit. */
   | "occupied"
   /** The target hex is a water cell, which units may not step onto. */
-  | "water";
+  | "water"
+  /** The target hex is a mountain cell, which units may not step onto. */
+  | "mountain";
 
 /** A typed error describing why a move was rejected. */
 export class MoveError extends Error {
@@ -457,7 +459,8 @@ export function hexDistance(a: Hex, b: Hex): number {
  *  - the unit has already acted this turn (`already-acted`);
  *  - the target hex is farther than the unit's Movement value (`out-of-range`);
  *  - the target hex is occupied by another unit (`occupied`);
- *  - the target hex is a water cell (`water`) — units may not step onto water.
+ *  - the target hex is a water cell (`water`) — units may not step onto water;
+ *  - the target hex is a mountain cell (`mountain`) — units may not step onto a mountain.
  *
  * Because standard movement is 1 hex, "may not move through enemy units" is
  * enforced by the occupied-target check — with a single-step move there are
@@ -520,6 +523,17 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     throw new MoveError(
       "water",
       `Cannot move to (${targetHex.q},${targetHex.r}): the hex is water`,
+    );
+  }
+
+  // The target hex must not be a mountain — a unit may not step onto a
+  // mountain cell. Terrain is read from the generated map; a hex outside the
+  // map is treated as non-mountain so the out-of-range check above stays the
+  // authority for unreachable targets.
+  if (terrain === "mountain") {
+    throw new MoveError(
+      "mountain",
+      `Cannot move to (${targetHex.q},${targetHex.r}): the hex is a mountain`,
     );
   }
 

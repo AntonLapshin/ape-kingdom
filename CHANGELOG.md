@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Prevent any unit from moving onto a mountain cell (M20-T2, #147). A unit may
+  not step onto a mountain: `reachableHexes`/`legalActions` (in `src/core/ai.ts`)
+  take the generated map and never enumerate mountain cells as move targets (and
+  never move through one), `moveUnit` (in `src/core/game.ts`) rejects an
+  in-range, unoccupied mountain target with a new typed `MoveError` of kind
+  `mountain`, and the AI's legal set (and therefore its decisions) never targets
+  a mountain. Because the UI's reachable-target highlight and click-to-move both
+  derive from the core legal set (`movementInfo`/`legalMoves`), mountain cells
+  are never shown as reachable nor submitted as a move. Adds core tests
+  (mountain excluded from `reachableHexes`/`legalActions`, `moveUnit` rejects a
+  mountain target with kind `mountain`, the AI never chooses a mountain move
+  across many seeds) and hardens the pre-existing test helpers to stay
+  terrain-aware: the Board territory test's `adjacentEmpty` now picks only
+  passable land cells, and the game-session moved-unit test now asserts on the
+  moved unit itself rather than a terrain-sensitive total move count. Pure core change (core stays 100% covered, no UI business logic).
+
 - Prevent any unit from moving onto a water cell (M20-T1, #146). A unit may not
   step onto or across water: `reachableHexes`/`legalActions` (in
   `src/core/ai.ts`) now take the generated map and never enumerate water cells

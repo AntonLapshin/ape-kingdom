@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { GameState, ApeUnit, Site, Player } from "../../src/core/game";
-import { generateMap, isWater } from "../../src/core/mapGenerator";
+import { generateMap, isWater, isMountain } from "../../src/core/mapGenerator";
 import {
   createUnit,
   createSite,
@@ -112,6 +112,30 @@ describe("reachableHexes", () => {
     // so it must not be reachable.
     const hexes = reachableHexes({ q: 2, r: 1 }, 2, new Set(), map);
     expect(hexes.some((h) => sameHex(h, { q: 1, r: 0 }))).toBe(false);
+  });
+
+  it("excludes mountain cells as reachable targets", () => {
+    const map = generateMap({ width: 7, height: 7, seed: 0 });
+    // A unit at (2,2) on the map: its mountain neighbour (2,3) is never
+    // reachable, while its land neighbours remain reachable.
+    const hexes = reachableHexes({ q: 2, r: 2 }, 1, new Set(), map);
+    expect(hexes.some((h) => sameHex(h, { q: 2, r: 3 }))).toBe(false);
+    expect(
+      hexes.some((h) => sameHex(h, { q: 3, r: 2 })) &&
+        hexes.some((h) => sameHex(h, { q: 1, r: 2 })) &&
+        hexes.some((h) => sameHex(h, { q: 2, r: 1 })),
+    ).toBe(true);
+  });
+
+  it("does not move through a mountain to reach a cell beyond it", () => {
+    const map = generateMap({ width: 7, height: 7, seed: 0 });
+    // Mountain at (2,3). A unit at (1,3) within movement 2 cannot reach
+    // (3,3) through the mountain, and there is no land path around it within
+    // 2 steps, so (3,3) must not be reachable.
+    const hexes = reachableHexes({ q: 1, r: 3 }, 2, new Set(), map);
+    expect(hexes.some((h) => sameHex(h, { q: 3, r: 3 }))).toBe(false);
+    // The mountain itself is never reachable either.
+    expect(hexes.some((h) => sameHex(h, { q: 2, r: 3 }))).toBe(false);
   });
 });
 
@@ -277,6 +301,21 @@ describe("legalActions — move", () => {
       targets.some((h) => sameHex(h, { q: 3, r: 1 })) &&
         targets.some((h) => sameHex(h, { q: 2, r: 2 })) &&
         targets.some((h) => sameHex(h, { q: 1, r: 2 })),
+    ).toBe(true);
+  });
+
+  it("excludes mountain cells as legal move targets", () => {
+    // Monkey at (2,2) on the map: its mountain neighbour (2,3) must never
+    // appear as a legal move target.
+    const state = moveState({ unit: createUnit("Monkey", "p1", { q: 2, r: 2 }, false) });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    const targets = moves.map((m) => (m as { targetHex: { q: number; r: number } }).targetHex);
+    expect(targets.some((h) => sameHex(h, { q: 2, r: 3 }))).toBe(false);
+    // The land neighbours remain legal targets.
+    expect(
+      targets.some((h) => sameHex(h, { q: 3, r: 2 })) &&
+        targets.some((h) => sameHex(h, { q: 1, r: 2 })) &&
+        targets.some((h) => sameHex(h, { q: 2, r: 1 })),
     ).toBe(true);
   });
 });
@@ -449,6 +488,23 @@ describe("aiChooseMove — determinism and legality", () => {
       if (action.type !== "move") continue;
       const target = action.targetHex;
       expect(isWater(state.map, target)).toBe(false);
+    }
+  });
+
+  it("never chooses a move onto a mountain cell across many seeds", () => {
+    // A unit at (2,2) sits next to the mountain (2,3); the AI must never
+    // target a mountain cell as a move destination.
+    const state = gameState({
+      sites: [],
+      units: [createUnit("Monkey", "p1", { q: 2, r: 2 }, false)],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    for (let seed = 0; seed < 500; seed++) {
+      const action = aiChooseMove(state, seed);
+      if (action.type !== "move") continue;
+      const target = action.targetHex;
+      expect(isMountain(state.map, target)).toBe(false);
     }
   });
 });

@@ -649,6 +649,25 @@ describe("moveUnit", () => {
     expect(state.units[0].hasActed).toBe(false);
   });
 
+  it("rejects moving onto a mountain cell", () => {
+    // The unit sits at (1,3); its neighbour (2,3) is a mountain on the
+    // default test map. The unit may not step onto the mountain.
+    const state = moveState({
+      unit: createUnit("Monkey", "p1", { q: 1, r: 3 }, false),
+    });
+    let caught: unknown;
+    try {
+      moveUnit(state, state.units[0], { q: 2, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("mountain");
+    // The state is unchanged — no unit moves onto a mountain.
+    expect(state.units[0].hex).toEqual({ q: 1, r: 3 });
+    expect(state.units[0].hasActed).toBe(false);
+  });
+
   it("keeps other units unchanged when moving one unit", () => {
     const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
     const other = createUnit("Gibbon", "p1", { q: 5, r: 5 }, false);
