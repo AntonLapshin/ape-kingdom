@@ -38,6 +38,14 @@ export interface BoardProps {
    */
   reachableHexes?: Hex[];
   /**
+   * The reachable enemy-capture (attack) target hexes (M26-T1, issue 169). Any
+   * cell whose hex is in this list is a reachable target that holds an enemy
+   * unit, so its move-target circle is rendered red (distinct from the
+   * grayish plain move-target circles). Ignored when `reachableHexes` is
+   * omitted.
+   */
+  enemyTargetHexes?: Hex[];
+  /**
    * Callback invoked with the clicked hex so the view model can select a
    * cell (M10-T3). When omitted, cells are not clickable.
    */
@@ -55,7 +63,7 @@ export interface BoardProps {
  * — it receives the already-adapted `BoardCell[]` and renders props only. No
  * business logic, no hooks, no side effects.
  */
-export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableHexes, onSelectCell }: BoardProps) {
+export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableHexes, enemyTargetHexes, onSelectCell }: BoardProps) {
   // Compute the bounding box so the board is centred in its container.
   const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
   const minX = Math.min(...positions.map((p) => p.x));
@@ -88,6 +96,12 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
           reachableHexes.some(
             (h) => h.q === cell.hex.q && h.r === cell.hex.r,
           );
+        const isEnemyTarget =
+          isMoveTarget &&
+          !!enemyTargetHexes &&
+          enemyTargetHexes.some(
+            (h) => h.q === cell.hex.q && h.r === cell.hex.r,
+          );
         return (
           <Cell
             key={`${cell.hex.q},${cell.hex.r}`}
@@ -99,6 +113,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
             isCurrent={owner === currentPlayer}
             isSelected={isSelected}
             isMoveTarget={isMoveTarget}
+            isEnemyTarget={isEnemyTarget}
             fogged={cell.fogged}
             x={x - minX + pad - HEX_SIZE}
             y={y - minY + pad - HEX_SIZE}

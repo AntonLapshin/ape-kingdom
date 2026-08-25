@@ -311,16 +311,30 @@
     0 8px 20px var(--color-shadow);
 }
 
-/* A reachable move target for the selected unit gets a subtle green/teal
-   ring so the user sees where they can move (M10-T4). */
+/* A reachable move-target cell for the selected unit (M26-T1, issue 169). The old
+   green/teal ring is replaced by an opaque grayish circle rendered as a child
+   `.move-target-circle` element; the cell shell itself only keeps the pointer
+   affordance and top-most layer so the circle reads clearly. */
 .hex-cell.hex-move-target {
-  box-shadow:
-    inset 0 1px 0 var(--color-glass-inner),
-    0 0 0 3px var(--color-success),
-    0 6px 16px var(--color-shadow-accent);
-  filter: brightness(1.05) saturate(1.05);
   cursor: pointer;
   z-index: 1;
+}
+
+/* The opaque move-target circle (M26-T1, issue 169): a centered, absolutely-
+   positioned circle drawn on every reachable target cell, replacing the old
+   green ring. `--color-move-target` (grayish) fills a plain move target and
+   `--color-move-target-enemy` (red) fills a reachable cell that holds an
+   enemy unit, so attacks/captures are visually distinct. Non-interactive so
+   it never swallows the cell click that issues the move/capture. */
+.move-target-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34%;
+  height: 34%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  pointer-events: none;
 }
 
 /* Hovering a hex brightens it instead of moving/scaling it: a CSS filter

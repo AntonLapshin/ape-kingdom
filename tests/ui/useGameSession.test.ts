@@ -10,6 +10,8 @@ import {
   selectedCellInfo,
   selectedMovement,
   isMoveTarget,
+  reachableTargetHexes,
+  enemyTargetHexes,
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup, createGameSession } from "../../src/core/gameSession";
@@ -353,6 +355,36 @@ describe("selectedMovement / isMoveTarget", () => {
     expect(info.movable).toBe(true);
     expect(info.reachable.length).toBeGreaterThan(0);
   });
+
+  it("reachableTargetHexes unions plain-move and enemy-capture targets (M26-T1/#169)", () => {
+    const movement = {
+      unit: null,
+      movable: true,
+      reachable: [{ q: 1, r: 0 }, { q: 2, r: 0 }],
+      attackable: [{ q: 3, r: 0 }],
+    };
+    const combined = reachableTargetHexes(movement);
+    expect(combined).toHaveLength(3);
+    for (const h of [...movement.reachable, ...movement.attackable]) {
+      expect(combined.some((x) => sameHex(x, h))).toBe(true);
+    }
+  });
+
+  it("enemyTargetHexes returns exactly the attackable (enemy-held) targets (M26-T1/#169)", () => {
+    const movement = {
+      unit: null,
+      movable: true,
+      reachable: [{ q: 1, r: 0 }],
+      attackable: [{ q: 3, r: 0 }, { q: 4, r: 0 }],
+    };
+    const enemy = enemyTargetHexes(movement);
+    expect(enemy).toHaveLength(2);
+    for (const h of movement.attackable) {
+      expect(enemy.some((x) => sameHex(x, h))).toBe(true);
+    }
+    // Plain move targets are never enemy targets.
+    expect(enemy.some((x) => sameHex(x, { q: 1, r: 0 }))).toBe(false);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -462,6 +494,32 @@ describe("useGameSession", () => {
     expect(result.current.movement.movable).toBe(true);
     expect(result.current.movement.unit).not.toBeNull();
     expect(result.current.reachableHexes.length).toBeGreaterThan(0);
+  });
+
+  it("exposes enemyTargetHexes matching the core attackable targets (M26-T1/#169)", () => {
+    const { result } = renderHook(() => useGameSession());
+    const unitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    )!.hex;
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    // `enemyTargetHexes` exposes the core `attackable` (enemy-held) targets and
+    // `reachableHexes` is the union of plain-move and enemy-capture targets.
+    expect(result.current.enemyTargetHexes).toEqual(
+      result.current.movement.attackable,
+    );
+    const combined = [
+      ...result.current.movement.reachable,
+      ...result.current.movement.attackable,
+    ];
+    expect(result.current.reachableHexes).toEqual(combined);
+    // No enemy target is ever a plain move target (plain moves are unoccupied).
+    for (const enemy of result.current.enemyTargetHexes) {
+      expect(
+        result.current.movement.reachable.some((h) => sameHex(h, enemy)),
+      ).toBe(false);
+    }
   });
 
   it("clicking a reachable target issues a move action and clears the selection", () => {

@@ -41,6 +41,13 @@
   --color-danger-soft: #f5ddda;
   --color-premium: #b8860b;
 
+  /* Move-target circles (M26-T1, #169): an opaque grayish circle on every
+     reachable target cell (replacing the old green ring), and a red circle on
+     a reachable cell that holds an enemy unit so attacks/captures are
+     visually distinct. */
+  --color-move-target: #000000b3;
+  --color-move-target-enemy: #c05c4acc;
+
   /* Selection highlight family (M13-T3, #90) — a blue ring used for the
      user-selected hex so it reads clearly apart from the amber brand and
      the accent (current-territory) highlight. */
@@ -165,6 +172,9 @@
   --color-danger: var(--color-danger);
   --color-danger-soft: var(--color-danger-soft);
   --color-premium: var(--color-premium);
+
+  --color-move-target: var(--color-move-target);
+  --color-move-target-enemy: var(--color-move-target-enemy);
 
   --color-selection: var(--color-selection);
   --color-selection-soft: var(--color-selection-soft);

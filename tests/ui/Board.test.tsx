@@ -222,6 +222,60 @@ describe("Board", () => {
     expect(cells.every((c) => c.dataset.moveTarget === "false")).toBe(true);
   });
 
+  it("renders a red circle on an enemy move-target cell (M26-T1/#169)", () => {
+    // Two real board hexes: one plain move target (grayish circle), one enemy
+    // target passed via `enemyTargetHexes` (red circle).
+    const [targetA, targetB] = board
+      .map((c) => c.hex)
+      .filter((h) => h.q !== p1Home.q || h.r !== p1Home.r)
+      .slice(0, 2);
+    render(
+      <Board
+        board={board}
+        currentPlayer="p1"
+        selectedHex={p1Home}
+        reachableHexes={[targetA, targetB]}
+        enemyTargetHexes={[targetB]}
+      />,
+    );
+    const cells = screen.getAllByTestId("board-cell");
+    const cellA = cells.find(
+      (c) => c.dataset.hex === `${targetA.q},${targetA.r}`,
+    )!;
+    const cellB = cells.find(
+      (c) => c.dataset.hex === `${targetB.q},${targetB.r}`,
+    )!;
+    // Both cells are move targets; both carry a move-target circle.
+    expect(cellA.dataset.moveTarget).toBe("true");
+    expect(cellB.dataset.moveTarget).toBe("true");
+    const circleA = cellA.querySelector('[data-testid="move-target-circle"]')!;
+    const circleB = cellB.querySelector('[data-testid="move-target-circle"]')!;
+    // A plain move target is grayish; the enemy target is red.
+    expect(circleA.classList.contains("bg-move-target")).toBe(true);
+    expect(circleA.classList.contains("bg-move-target-enemy")).toBe(false);
+    expect(circleB.classList.contains("bg-move-target-enemy")).toBe(true);
+    expect(circleB.classList.contains("bg-move-target")).toBe(false);
+    expect(cellA.dataset.enemyTarget).toBe("false");
+    expect(cellB.dataset.enemyTarget).toBe("true");
+  });
+
+  it("renders no enemy (red) circle when enemyTargetHexes is omitted", () => {
+    render(
+      <Board
+        board={board}
+        currentPlayer="p1"
+        selectedHex={p1Home}
+        reachableHexes={[p1Home]}
+      />,
+    );
+    const cells = screen.getAllByTestId("board-cell");
+    const target = cells.find((c) => c.dataset.hex === p1HomeKey)!;
+    const circle = target.querySelector('[data-testid="move-target-circle"]')!;
+    expect(circle).not.toBeNull();
+    expect(circle.classList.contains("bg-move-target-enemy")).toBe(false);
+    expect(target.dataset.enemyTarget).toBe("false");
+  });
+
   it("calls onSelectCell with the clicked hex when cells are selectable", () => {
     const onSelectCell = vi.fn();
     render(

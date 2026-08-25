@@ -266,6 +266,29 @@ export function isMoveTarget(
 }
 
 /**
+ * The combined set of reachable move-target hexes and enemy-capture (attack)
+ * target hexes for a selected movable unit (M26-T1, #169). The board renders
+ * every one of these with a move-target circle — grayish for plain moves, red
+ * for enemy-held capture targets. Pure presentation glue over the core
+ * `MovementInfo` (which derives `reachable` move targets and `attackable`
+ * enemy targets from the legal actions). No business logic.
+ */
+export function reachableTargetHexes(movement: MovementInfo): Hex[] {
+  return [...movement.reachable, ...movement.attackable];
+}
+
+/**
+ * The set of enemy-held reachable capture (attack) target hexes for a
+ * selected movable unit (M26-T1, #169). These are the hexes whose move-target
+ * circle is rendered red so attacks/captures are visually distinct from the
+ * grayish plain-move targets. Pure presentation glue over the core
+ * `MovementInfo.attackable` — no business logic.
+ */
+export function enemyTargetHexes(movement: MovementInfo): Hex[] {
+  return movement.attackable;
+}
+
+/**
  * The `useGameSession` view model.
  *
  * Holds a core `GameSession` and the currently selected hex in React state and
@@ -289,6 +312,8 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   movement: MovementInfo;
   /** The reachable target hexes highlighted when a movable unit is selected. */
   reachableHexes: Hex[];
+  /** The reachable enemy-capture hexes rendered with the red circle (M26-T1). */
+  enemyTargetHexes: Hex[];
   selectCell: (hex: Hex) => void;
   selectAction: (action: GameAction) => void;
   clearActions: () => void;
@@ -326,10 +351,12 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   const selectCell = useCallback(
     (hex: Hex) => {
       // If the user has a movable unit selected and clicks one of its
-      // reachable target hexes (and that move is legal this turn), issue the
-      // move action through the existing selectAction flow and clear the
-      // selection so the highlight disappears. Otherwise just select the cell
-      // (no illegal move is issued for a non-reachable cell).
+      // reachable target hexes (and that move/attack is legal this turn),
+      // issue the move or attack action through the existing selectAction
+      // flow and clear the selection so the highlight disappears. A click on
+      // a grayish target issues a `move`; a click on an enemy-held (red)
+      // target issues an `attack` capture. Otherwise just select the cell
+      // (no illegal action is issued for a non-reachable cell).
       const info = movementInfo(session.state, selectedHex);
       const unit = info.unit;
       const moveLegal =
@@ -353,6 +380,27 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
         setSelectedHex(null);
         return;
       }
+      const attackLegal =
+        !!unit &&
+        info.movable &&
+        isMoveTarget(selectedHex, hex, info.attackable) &&
+        session.legalMoves.some(
+          (a) =>
+            a.type === "attack" &&
+            sameHex(a.attackerHex, unit.hex) &&
+            sameHex(a.targetHex, hex),
+        );
+      if (attackLegal && unit) {
+        setSession((current) =>
+          selectAction(current, {
+            type: "attack",
+            attackerHex: unit.hex,
+            targetHex: hex,
+          }),
+        );
+        setSelectedHex(null);
+        return;
+      }
       setSelectedHex(hex);
     },
     [selectedHex, session],
@@ -363,7 +411,8 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
     selectedHex,
     selectedCell,
     movement,
-    reachableHexes: movement.reachable,
+    reachableHexes: reachableTargetHexes(movement),
+    enemyTargetHexes: enemyTargetHexes(movement),
     selectCell,
     selectAction: select,
     clearActions: clear,

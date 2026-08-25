@@ -124,6 +124,56 @@ describe("Cell", () => {
     expect(screen.getByTestId("board-cell").dataset.moveTarget).toBe("false");
   });
 
+  /* ------------------- Move-target circles (M26-T1, #169) ------------------ */
+
+  it("renders an opaque grayish move-target circle on a reachable target", () => {
+    render(<Cell q={0} r={0} owner={null} isMoveTarget x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.dataset.moveTarget).toBe("true");
+    const circle = cell.querySelector(
+      '[data-testid="move-target-circle"]',
+    ) as HTMLElement | null;
+    expect(circle).not.toBeNull();
+    // A plain move target uses the grayish token class, never the enemy red.
+    expect(circle!.classList.contains("bg-move-target")).toBe(true);
+    expect(circle!.classList.contains("bg-move-target-enemy")).toBe(false);
+    expect(circle!.dataset.enemyTarget).toBe("false");
+  });
+
+  it("renders a red move-target circle on an enemy (capture) target", () => {
+    render(
+      <Cell q={0} r={0} owner={null} isMoveTarget isEnemyTarget x={0} y={0} />,
+    );
+    const circle = screen
+      .getByTestId("board-cell")
+      .querySelector(
+        '[data-testid="move-target-circle"]',
+      ) as HTMLElement | null;
+    expect(circle).not.toBeNull();
+    // An enemy-held reachable target is red, distinct from the grayish moves.
+    expect(circle!.classList.contains("bg-move-target-enemy")).toBe(true);
+    expect(circle!.classList.contains("bg-move-target")).toBe(false);
+    expect(circle!.dataset.enemyTarget).toBe("true");
+  });
+
+  it("renders no move-target circle when the cell is not a target", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    expect(screen.queryByTestId("move-target-circle")).toBeNull();
+  });
+
+  it("never renders a move-target circle on a fogged cell (respects fog)", () => {
+    render(<Cell q={0} r={0} owner={null} isMoveTarget isEnemyTarget fogged x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    // Even though flagged as a target, a fogged cell stays hidden.
+    expect(cell.dataset.moveTarget).toBe("true");
+    expect(screen.queryByTestId("move-target-circle")).toBeNull();
+  });
+
+  it("renders a move-target circle when revealed (not fogged)", () => {
+    render(<Cell q={0} r={0} owner={null} isMoveTarget x={0} y={0} />);
+    expect(screen.getByTestId("move-target-circle")).not.toBeNull();
+  });
+
   it("combines current and selected highlights on the same cell", () => {
     render(<Cell q={0} r={0} owner="p1" isCurrent isSelected x={0} y={0} />);
     const cell = screen.getByTestId("board-cell");
