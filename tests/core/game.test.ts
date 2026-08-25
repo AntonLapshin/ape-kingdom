@@ -671,6 +671,7 @@ describe("reachableForUnit", () => {
     units?: ApeUnit[];
     sites?: Site[];
     map?: GameMap;
+    territory?: Record<string, PlayerId>;
   } = {}): GameState {
     const row = opts.ownedRow ?? [
       [4, 3],
@@ -679,7 +680,9 @@ describe("reachableForUnit", () => {
       [7, 3],
     ];
     const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
-    const state = opts.map ? flatState({ units: [unit] }) : flatState({ units: [unit] });
+    const state = opts.map
+      ? flatState({ units: [unit], ...(opts.territory ? { territory: opts.territory } : {}) })
+      : flatState({ units: [unit], ...(opts.territory ? { territory: opts.territory } : {}) });
     return {
       ...state,
       map: opts.map ?? state.map,
@@ -786,6 +789,50 @@ describe("reachableForUnit", () => {
         createSite("Grove", 6, 3, "p1"),
         createSite("Grove", 7, 3, "p1"),
       ],
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(reachable.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(reachable.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("grants the extended own-land range through persistent site-less territory", () => {
+    // Owned row (4,3)…(7,3) is own-land only via the persistent `territory`
+    // model (M24-T2, #160): empty cells with no site and no unit, recorded as
+    // p1's territory. The own-land 4-hex path must flow through them exactly
+    // as it does through owned sites.
+    const state = reachableState({
+      sites: [],
+      territory: {
+        "4,3": "p1",
+        "5,3": "p1",
+        "6,3": "p1",
+        "7,3": "p1",
+      },
+    });
+    const reachable = reachableForUnit(state, state.units[0]);
+    for (let d = 1; d <= OWN_LAND_RANGE; d++) {
+      expect(
+        reachable.some((h) => sameHex(h, { q: 3 + d, r: 3 })),
+      ).toBe(true);
+    }
+    // But not beyond OWN_LAND_RANGE.
+    expect(reachable.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
+  });
+
+  it("caps at the standard range when persistent site-less territory ends", () => {
+    // (5,3)…(7,3) are p1 site-less territory but the intermediate (5,3) is
+    // neutral — the own-land route east stops before it, so the unit may only
+    // reach (4,3) via own land plus the standard single-step neighbours.
+    const state = reachableState({
+      sites: [],
+      territory: {
+        "4,3": "p1",
+        "5,3": "p2", // enemy territory gap
+        "6,3": "p1",
+        "7,3": "p1",
+      },
     });
     const reachable = reachableForUnit(state, state.units[0]);
     expect(reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
