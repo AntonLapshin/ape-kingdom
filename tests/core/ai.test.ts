@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { GameState, ApeUnit, Site, Player } from "../../src/core/game";
-import { generateMap } from "../../src/core/mapGenerator";
+import { generateMap, isWater } from "../../src/core/mapGenerator";
 import {
   createUnit,
   createSite,
@@ -88,6 +88,30 @@ describe("reachableHexes", () => {
     const hexes = reachableHexes({ q: 0, r: 0 }, 2, occupied);
     expect(hexes.some((h) => sameHex(h, { q: 1, r: 0 }))).toBe(false);
     expect(hexes.some((h) => sameHex(h, { q: 2, r: 0 }))).toBe(false);
+  });
+
+  it("excludes water cells as reachable targets and does not move through them", () => {
+    const map = generateMap({ width: 7, height: 7, seed: 0 });
+    // A unit at (2,1) on the map: its water neighbours (1,1),(2,0),(3,0) are
+    // never reachable, while its land neighbours remain reachable.
+    const hexes = reachableHexes({ q: 2, r: 1 }, 1, new Set(), map);
+    for (const water of [{ q: 1, r: 1 }, { q: 2, r: 0 }, { q: 3, r: 0 }]) {
+      expect(hexes.some((h) => sameHex(h, water))).toBe(false);
+    }
+    expect(
+      hexes.some((h) => sameHex(h, { q: 3, r: 1 })) &&
+        hexes.some((h) => sameHex(h, { q: 2, r: 2 })) &&
+        hexes.some((h) => sameHex(h, { q: 1, r: 2 })),
+    ).toBe(true);
+  });
+
+  it("does not move through water to reach a land cell beyond it", () => {
+    const map = generateMap({ width: 7, height: 7, seed: 0 });
+    // (1,0) is a land cell enclosed entirely by water; the only paths to it
+    // from (2,1) within movement 2 run through the water cells (1,1)/(2,0),
+    // so it must not be reachable.
+    const hexes = reachableHexes({ q: 2, r: 1 }, 2, new Set(), map);
+    expect(hexes.some((h) => sameHex(h, { q: 1, r: 0 }))).toBe(false);
   });
 });
 
@@ -192,7 +216,7 @@ describe("legalActions — move", () => {
     sites?: Site[];
     currentPlayer?: string;
   } = {}): GameState {
-    const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
     return gameState({
       sites: opts.sites ?? [],
       units: opts.units ?? [unit],
@@ -202,24 +226,25 @@ describe("legalActions — move", () => {
   }
 
   it("enumerates a move to every adjacent, unoccupied hex for a not-acted unit", () => {
-    const state = moveState(); // Monkey at (1,0), movement 1
+    const state = moveState(); // Monkey at (4,4), movement 1
     const moves = legalActions(state).filter((a) => a.type === "move");
-    // 6 neighbours, all unoccupied.
+    // All 6 neighbours of (4,4) are land-surface on the test map, so all 6
+    // are reachable targets.
     expect(moves).toHaveLength(6);
     for (const m of moves) {
       if (m.type === "move") {
-        expect(sameHex(m.unitHex, { q: 1, r: 0 })).toBe(true);
-        expect(sameHex(m.targetHex, { q: 1, r: 0 })).toBe(false);
+        expect(sameHex(m.unitHex, { q: 4, r: 4 })).toBe(true);
+        expect(sameHex(m.targetHex, { q: 4, r: 4 })).toBe(false);
       }
     }
   });
 
   it("omits moves into hexes occupied by another unit", () => {
-    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
-    const other = createUnit("Gorilla", "p2", { q: 2, r: 0 });
+    const mover = createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
+    const other = createUnit("Gorilla", "p2", { q: 5, r: 4 });
     const state = moveState({ units: [mover, other] });
     const moves = legalActions(state).filter((a) => a.type === "move");
-    expect(moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 2, r: 0 }))).toBe(
+    expect(moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 5, r: 4 }))).toBe(
       false,
     );
     // 6 neighbours minus the occupied one = 5.
@@ -227,15 +252,32 @@ describe("legalActions — move", () => {
   });
 
   it("omits moves for units that have already acted", () => {
-    const acted = createUnit("Monkey", "p1", { q: 1, r: 0 }, true);
+    const acted = createUnit("Monkey", "p1", { q: 4, r: 4 }, true);
     const state = moveState({ unit: acted });
     expect(legalActions(state).filter((a) => a.type === "move")).toHaveLength(0);
   });
 
   it("omits moves for units not owned by the current player", () => {
-    const enemy = createUnit("Monkey", "p2", { q: 1, r: 0 }, false);
+    const enemy = createUnit("Monkey", "p2", { q: 4, r: 4 }, false);
     const state = moveState({ unit: enemy });
     expect(legalActions(state).filter((a) => a.type === "move")).toHaveLength(0);
+  });
+
+  it("excludes water cells as legal move targets", () => {
+    // Monkey at (2,1) on the map: its water neighbours (1,1),(2,0),(3,0)
+    // must never appear as legal move targets.
+    const state = moveState({ unit: createUnit("Monkey", "p1", { q: 2, r: 1 }, false) });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    const targets = moves.map((m) => (m as { targetHex: { q: number; r: number } }).targetHex);
+    for (const water of [{ q: 1, r: 1 }, { q: 2, r: 0 }, { q: 3, r: 0 }]) {
+      expect(targets.some((h) => sameHex(h, water))).toBe(false);
+    }
+    // The land neighbours remain legal targets.
+    expect(
+      targets.some((h) => sameHex(h, { q: 3, r: 1 })) &&
+        targets.some((h) => sameHex(h, { q: 2, r: 2 })) &&
+        targets.some((h) => sameHex(h, { q: 1, r: 2 })),
+    ).toBe(true);
   });
 });
 
@@ -390,6 +432,23 @@ describe("aiChooseMove — determinism and legality", () => {
     for (let seed = 0; seed < 100; seed++) {
       const action = aiChooseMove(state, seed);
       expect(() => applyAction(state, action)).not.toThrow();
+    }
+  });
+
+  it("never chooses a move onto a water cell across many seeds", () => {
+    // A unit at (2,1) sits next to water (1,1),(2,0),(3,0); the AI must
+    // never target a water cell as a move destination.
+    const state = gameState({
+      sites: [],
+      units: [createUnit("Monkey", "p1", { q: 2, r: 1 }, false)],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    for (let seed = 0; seed < 500; seed++) {
+      const action = aiChooseMove(state, seed);
+      if (action.type !== "move") continue;
+      const target = action.targetHex;
+      expect(isWater(state.map, target)).toBe(false);
     }
   });
 });

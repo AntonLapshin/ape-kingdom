@@ -490,16 +490,16 @@ describe("hexDistance", () => {
 });
 
 describe("moveUnit", () => {
-  /** A p1 unit at (1,0) that has not yet acted, with a neutral Grove at (2,0). */
+  /** A p1 unit at (2,1) that has not yet acted, with a neutral Grove at (3,1). */
   function moveState(opts: {
     unit?: ApeUnit;
     units?: ApeUnit[];
     sites?: Site[];
     currentPlayer?: string;
   } = {}): GameState {
-    const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
     return gameState({
-      sites: opts.sites ?? [createSite("Grove", 2, 0)],
+      sites: opts.sites ?? [createSite("Grove", 3, 1)],
       units: opts.units ?? [unit],
       players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
       currentPlayer: opts.currentPlayer ?? "p1",
@@ -508,9 +508,9 @@ describe("moveUnit", () => {
 
   it("moves a unit one hex and marks it as acted", () => {
     const state = moveState();
-    const next = moveUnit(state, state.units[0], { q: 2, r: 0 });
+    const next = moveUnit(state, state.units[0], { q: 3, r: 1 });
     expect(next.units).toHaveLength(1);
-    expect(next.units[0].hex).toEqual({ q: 2, r: 0 });
+    expect(next.units[0].hex).toEqual({ q: 3, r: 1 });
     expect(next.units[0].hasActed).toBe(true);
     expect(next.units[0].kind).toBe("Monkey");
     expect(next.units[0].owner).toBe("p1");
@@ -518,41 +518,41 @@ describe("moveUnit", () => {
 
   it("captures an unoccupied site when moving onto it", () => {
     const state = moveState();
-    const next = moveUnit(state, state.units[0], { q: 2, r: 0 });
-    const captured = next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }));
+    const next = moveUnit(state, state.units[0], { q: 3, r: 1 });
+    const captured = next.sites.find((s) => sameHex(s.hex, { q: 3, r: 1 }));
     expect(captured?.owner).toBe("p1");
   });
 
   it("captures a Grove, Nest, and Home Tree for the moving unit's owner", () => {
     for (const kind of ["Grove", "Nest", "HomeTree"] as const) {
-      const state = moveState({ sites: [createSite(kind, 2, 0)] });
-      const next = moveUnit(state, state.units[0], { q: 2, r: 0 });
-      expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p1");
+      const state = moveState({ sites: [createSite(kind, 3, 1)] });
+      const next = moveUnit(state, state.units[0], { q: 3, r: 1 });
+      expect(next.sites.find((s) => sameHex(s.hex, { q: 3, r: 1 }))?.owner).toBe("p1");
     }
   });
 
   it("does not alter sites that are not the target", () => {
     const state = moveState({
-      sites: [createSite("Grove", 2, 0), createSite("Nest", 5, 5)],
+      sites: [createSite("Grove", 3, 1), createSite("Nest", 5, 5)],
     });
-    const next = moveUnit(state, state.units[0], { q: 2, r: 0 });
+    const next = moveUnit(state, state.units[0], { q: 3, r: 1 });
     expect(next.sites.find((s) => sameHex(s.hex, { q: 5, r: 5 }))?.owner).toBeNull();
   });
 
   it("does not change site ownership when moving onto an empty hex with no site", () => {
     const state = moveState({ sites: [] });
-    const next = moveUnit(state, state.units[0], { q: 2, r: 0 });
+    const next = moveUnit(state, state.units[0], { q: 3, r: 1 });
     expect(next.sites).toEqual([]);
   });
 
   it("does not capture a site occupied by another unit (move rejected)", () => {
-    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
-    const other = createUnit("Monkey", "p2", { q: 2, r: 0 });
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const other = createUnit("Monkey", "p2", { q: 3, r: 1 });
     const state = moveState({
       units: [mover, other],
-      sites: [createSite("Grove", 2, 0)],
+      sites: [createSite("Grove", 3, 1)],
     });
-    expect(() => moveUnit(state, mover, { q: 2, r: 0 })).toThrowError(MoveError);
+    expect(() => moveUnit(state, mover, { q: 3, r: 1 })).toThrowError(MoveError);
   });
 
   // Rule 1 of #102: moving a unit onto an unoccupied Grove/Nest/Home Tree
@@ -560,20 +560,20 @@ describe("moveUnit", () => {
   // mover, verified across all three site kinds.
   it("rule 1: moving onto an unoccupied site captures it for the mover's kingdom", () => {
     for (const kind of ["Grove", "Nest", "HomeTree"] as const) {
-      const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
-      const state = moveState({ unit: mover, sites: [createSite(kind, 2, 0, "p2")] });
-      const next = moveUnit(state, mover, { q: 2, r: 0 });
-      const captured = next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }));
+      const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+      const state = moveState({ unit: mover, sites: [createSite(kind, 3, 1, "p2")] });
+      const next = moveUnit(state, mover, { q: 3, r: 1 });
+      const captured = next.sites.find((s) => sameHex(s.hex, { q: 3, r: 1 }));
       expect(captured?.owner).toBe("p1");
     }
   });
 
   it("rejects when the unit has already acted this turn", () => {
-    const acted = createUnit("Monkey", "p1", { q: 1, r: 0 }, true);
+    const acted = createUnit("Monkey", "p1", { q: 2, r: 1 }, true);
     const state = moveState({ unit: acted });
     let caught: unknown;
     try {
-      moveUnit(state, acted, { q: 2, r: 0 });
+      moveUnit(state, acted, { q: 3, r: 1 });
     } catch (e) {
       caught = e;
     }
@@ -582,12 +582,12 @@ describe("moveUnit", () => {
   });
 
   it("rejects when the unit is not owned by the current player", () => {
-    const enemy = createUnit("Monkey", "p2", { q: 1, r: 0 }, false);
+    const enemy = createUnit("Monkey", "p2", { q: 2, r: 1 }, false);
     const state = moveState({ unit: enemy });
-    expect(() => moveUnit(state, enemy, { q: 2, r: 0 })).toThrowError(MoveError);
+    expect(() => moveUnit(state, enemy, { q: 3, r: 1 })).toThrowError(MoveError);
     let caught: unknown;
     try {
-      moveUnit(state, enemy, { q: 2, r: 0 });
+      moveUnit(state, enemy, { q: 3, r: 1 });
     } catch (e) {
       caught = e;
     }
@@ -595,7 +595,7 @@ describe("moveUnit", () => {
   });
 
   it("rejects when the unit is not present in the state", () => {
-    const state = moveState(); // contains a p1 unit at (1,0)
+    const state = moveState(); // contains a p1 unit at (2,1)
     const ghost = createUnit("Monkey", "p1", { q: 9, r: 9 }, false);
     expect(() => moveUnit(state, ghost, { q: 8, r: 8 })).toThrowError(MoveError);
     let caught: unknown;
@@ -611,7 +611,7 @@ describe("moveUnit", () => {
     const state = moveState(); // Monkey movement = 1
     let caught: unknown;
     try {
-      moveUnit(state, state.units[0], { q: 3, r: 0 });
+      moveUnit(state, state.units[0], { q: 4, r: 1 });
     } catch (e) {
       caught = e;
     }
@@ -620,12 +620,12 @@ describe("moveUnit", () => {
   });
 
   it("rejects when the target hex is occupied by another unit", () => {
-    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
-    const other = createUnit("Gorilla", "p2", { q: 2, r: 0 });
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const other = createUnit("Gorilla", "p2", { q: 3, r: 1 });
     const state = moveState({ units: [mover, other] });
     let caught: unknown;
     try {
-      moveUnit(state, mover, { q: 2, r: 0 });
+      moveUnit(state, mover, { q: 3, r: 1 });
     } catch (e) {
       caught = e;
     }
@@ -633,11 +633,27 @@ describe("moveUnit", () => {
     expect((caught as MoveError).kind).toBe("occupied");
   });
 
+  it("rejects moving onto a water cell", () => {
+    // The unit sits at (2,1); its neighbour (1,1) is water on the test map.
+    const state = moveState();
+    let caught: unknown;
+    try {
+      moveUnit(state, state.units[0], { q: 1, r: 1 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("water");
+    // The state is unchanged — no unit moves onto water.
+    expect(state.units[0].hex).toEqual({ q: 2, r: 1 });
+    expect(state.units[0].hasActed).toBe(false);
+  });
+
   it("keeps other units unchanged when moving one unit", () => {
-    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
     const other = createUnit("Gibbon", "p1", { q: 5, r: 5 }, false);
     const state = moveState({ units: [mover, other] });
-    const next = moveUnit(state, mover, { q: 2, r: 0 });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
     expect(next.units).toHaveLength(2);
     // The other unit is untouched.
     expect(next.units.find((u) => sameHex(u.hex, { q: 5, r: 5 }))).toEqual(other);
@@ -645,12 +661,12 @@ describe("moveUnit", () => {
 
   it("returns a new GameState and does not mutate the input", () => {
     const state = moveState();
-    const next = moveUnit(state, state.units[0], { q: 2, r: 0 });
+    const next = moveUnit(state, state.units[0], { q: 3, r: 1 });
     expect(next).not.toBe(state);
     expect(next.units).not.toBe(state.units);
     expect(next.sites).not.toBe(state.sites);
     // Input unchanged.
-    expect(state.units[0].hex).toEqual({ q: 1, r: 0 });
+    expect(state.units[0].hex).toEqual({ q: 2, r: 1 });
     expect(state.units[0].hasActed).toBe(false);
     expect(state.sites[0].owner).toBeNull();
   });
@@ -671,90 +687,90 @@ describe("moveUnit", () => {
  */
 describe("territory ownership persistence & loss", () => {
   it("retains ownership when the owning unit moves off the site", () => {
-    // p1 already controls a Nest at (1,0) and has a Monkey standing on it
+    // p1 already controls a Nest at (2,1) and has a Monkey standing on it
     // that has not yet acted this turn.
-    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
     const state = gameState({
-      sites: [createSite("Nest", 1, 0, "p1")],
+      sites: [createSite("Nest", 2, 1, "p1")],
       units: [mover],
       currentPlayer: "p1",
     });
-    // The unit walks off to an adjacent empty hex (2,0).
-    const next = moveUnit(state, mover, { q: 2, r: 0 });
+    // The unit walks off to an adjacent empty hex (3,1).
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
     // The site the unit left behind is still owned by p1's kingdom.
-    expect(next.units[0].hex).toEqual({ q: 2, r: 0 });
-    expect(next.sites.find((s) => sameHex(s.hex, { q: 1, r: 0 }))?.owner).toBe("p1");
+    expect(next.units[0].hex).toEqual({ q: 3, r: 1 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 1 }))?.owner).toBe("p1");
   });
 
   it("keeps ownership after capture even when the mover vacates", () => {
     // p1 owns a Grove (capture itself is covered by the moveUnit tests above);
     // a p1 unit standing on it walks off, and the site persists as p1's.
-    const mover = createUnit("Monkey", "p1", { q: 2, r: 0 }, false);
+    const mover = createUnit("Monkey", "p1", { q: 3, r: 1 }, false);
     const state = gameState({
-      sites: [createSite("Grove", 2, 0, "p1")],
+      sites: [createSite("Grove", 3, 1, "p1")],
       units: [mover],
       currentPlayer: "p1",
     });
-    const next = moveUnit(state, mover, { q: 3, r: 0 });
-    expect(next.units[0].hex).toEqual({ q: 3, r: 0 });
-    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p1");
+    const next = moveUnit(state, mover, { q: 4, r: 1 });
+    expect(next.units[0].hex).toEqual({ q: 4, r: 1 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 3, r: 1 }))?.owner).toBe("p1");
   });
 
   it("a captured site yields income even after the capturing unit moves away", () => {
     // p1 controls a Nest (worth 2 bananas); its unit marches on, but the
     // Nest keeps producing p1 income because ownership persisted.
-    const mover = createUnit("Monkey", "p1", { q: 1, r: 0 }, false);
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
     const state = gameState({
-      sites: [createSite("Nest", 1, 0, "p1")],
+      sites: [createSite("Nest", 2, 1, "p1")],
       units: [mover],
       currentPlayer: "p1",
     });
-    const next = moveUnit(state, mover, { q: 2, r: 0 });
-    expect(next.sites.find((s) => sameHex(s.hex, { q: 1, r: 0 }))?.owner).toBe("p1");
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 1 }))?.owner).toBe("p1");
     expect(incomeFor("p1", next.sites)).toBe(2);
     expect(collectIncome(next).players.p1.bananas).toBe(2);
   });
 
   it("keeps ownership when the owning unit dies far away from the site", () => {
-    // p2 controls a Home Tree at (1,0); its lone unit is far away and dies in
+    // p2 controls a Home Tree at (4,3); its lone unit is far away and dies in
     // an equal-rank clash elsewhere. The Home Tree stays p2's.
     const attacker = createUnit("Monkey", "p1", { q: 5, r: 5 }, false);
     const defender = createUnit("Monkey", "p2", { q: 4, r: 5 });
     const state = gameState({
-      sites: [createSite("HomeTree", 1, 0, "p2")],
+      sites: [createSite("HomeTree", 4, 3, "p2")],
       units: [attacker, defender],
       currentPlayer: "p1",
     });
     const next = attackUnit(state, attacker, { q: 4, r: 5 }); // both die
     expect(next.units).toHaveLength(0);
-    expect(next.sites.find((s) => sameHex(s.hex, { q: 1, r: 0 }))?.owner).toBe("p2");
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 4, r: 3 }))?.owner).toBe("p2");
   });
 
   it("only loses a cell when an enemy unit occupies the site", () => {
     // p2 captures p1's Grove by defeating the p1 unit standing on it.
-    const attacker = createUnit("Gorilla", "p2", { q: 1, r: 0 }, false);
-    const defender = createUnit("Monkey", "p1", { q: 2, r: 0 });
+    const attacker = createUnit("Gorilla", "p2", { q: 1, r: 5 }, false);
+    const defender = createUnit("Monkey", "p1", { q: 2, r: 5 });
     const state = gameState({
-      sites: [createSite("Grove", 2, 0, "p1")],
+      sites: [createSite("Grove", 2, 5, "p1")],
       units: [attacker, defender],
       currentPlayer: "p2",
     });
-    const next = attackUnit(state, attacker, { q: 2, r: 0 });
+    const next = attackUnit(state, attacker, { q: 2, r: 5 });
     // p2's attacker moves in and the site owner flips to p2.
-    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 0 }))?.owner).toBe("p2");
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 2, r: 5 }))?.owner).toBe("p2");
   });
 
   it("does not change ownership when an enemy unit merely moves onto an empty adjacent hex", () => {
     // p1 owns an unoccupied Nest; an enemy Monkey moves to the hex next to it.
-    const enemy = createUnit("Monkey", "p2", { q: 1, r: 0 }, false);
+    const enemy = createUnit("Monkey", "p2", { q: 1, r: 5 }, false);
     const state = gameState({
-      sites: [createSite("Nest", 3, 0, "p1")],
+      sites: [createSite("Nest", 4, 1, "p1")],
       units: [enemy],
       currentPlayer: "p2",
     });
-    // p2 moves onto the empty hex (2,0) adjacent to the Nest, not on it.
-    const next = moveUnit(state, enemy, { q: 2, r: 0 });
-    expect(next.sites.find((s) => sameHex(s.hex, { q: 3, r: 0 }))?.owner).toBe("p1");
+    // p2 moves onto the empty hex (2,5) adjacent to the Nest, not on it.
+    const next = moveUnit(state, enemy, { q: 2, r: 5 });
+    expect(next.sites.find((s) => sameHex(s.hex, { q: 4, r: 1 }))?.owner).toBe("p1");
   });
 });
 

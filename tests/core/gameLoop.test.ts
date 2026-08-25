@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { GameState, ApeUnit, Site, Player } from "../../src/core/game";
-import { generateMap } from "../../src/core/mapGenerator";
+import type { GameMap } from "../../src/core/mapGenerator";
 import {
   createUnit,
   createSite,
@@ -19,6 +19,28 @@ import {
   TurnOrderError,
 } from "../../src/core/gameLoop";
 
+/**
+ * Build an all-land rectangular map for the loop-mechanics tests.
+ *
+ * These tests exercise the turn loop, applyAction/applyHumanMoves/playTurn
+ * orchestration and the full-game simulation — they are not about terrain.
+ * Using a wholly land map (no water, no mountains) keeps every pre-existing
+ * hex coordinate on walkable land so the loop behavior under the movement
+ * legality rules (water cells are not move targets) is unchanged from before
+ * terrain was enforced, and the full-game simulation can still resolve to a
+ * winner. Water/mountain movement legality is covered in the dedicated
+ * ai.test.ts / game.test.ts (see #146).
+ */
+function landMap(width: number, height: number): GameMap {
+  const cells: GameMap["cells"] = [];
+  for (let q = 0; q < width; q++) {
+    for (let r = 0; r < height; r++) {
+      cells.push({ hex: { q, r }, terrain: "land" });
+    }
+  }
+  return { width, height, cells };
+}
+
 /** Build a minimal game state for game-loop tests. */
 function gameState(opts: {
   sites?: Site[];
@@ -35,7 +57,7 @@ function gameState(opts: {
     currentPlayer: opts.currentPlayer ?? "p1",
     turnOrder: opts.turnOrder ?? ["p1", "p2"],
     winner: opts.winner ?? null,
-    map: generateMap({ width: 7, height: 7, seed: 0 }),
+    map: landMap(7, 7),
   };
 }
 
