@@ -5,6 +5,13 @@ import { hexToPixel, SITE_LABELS } from "../../src/ui/presentation";
 import { gameIcons } from "../../src/assets/icons";
 import { boardCells } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
+import {
+  moveUnit,
+  attackUnit,
+  createUnit,
+  sameHex,
+  type Hex,
+} from "../../src/core/game";
 
 /* ------------------------------------------------------------------ */
 /* hexToPixel (pure geometry helper)                                   */
@@ -237,5 +244,191 @@ describe("Board", () => {
     // never produces an HTML text-selection highlight.
     const boardEl = container.querySelector('[data-testid="board"]')!;
     expect(boardEl.className).toContain("select-none");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Territory-ownership display (M19-T1 / #130)                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Regression coverage for the territory-ownership *display*: the board must
+ * reflect the core rule (already covered at the unit level in
+ * `tests/core/game.test.ts` for #124) that a captured cell stays owned after
+ * its unit moves off, and flips only when an enemy unit occupies it (move or
+ * attack) — never just by moving away or by an enemy moving adjacent. These
+ * render the Board against states produced by the core reducers and assert the
+ * presented `data-owner` / owner-tint token matches the persisted owner.
+ */
+describe("Board territory-ownership display (M19-T1/#130)", () => {
+  /** A standard setup with all p1 units reset so they can act this turn. */
+  function playable() {
+    const base = standardSetup();
+    return {
+      ...base,
+      units: base.units.map((u) =>
+        u.owner === "p1" ? { ...u, hasActed: false } : u,
+      ),
+    };
+  }
+
+  /** An empty (unoccupied) hex at distance 1 from `from`. */
+  function adjacentEmpty(
+    state: ReturnType<typeof standardSetup>,
+    from: Hex,
+  ): Hex {
+    const occupied = new Set(state.units.map((u) => `${u.hex.q},${u.hex.r}`));
+    const h = state.map.cells
+      .map((c) => c.hex)
+      .find(
+        (c) =>
+          Math.abs(c.q - from.q) + Math.abs(c.r - from.r) === 1 &&
+          !occupied.has(`${c.q},${c.r}`),
+      )!;
+    expect(h).toBeDefined();
+    return h;
+  }
+
+  /** Mark one site as owned by a kingdom. */
+  function ownSite(
+    state: ReturnType<typeof standardSetup>,
+    hex: Hex,
+    owner: "p1" | "p2",
+  ) {
+    return {
+      ...state,
+      sites: state.sites.map((s) =>
+        sameHex(s.hex, hex) ? { ...s, owner } : s,
+      ),
+    };
+  }
+
+  /** Get the rendered board-cell element at `hex`. */
+  function cellEl(
+    state: ReturnType<typeof standardSetup>,
+    hex: Hex,
+    currentPlayer: "p1" | "p2" = "p1",
+  ) {
+    render(<Board board={boardCells(state)} currentPlayer={currentPlayer} />);
+    return screen.getAllByTestId("board-cell").find(
+      (c) => c.dataset.hex === `${hex.q},${hex.r}`,
+    )!;
+  }
+
+  it("keeps the Home Tree owned after the unit vacates it (empty territory stays tinted)", () => {
+    const state = playable();
+    const home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!;
+    const unit = state.units.find(
+      (u) => u.owner === "p1" && sameHex(u.hex, home.hex),
+    )!;
+    const target = adjacentEmpty(state, home.hex);
+    const next = moveUnit(state, unit, target);
+
+    // The vacated Home Tree still reports p1 and renders the p1 owner tint.
+    const cell = boardCells(next).find((c) => sameHex(c.hex, home.hex))!;
+    expect(cell.site?.owner).toBe("p1");
+    const el = cellEl(next, home.hex);
+    expect(el.dataset.owner).toBe("p1");
+    expect(el.className).toContain("bg-owner-p1");
+    expect(el.className).not.toContain("bg-terrain-");
+  });
+
+  it("keeps a captured Grove owned after the capturing unit moves off", () => {
+    // p1 owns a Grove; a p1 unit stands on it and then walks away.
+    const state = playable();
+    const home = state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!;
+    const grove = state.sites.find(
+      (s) => s.kind === "Grove" && s.owner === null,
+    )!;
+    const owned = ownSite(state, grove.hex, "p1");
+    // Place p1's home unit onto the owned Grove so it can vacate it.
+    const parked = {
+      ...owned,
+      units: owned.units.map((u) =>
+        sameHex(u.hex, home.hex) ? { ...u, hex: grove.hex } : u,
+      ),
+      // blank the vacated home unit's old spot is fine; just move the unit.
+    };
+    const vacating = parked.units.find(
+      (u) => u.owner === "p1" && sameHex(u.hex, grove.hex),
+    )!;
+    const away = adjacentEmpty(parked, grove.hex);
+    const next = moveUnit(parked, vacating, away);
+
+    const cell = boardCells(next).find((c) => sameHex(c.hex, grove.hex))!;
+    expect(cell.site?.owner).toBe("p1");
+    expect(cell.unit).toBeNull();
+    const el = cellEl(next, grove.hex);
+    expect(el.dataset.owner).toBe("p1");
+    expect(el.className).toContain("bg-owner-p1");
+  });
+
+  it("flips ownership to an enemy unit that moves onto the site", () => {
+    // p2 (enemy) moves a fresh unit onto a p1-owned Nest.
+    const state = playable();
+    const nest = state.sites.find(
+      (s) => s.kind === "Nest" && s.owner === null,
+    )!;
+    const owned = ownSite(state, nest.hex, "p1");
+    const from = adjacentEmpty(owned, nest.hex);
+    const enemy = createUnit("Monkey", "p2", from, false);
+    const withEnemy = { ...owned, units: [...owned.units, enemy] };
+    const next = moveUnit({ ...withEnemy, currentPlayer: "p2" }, enemy, nest.hex);
+
+    const cell = boardCells(next).find((c) => sameHex(c.hex, nest.hex))!;
+    expect(cell.site?.owner).toBe("p2");
+    const el = cellEl(next, nest.hex, "p2");
+    expect(el.dataset.owner).toBe("p2");
+    expect(el.className).toContain("bg-owner-p2");
+  });
+
+  it("does not flip ownership when an enemy unit merely moves adjacent", () => {
+    // p2 moves onto an adjacent empty hex, not onto p1's Nest.
+    const state = playable();
+    const nest = state.sites.find(
+      (s) => s.kind === "Nest" && s.owner === null,
+    )!;
+    const owned = ownSite(state, nest.hex, "p1");
+    const target = adjacentEmpty(owned, nest.hex);
+    const mid = adjacentEmpty(owned, target);
+    const enemy = createUnit("Monkey", "p2", mid, false);
+    const withEnemy = { ...owned, units: [...owned.units, enemy] };
+    const next = moveUnit({ ...withEnemy, currentPlayer: "p2" }, enemy, target);
+
+    // The Nest stays p1's — the enemy only approached it.
+    const cell = boardCells(next).find((c) => sameHex(c.hex, nest.hex))!;
+    expect(cell.site?.owner).toBe("p1");
+    const el = cellEl(next, nest.hex);
+    expect(el.dataset.owner).toBe("p1");
+  });
+
+  it("flips ownership when an enemy unit defeats the defender on a site", () => {
+    // p2's Gibbon (rank 2) attacks and defeats p1's Monkey (rank 1) on a Nest.
+    const state = playable();
+    const nest = state.sites.find(
+      (s) => s.kind === "Nest" && s.owner === null,
+    )!;
+    const owned = ownSite(state, nest.hex, "p1");
+    const p1HomeUnit = owned.units.find((u) => u.owner === "p1")!;
+    const withDefender = {
+      ...owned,
+      units: owned.units.map((u) =>
+        sameHex(u.hex, p1HomeUnit.hex) ? { ...u, hex: nest.hex } : u,
+      ),
+    };
+    const from = adjacentEmpty(withDefender, nest.hex);
+    const attacker = createUnit("Gibbon", "p2", from, false);
+    const withAttacker = { ...withDefender, units: [...withDefender.units, attacker] };
+    const next = attackUnit({ ...withAttacker, currentPlayer: "p2" }, attacker, nest.hex);
+
+    const cell = boardCells(next).find((c) => sameHex(c.hex, nest.hex))!;
+    expect(cell.site?.owner).toBe("p2");
+    const el = cellEl(next, nest.hex, "p2");
+    expect(el.dataset.owner).toBe("p2");
+    expect(el.className).toContain("bg-owner-p2");
   });
 });

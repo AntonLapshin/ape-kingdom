@@ -8,7 +8,7 @@ import {
   selectAction,
   standardSetup,
 } from "../../src/core/gameSession";
-import { sameHex, type GameState, type Hex } from "../../src/core/game";
+import { sameHex, moveUnit, type GameState, type Hex } from "../../src/core/game";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -153,6 +153,45 @@ describe("CellInfoPanel read-only", () => {
     const hex = screen.getByTestId("cell-info-hexagon");
     expect(hex.className).toContain("bg-terrain-");
     expect(hex.className).not.toContain("bg-owner-");
+  });
+
+  it("preview hexagon keeps the owner tint after the unit vacates an owned site (M19-T1/#130)", () => {
+    // p1's Home Tree keeps its p1 owner tint once the unit walks off it.
+    const state = standardSetup();
+    const home = p1Home(state);
+    const unit = state.units.find(
+      (u) => u.owner === "p1" && sameHex(u.hex, home),
+    )!;
+    // Reset the unit so it can act and move one step off the Home Tree.
+    const playable = {
+      ...state,
+      units: state.units.map((u) =>
+        u.owner === "p1" ? { ...u, hasActed: false } : u,
+      ),
+    };
+    const occupied = new Set(playable.units.map((u) => `${u.hex.q},${u.hex.r}`));
+    const away = playable.map.cells
+      .map((c) => c.hex)
+      .find(
+        (h) =>
+          Math.abs(h.q - home.q) + Math.abs(h.r - home.r) === 1 &&
+          !occupied.has(`${h.q},${h.r}`),
+      )!;
+    const vacated = moveUnit(playable, unit, away);
+    const info = cellInfo(vacated, home);
+    // The vacated Home Tree is still owned and empty in the derived info.
+    expect(info.site?.owner).toBe("p1");
+    expect(info.unit).toBeNull();
+    render(
+      <CellInfoPanel
+        info={info}
+        legalActions={[]}
+        onSelectAction={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    const hex = screen.getByTestId("cell-info-hexagon");
+    expect(hex.className).toContain("bg-owner-p1");
   });
 
   it("renders site info (label, neutral marker, income) for a sited hex", () => {

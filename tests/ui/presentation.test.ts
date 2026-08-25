@@ -6,6 +6,7 @@ import {
   TERRAIN_BG,
   OWNER_BG,
   cellHexagonClass,
+  cellOwner,
   hexagonPoints,
 } from "../../src/ui/presentation";
 
@@ -38,6 +39,46 @@ describe("cellHexagonClass", () => {
     for (const owner of ["p1", "p2"] as const) {
       expect(OWNER_BG[owner]).toMatch(/^bg-owner-/);
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* cellOwner (territory-owner precedence, M19-T1/#130)                  */
+/* ------------------------------------------------------------------ */
+
+describe("cellOwner", () => {
+  const p1 = { owner: "p1" as const };
+  const p2 = { owner: "p2" as const };
+  const neutral = { owner: null };
+
+  it("returns null for a cell with neither site nor unit", () => {
+    expect(cellOwner(null, null)).toBeNull();
+  });
+
+  it("persists the site owner even when no unit stands on the site", () => {
+    // A captured/owned territory with its unit moved away stays owned.
+    expect(cellOwner(p1, null)).toBe("p1");
+    expect(cellOwner(p2, null)).toBe("p2");
+  });
+
+  it("the site owner wins over the unit owner when both are present", () => {
+    // The territory is owned regardless of which unit stands on it.
+    expect(cellOwner(p1, p2)).toBe("p1");
+    expect(cellOwner(p2, p1)).toBe("p2");
+    expect(cellOwner(p1, p1)).toBe("p1");
+  });
+
+  it("falls back to the unit owner only for a site-less hex", () => {
+    // A unit standing on plain land colours the cell until it moves away.
+    expect(cellOwner(null, p1)).toBe("p1");
+    expect(cellOwner(null, p2)).toBe("p2");
+  });
+
+  it("a neutral site with a unit renders by the unit until it leaves", () => {
+    // A neutral (unowned) site shows the occupying unit's colour; once the
+    // unit leaves and nothing owns the site, the cell is neutral again.
+    expect(cellOwner(neutral, p1)).toBe("p1");
+    expect(cellOwner(neutral, null)).toBeNull();
   });
 });
 

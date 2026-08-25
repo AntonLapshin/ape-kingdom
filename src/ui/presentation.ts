@@ -190,6 +190,34 @@ export function cellHexagonClass(
   return TERRAIN_BG[terrain] ?? TERRAIN_BG.land;
 }
 
+/** Anything that carries an owner (a site or a unit badge). */
+interface Owned {
+  readonly owner: PlayerId | null;
+}
+
+/**
+ * Resolve the territory owner of a hexagon from its site and/or unit (M19-T1,
+ * #130). Pure presentation — no game logic.
+ *
+ * Ownership of a cell is a *territory* property that lives on the site and
+ * persists independently of which (if any) unit stands on it: a site captured
+ * by a kingdom stays owned by that kingdom even once the unit moves off, and
+ * it is only lost when an enemy unit occupies the cell (moving onto it or
+ * defeating its defender). So the site owner always wins; a unit's owner only
+ * colours a site-less hex while the unit is standing on it, and reverts to
+ * neutral once the unit leaves. This is the exact rule the board Cell and the
+ * selector panel's hexagon preview both relied on with a duplicated
+ * `site?.owner ?? unit?.owner` expression — centralised here so both render
+ * consistently from one source of truth.
+ */
+export function cellOwner(
+  site: Owned | null,
+  unit: Owned | null,
+): PlayerId | null {
+  if (site?.owner) return site.owner;
+  return unit?.owner ?? null;
+}
+
 /**
  * Pure presentation filter: the recruit `CellActionItem`s (from `cellInfo`'s
  * `info.actions`) whose exact `recruit` `GameAction` is present in the
