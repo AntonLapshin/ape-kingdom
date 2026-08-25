@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add comprehensive `RULES.md` (M21-T1, #149). A new player/developer-facing
+  rules document describing the full game — economics (banana income from
+  Groves, Nests, and the Home Tree), the four ape units (rank, cost,
+  movement), movement (standard 1 hex, terrain rules, and the owned-land 4-hex
+  range), capturing territory (site capture + ownership), and the winning
+  condition. It mirrors the single source of truth
+  `guidelines/ape-kingdom-rules.md` (no contradictory rules) and is now
+  referenced from `README.md` so players/developers can find it. Doc-only
+  change; `src/core` untouched (core stays 100% covered).
+
 - Move up to 4 hexes through your own land (M20-T3, #148). A unit whose
   entire route stays within cells its own kingdom owns may move up to
   `OWN_LAND_RANGE` (4 hexes) instead of the standard 1. Ownership of a cell is
