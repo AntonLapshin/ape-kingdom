@@ -248,6 +248,38 @@ describe("Board", () => {
     const boardEl = container.querySelector('[data-testid="board"]')!;
     expect(boardEl.className).toContain("select-none");
   });
+
+  it("renders fogged cells dark and hides their content (M22-T2/#159)", () => {
+    // Reveal only the p1 Home Tree hex; every other cell is fogged.
+    const revealed = new Set([p1HomeKey]);
+    const foggedBoard = boardCells(state, revealed);
+    // Only the revealed hex and neighbouring p1 cells are unfogged on the full
+    // standard map; the test board passes a single revealed key, so exactly
+    // one cell is revealed.
+    const unfogged = foggedBoard.filter((c) => !c.fogged);
+    expect(unfogged).toHaveLength(1);
+    expect(unfogged[0].hex).toEqual(p1Home);
+
+    render(<Board board={foggedBoard} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    const homeEl = cells.find((c) => c.dataset.hex === p1HomeKey)!;
+    const hiddenEls = cells.filter((c) => c !== homeEl);
+    // Revealed cell is not fogged; all others are fogged and carry the token.
+    expect(homeEl.dataset.fogged).toBe("false");
+    expect(homeEl.className).not.toContain("bg-fog");
+    for (const cell of hiddenEls) {
+      expect(cell.dataset.fogged).toBe("true");
+      expect(cell.className).toContain("bg-fog");
+    }
+    // A fogged cell hides its unit/site badge so content never leaks.
+    expect(hiddenEls.every((c) => !c.querySelector('[data-testid="board-unit"]'))).toBe(true);
+  });
+
+  it("renders no fog on the board when cells are unfogged (legacy full view)", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    const cells = screen.getAllByTestId("board-cell");
+    expect(cells.every((c) => c.dataset.fogged === "false")).toBe(true);
+  });
 });
 
 /* ------------------------------------------------------------------ */

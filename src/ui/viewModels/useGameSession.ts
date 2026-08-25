@@ -10,6 +10,7 @@ import type {
   ApeRank,
 } from "../../core/game";
 import { rankOf, sameHex } from "../../core/game";
+import { visibleHexes } from "../../core/vision";
 import type { MapConfig, Terrain } from "../../core/mapGenerator";
 import type { GameAction } from "../../core/ai";
 import type { CellInfo } from "../../core/cellInfo";
@@ -51,6 +52,12 @@ export interface BoardCell {
   site: Site | null;
   /** The unit on this hex, or null if there is none. */
   unit: UnitView | null;
+  /**
+   * Whether this cell is hidden by fog of war (M22-T2, #159): the human
+   * player cannot see it yet, so it renders dark with no site/unit content.
+   * Derived from the core `visibleHexes` vision model — no game logic here.
+   */
+  fogged: boolean;
 }
 
 /**
@@ -95,14 +102,40 @@ export interface GameSessionView {
   isDone: boolean;
 }
 
+/** A stable string key for a hex, used to mark revealed cells. */
+const cellKey = (hex: Hex) => `${hex.q},${hex.r}`;
+
+/**
+ * Pure presentation adaptation: the set of hexes the human player (p1) has
+ * revealed, derived from the core vision model (M22-T2, #159).
+ *
+ * This is a pure UI glue — the actual vision derivation lives in the core
+ * `visibleHexes(state, "p1", true)` (M22-T1, #151), which returns every map
+ * hex p1 can currently see. The human player is always p1 (the AI plays p2),
+ * so the fog is always derived from p1's own sight lines — never the
+ * opponent's — matching the rules.
+ */
+export function revealedHexKeys(state: GameState): Set<string> {
+  return new Set(visibleHexes(state, "p1", true).map((h) => cellKey(h)));
+}
+
 /**
  * Pure presentation adaptation: flatten a `GameState`'s generated map into one
  * renderable cell per map hex, attaching the site and/or unit that occupy each
  * hex (if any) and the hex's terrain. Every hex of the generated map is
  * represented so the board can render the full terrain. Not game logic — just
  * arranging the core state into the shape the board renders.
+ *
+ * When a `revealed` set of hex keys is provided, each cell whose hex is not in
+ * that set is marked `fogged = true` so the board can render it hidden by fog
+ * of war (M22-T2, #159). When `revealed` is omitted (or null), no fog is
+ * applied and every cell is `fogged = false` — the legacy full-visibility
+ * board.
  */
-export function boardCells(state: GameState): BoardCell[] {
+export function boardCells(
+  state: GameState,
+  revealed: Set<string> | null = null,
+): BoardCell[] {
   const siteByHex = new Map<string, Site>();
   for (const site of state.sites) {
     siteByHex.set(`${site.hex.q},${site.hex.r}`, site);
@@ -111,7 +144,6 @@ export function boardCells(state: GameState): BoardCell[] {
   for (const unit of state.units) {
     unitByHex.set(`${unit.hex.q},${unit.hex.r}`, unit);
   }
-  const cellKey = (hex: Hex) => `${hex.q},${hex.r}`;
   return [...state.map.cells]
     .sort((a, b) => cellKey(a.hex).localeCompare(cellKey(b.hex)))
     .map(({ hex, terrain }) => {
@@ -124,6 +156,7 @@ export function boardCells(state: GameState): BoardCell[] {
         unit: unit
           ? { kind: unit.kind, rank: rankOf(unit.kind), owner: unit.owner }
           : null,
+        fogged: revealed !== null && !revealed.has(key),
       };
     });
 }
@@ -170,7 +203,7 @@ export function toGameSessionView(session: {
   legalMoves: GameAction[];
 }): GameSessionView {
   return {
-    board: boardCells(session.state),
+    board: boardCells(session.state, revealedHexKeys(session.state)),
     players: playerViews(session.state),
     currentPlayer: session.state.currentPlayer,
     legalActions: session.legalMoves,

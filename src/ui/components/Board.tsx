@@ -99,6 +99,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
             isCurrent={owner === currentPlayer}
             isSelected={isSelected}
             isMoveTarget={isMoveTarget}
+            fogged={cell.fogged}
             x={x - minX + pad - HEX_SIZE}
             y={y - minY + pad - HEX_SIZE}
             animationDelay={index * 40}

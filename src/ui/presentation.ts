@@ -166,6 +166,14 @@ export const TERRAIN_BG: Record<Terrain, string> = {
 };
 
 /**
+ * The token-backed background class used to render a cell hidden by fog of
+ * war (M22-T2, #159). Fogged cells use a dark `bg-fog` token so unrevealed
+ * cells read as hidden against the revealed board. Pure presentation — no
+ * game logic.
+ */
+export const FOG_BG = "bg-fog";
+
+/**
  * Token-backed background classes used to tint an owned cell/hexagon by its
  * owner (soft rose for p1, soft violet for p2) — M13-T2, #89. The owner colour
  * lives only on the hexagon, never on the unit badge (M17-T3, #116).

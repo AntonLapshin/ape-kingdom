@@ -208,4 +208,59 @@ describe("Cell", () => {
     const cell = screen.getByTestId("board-cell");
     expect(cell.className).toContain("hex-glass");
   });
+
+  /* ----------------------- Fog of war (M22-T2, #159) ----------------------- */
+
+  it("marks revealed cells as not fogged by default", () => {
+    render(<Cell q={0} r={0} owner={null} x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.dataset.fogged).toBe("false");
+    expect(cell.className).not.toContain("bg-fog");
+  });
+
+  it("marks a fogged cell with the fog data flag and dark background token", () => {
+    render(<Cell q={0} r={0} owner={null} fogged x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.dataset.fogged).toBe("true");
+    expect(cell.className).toContain("bg-fog");
+    // The fog background overrides the terrain background for a hidden cell.
+    expect(cell.className).not.toContain("bg-terrain-");
+  });
+
+  it("fog overrides an owned cell's owner tint background", () => {
+    render(<Cell q={0} r={0} owner="p1" ownerBg="bg-owner-p1" fogged x={0} y={0} />);
+    const cell = screen.getByTestId("board-cell");
+    expect(cell.className).toContain("bg-fog");
+    expect(cell.className).not.toContain("bg-owner-p1");
+  });
+
+  it("hides children content on a fogged cell", () => {
+    render(
+      <Cell q={0} r={0} owner={null} fogged x={0} y={0}>
+        <span data-testid="content">Grove</span>
+      </Cell>,
+    );
+    // A hidden cell must not leak its site/unit content to the player.
+    expect(screen.queryByTestId("content")).toBeNull();
+  });
+
+  it("reveals children content on a non-fogged cell", () => {
+    render(
+      <Cell q={0} r={0} owner={null} x={0} y={0}>
+        <span data-testid="content">Grove</span>
+      </Cell>,
+    );
+    expect(screen.getByTestId("content")).toHaveTextContent("Grove");
+  });
+
+  it("hides the Mountain icon on a fogged mountain cell but shows it when revealed", () => {
+    const { rerender } = render(
+      <Cell q={0} r={0} owner={null} terrain="mountain" fogged x={0} y={0} />,
+    );
+    expect(screen.queryByTestId("terrain-mountain")).toBeNull();
+    rerender(
+      <Cell q={0} r={0} owner={null} terrain="mountain" x={0} y={0} />,
+    );
+    expect(screen.getByTestId("terrain-mountain")).toBeTruthy();
+  });
 });
