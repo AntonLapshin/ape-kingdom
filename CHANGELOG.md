@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix the territory-ownership *display* so an empty site stays owned after its
+  unit vacates (M19-T1, #130). The core rule (captured sites stay owned until
+  an enemy occupies them; ownership persists independently of which unit, if
+  any, stands on the site) was already correct — confirmed by the milestone
+  M18-T2 territory rules (#124) — but the board Cell and the selector panel's
+  hexagon preview each derived the rendered owner with a duplicated inline
+  `site?.owner ?? unit?.owner` expression. That logic is now centralised in a
+  single pure presentation helper, `cellOwner(site, unit)` in
+  `src/ui/presentation.ts` (site owner always wins so a vacated territory keeps
+  its tint; a unit's owner only colours a site-less hex and reverts when the
+  unit leaves), and both the board `Cell` and the `CellInfoPanel` hexagon
+  preview use it, guaranteeing the UI reflects ownership persistence and that
+  ownership flips only when an enemy occupies a cell. Adds `cellOwner` unit
+  tests plus render-level regression tests that verify, via the core
+  `moveUnit` / `attackUnit` reducers and the rendered `Board` /
+  `CellInfoPanel`: a Home Tree and a captured Grove stay tinted after the unit
+  walks off, ownership flips to an enemy that moves onto a site or defeats its
+  defender, and an enemy merely moving adjacent does not revert it. Thin
+  UI-layer change; no `src/core` business logic was touched (core stays 100%
+  covered).
+
 - Fix the app crash when creating/recruiting a new unit mid-turn (issue 123).
   The bottom-left `CellInfoPanel`'s "Recruit here" action list was derived from
   `cellInfo` → `legalActions(state)`, which contains recruit actions in every

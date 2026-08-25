@@ -1,6 +1,6 @@
 import type { CellInfo } from "../../core/cellInfo";
 import type { GameAction } from "../../core/ai";
-import { SITE_LABELS, actionLabel, cellHexagonClass, legalRecruitActions } from "../presentation";
+import { SITE_LABELS, actionLabel, cellHexagonClass, cellOwner, legalRecruitActions } from "../presentation";
 import { Hexagon } from "./Hexagon";
 import { Unit } from "./Unit";
 
@@ -58,10 +58,10 @@ export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: C
    * legal this turn — otherwise the section is hidden and read-only info shown.
    */
   const recruitActions = legalRecruitActions(info?.actions ?? [], legalActions);
-  // The selected hexagon's owner: an owned site/unit colours the whole hexagon;
-  // a hex with neither is neutral (keeps its terrain colour).
-  const hexagonOwner =
-    info?.site?.owner ?? info?.unit?.owner ?? null;
+  // The selected hexagon's owner: an owned site persists as a territory even
+  // when empty, so the site owner always wins; a unit's owner only colours a
+  // site-less hex (M19-T1). A hex with neither is neutral.
+  const hexagonOwner = cellOwner(info?.site ?? null, info?.unit ?? null);
 
   return (
     <div data-testid="cell-info" className="space-y-2">
