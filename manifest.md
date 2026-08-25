@@ -2,7 +2,7 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M20 done; M21–M24 done/planned; M25 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M25 done; M26 planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
@@ -14,8 +14,12 @@ New post-ship feedback issue #158 (three "still not working" items: fog-of-war
 UI, persistent site-less territory, remove the bottom-left move list) is
 planned as M24: M24-T1 #159, M24-T2 #160, M24-T3 #161 — all `pi:ready` (complete).
 New post-ship bug issue #164 ("End Turn button isn't working — clicks just go
-through") is planned as M25: M25-T1 #166 (fix End Turn button interactivity)
-`pi:ready`.
+through") was planned as M25: M25-T1 #166 (fix End Turn button interactivity)
+— now DONE (PR #167 merged).
+New post-ship UI request #168 ("Highlighting target cells": instead of
+highlighting reachable cells, render an opaque grayish circle on each cell the
+selected unit can move to, red when the target cell holds an enemy unit) is
+planned as M26: M26-T1 #169 `pi:ready`.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -511,3 +515,28 @@ destination). Split per plan.md §16.3 — planned 2026-08-25.
   - [ ] M24-T1 Fog of war / map exploration UI (#159)
   - [ ] M24-T2 Cell keeps belonging to the kingdom after the unit vacates (#160) (core rule change + UI)
   - [ ] M24-T3 Remove the bottom-left Move/action list; interactive-only movement (#161)
+
+### M25 — End Turn button not clicking (#164)
+
+**Goal:** Fix the post-ship bug where the "End Turn" button "isn't working —
+clicks just go through". Root cause: the bottom-right `actions-overlay` is
+`pointer-events-none` and, unlike the other floating panels, does not wrap its
+`<EndTurnButton>` in `pointer-events-auto`, so the button inherits
+`pointer-events: none` and clicks pass through. Split per plan.md §16.3 —
+planned 2026-08-25, complete.
+
+**Sub-issues (first slice) — done:**
+  - [x] M25-T1 Fix the End Turn button so clicks register (#166)
+
+### M26 — Highlighting target cells (#168)
+
+**Goal:** Address post-ship UI request #168: when the user selects a unit,
+instead of the current reachable-cell highlight (green/teal ring), render a
+beautiful opaque grayish circle on each cell the unit can move to; if the
+reachable target cell currently hosts an enemy unit, render that circle red so
+captures/attacks are visually distinct. Purely a UI presentation change — the
+reachable-hex set already exists and enemy occupancy is read from existing core
+state (no new core game rule). Split per plan.md §16.3 — planned 2026-08-25.
+
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M26-T1 Render move-target circles (grayish; red on enemy) instead of the green ring (#169)

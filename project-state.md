@@ -4,7 +4,12 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20 (terrain & movement, #146/#147/#148), M21 (#143), M22 (#144), M23 (#145), M24 (#158) DONE; M25 PLANNED (bug fix #164).**
+**M1–M19 COMPLETE and shipped; M20–M25 DONE; M26 PLANNED (UI request #168).**
+New post-ship UI request #168 ("Highlighting target cells") is planned as
+milestone M26: M26-T1 #169 (render an opaque grayish circle on each reachable
+move target instead of the green ring; red circle when the reachable target
+holds an enemy unit) — `pi:ready`. Parent #168 closed. UI-only change; no new
+core rule.
 The four already-implemented feedback issues (#136 End Turn, #139 gap,
 #140 selected preview, #141 reachable-highlight) were closed as resolved
 (M19-T2/#131, M18-T3/#125, M17-T3/#116, M10-T4/#63 respectively). New
@@ -21,8 +26,8 @@ just go through") is planned as milestone M25: M25-T1 #166 (fix the End
 Turn button so clicks register — the bottom-right `actions-overlay` is
 `pointer-events-none` and, unlike the other floating panels, does not wrap
 its `<EndTurnButton>` in `pointer-events-auto`, so the button inherits
-`pointer-events: none` and clicks pass through), `pi:ready`. Parent #164
-closed.
+`pointer-events: none` and clicks pass through), `pi:ready` — now DONE
+(PR #167 merged). Parent #164 closed.
 Next slices (documented in manifest): M21-T2 graves, M22-T2 fog UI,
 M23-T2 analysis, M23-T3 smarter AI, M23-T4 circular map.
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
