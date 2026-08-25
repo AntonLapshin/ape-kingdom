@@ -169,6 +169,18 @@ describe("visibleHexes — per-player ownership", () => {
     expect(forP2.some((h) => sameHex(h, tree1))).toBe(false);
   });
 
+  it("a player with no Home Tree and no units sees nothing under fog", () => {
+    // p1 has no owned sight lines (no Home Tree, no units); p2 owns a tree.
+    const tree2 = { q: 5, r: 3 };
+    const state = makeState(
+      [],
+      [createSite("HomeTree", tree2.q, tree2.r, "p2")],
+    );
+    const forP1 = visibleHexes(state, "p1", true);
+
+    expect(forP1).toEqual([]);
+  });
+
   it("a player does not see from an opponent's unit", () => {
     const source = { q: 3, r: 3 };
     const far = { q: 2, r: 3 };
