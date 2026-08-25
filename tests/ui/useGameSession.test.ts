@@ -546,6 +546,35 @@ describe("useGameSession", () => {
     expect(moved!.unit?.owner).toBe("p1");
   });
 
+  it("clicking an enemy-held (red) target issues an attack and captures the enemy (M26-T1/#169)", () => {
+    const { result } = renderHook(() =>
+      useGameSession(0, { width: 7, height: 7, seed: 9 }),
+    );
+    // The 7x7 seed-9 board places a p1 Monkey at (3,2) directly adjacent to a
+    // p2 Monkey at (3,3), so the p1 unit can legally attack from the start of
+    // the turn (it has not acted yet).
+    const unitHex = { q: 3, r: 2 };
+    const enemyHex = { q: 3, r: 3 };
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    // The enemy-held (red) target is surfaced as an attackable capture target.
+    expect(result.current.movement.movable).toBe(true);
+    expect(result.current.enemyTargetHexes).toContainEqual(enemyHex);
+    act(() => {
+      result.current.selectCell(enemyHex);
+    });
+    // Clicking the red target issues an attack: the selection clears (no
+    // highlight) and the p2 unit on that hex is captured (removed from the
+    // board), rather than the p1 unit moving onto it.
+    expect(result.current.selectedHex).toBeNull();
+    const captured = result.current.view.board.find(
+      (c) => c.hex.q === enemyHex.q && c.hex.r === enemyHex.r,
+    );
+    expect(captured).toBeDefined();
+    expect(captured!.unit).toBeNull();
+  });
+
   it("clicking a non-reachable cell does not issue a move (no illegal move)", () => {
     const { result } = renderHook(() => useGameSession());
     const unitHex = result.current.view.board.find(

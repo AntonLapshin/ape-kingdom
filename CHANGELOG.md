@@ -23,7 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   renders a token-backed circle (`bg-move-target` / `bg-move-target-enemy`)
   via new theme tokens, and the circle is never shown on a fogged cell so move
   targets respect fog of war. Clicking a circled reachable cell still issues
-  the move/capture as before. `src/core` stays 100% covered.
+  the move/capture as before: clicking a grayish target issues a `move`, and
+  clicking an enemy-held (red) target issues an `attack` capturing the enemy.
+  View-model tests cover both the plain-move click and the red-target
+  capture-click paths. `src/core` stays 100% covered.
 
 - Add persistent site-less territory (M24-T2, #160). A site-less cell a
   kingdom's unit stood on / claimed now **stays owned by that kingdom after
