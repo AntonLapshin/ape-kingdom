@@ -463,6 +463,25 @@ describe("PlayableGame", () => {
     expect(actions.queryAllByTestId("action-button")).toHaveLength(0);
   });
 
+  it("makes the circular End Turn button clickable: its wrapper opts back into pointer events so clicks register (M25-T1 / #166)", () => {
+    render(<PlayableGame />);
+    // The actions overlay container is pointer-events-none (so the board stays
+    // interactive everywhere except on the button), but the End Turn button's
+    // own wrapper must opt back in with pointer-events-auto — exactly matching
+    // the status/cell-info panel cards. Without this the button inherited
+    // pointer-events: none and clicks passed straight through, so the turn
+    // never ended (#166).
+    const actions = screen.getByTestId("actions-overlay");
+    expect(actions.className).toContain("pointer-events-none");
+    // The button is wrapped in a pointer-events-auto container.
+    const buttonWrapper = actions.firstElementChild as HTMLElement;
+    expect(buttonWrapper).toBeDefined();
+    expect(buttonWrapper.className).toContain("pointer-events-auto");
+    // The button sits inside that clickable wrapper.
+    expect(buttonWrapper.querySelector("[data-testid='submit-turn']"))
+      .not.toBeNull();
+  });
+
   it("wires the floating actions overlay to the game: End Turn and the AI replies (M11-T2)", () => {
     render(<PlayableGame />);
     const actions = within(screen.getByTestId("actions-overlay"));
