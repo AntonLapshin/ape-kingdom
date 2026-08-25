@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { GameState, ApeUnit, Site, Player } from "../../src/core/game";
-import { generateMap, isWater, isMountain } from "../../src/core/mapGenerator";
+import type { GameState, ApeUnit, Site, Player, Hex } from "../../src/core/game";
+import { generateMap, isWater, isMountain, type GameMap } from "../../src/core/mapGenerator";
 import {
   createUnit,
   createSite,
@@ -10,6 +10,8 @@ import {
   recruitUnit,
   moveUnit,
   attackUnit,
+  OWN_LAND_RANGE,
+  hexDistance,
 } from "../../src/core/game";
 import {
   legalActions,
@@ -59,6 +61,38 @@ function applyAction(state: GameState, action: GameAction): GameState {
       return attackUnit(state, attacker, action.targetHex);
     }
   }
+}
+
+/**
+ * A flat, all-land map for deterministic owned-land movement tests (every
+ * cell in a wide band is `land`, so no water/mountain interferes unless a
+ * test introduces one).
+ */
+function flatMap(width = 10, height = 10): GameMap {
+  const cells: GameMap["cells"] = [];
+  for (let q = 0; q < width; q++) {
+    for (let r = 0; r < height; r++) {
+      cells[q * height + r] = { hex: { q, r }, terrain: "land" };
+    }
+  }
+  return { width, height, cells };
+}
+
+/** A gameState variant built on the flat all-land map. */
+function flatState(opts: {
+  sites?: Site[];
+  units?: ApeUnit[];
+  currentPlayer?: string;
+} = {}): GameState {
+  return {
+    sites: opts.sites ?? [],
+    units: opts.units ?? [],
+    players: { p1: createPlayer("p1"), p2: createPlayer("p2") },
+    currentPlayer: opts.currentPlayer ?? "p1",
+    turnOrder: ["p1", "p2"],
+    winner: null,
+    map: flatMap(),
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -136,6 +170,55 @@ describe("reachableHexes", () => {
     expect(hexes.some((h) => sameHex(h, { q: 3, r: 3 }))).toBe(false);
     // The mountain itself is never reachable either.
     expect(hexes.some((h) => sameHex(h, { q: 2, r: 3 }))).toBe(false);
+  });
+
+  it("extends to OWN_LAND_RANGE when an ownedBy predicate is provided", () => {
+    // Origin (3,3) with owned cells along the east row; the own-land range
+    // reaches (7,3) even though the standard movement is 1.
+    const owned = new Set(["4,3", "5,3", "6,3", "7,3"]);
+    const hexes = reachableHexes({ q: 3, r: 3 }, 1, new Set(), flatMap(), (h) =>
+      owned.has(`${h.q},${h.r}`),
+    );
+    for (let d = 1; d <= OWN_LAND_RANGE; d++) {
+      expect(hexes.some((h) => sameHex(h, { q: 3 + d, r: 3 }))).toBe(true);
+    }
+    // But never beyond OWN_LAND_RANGE.
+    expect(hexes.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
+  });
+
+  it("stays at the standard range when no ownedBy predicate is provided", () => {
+    // With no ownership info the result is purely the standard range — even
+    // on a fully passable map, (5,3) at distance 2 is not reachable with
+    // movement 1.
+    const hexes = reachableHexes({ q: 3, r: 3 }, 1, new Set(), flatMap());
+    expect(hexes.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(hexes.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+  });
+
+  it("does not extend through a non-owned cell", () => {
+    // (5,3) is not owned, so the extended own-land route stops before it.
+    const owned = new Set(["4,3", "6,3", "7,3"]);
+    const hexes = reachableHexes({ q: 3, r: 3 }, 1, new Set(), flatMap(), (h) =>
+      owned.has(`${h.q},${h.r}`),
+    );
+    expect(hexes.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(hexes.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(hexes.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(hexes.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("never extends onto or through water or mountain with ownedBy", () => {
+    // Owned row (4,3)…(7,3), but (5,3) is a mountain on the map — the
+    // extended route may not cross it.
+    const map = flatMap();
+    map.cells[5 * map.height + 3] = { hex: { q: 5, r: 3 }, terrain: "mountain" };
+    const owned = new Set(["4,3", "5,3", "6,3", "7,3"]);
+    const hexes = reachableHexes({ q: 3, r: 3 }, 1, new Set(), map, (h) =>
+      owned.has(`${h.q},${h.r}`),
+    );
+    expect(hexes.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(hexes.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(hexes.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
   });
 });
 
@@ -317,6 +400,86 @@ describe("legalActions — move", () => {
         targets.some((h) => sameHex(h, { q: 1, r: 2 })) &&
         targets.some((h) => sameHex(h, { q: 2, r: 1 })),
     ).toBe(true);
+  });
+});
+
+describe("legalActions — owned-land move range (M20-T3, #148)", () => {
+  /** A p1 unit at (3,3) with p1-owned Groves along the east row (4,3)…(7,3). */
+  function ownedState(opts: {
+    sites?: Site[];
+    unit?: ApeUnit;
+  } = {}): GameState {
+    const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    return flatState({
+      units: [unit],
+      sites:
+        opts.sites ??
+        [4, 5, 6, 7].map((q) => createSite("Grove", q, 3, "p1")),
+    });
+  }
+
+  it("includes moves up to OWN_LAND_RANGE through fully-owned land", () => {
+    const state = ownedState();
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    const targets = moves.map((m) => (m as { targetHex: Hex }).targetHex);
+    for (let d = 1; d <= OWN_LAND_RANGE; d++) {
+      expect(targets.some((h) => sameHex(h, { q: 3 + d, r: 3 }))).toBe(true);
+    }
+    // Not beyond OWN_LAND_RANGE.
+    expect(targets.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
+  });
+
+  it("caps at the standard range when the owned route is interrupted", () => {
+    // (5,3) neutral breaks the owned row east of (4,3).
+    const state = ownedState({
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3),
+        createSite("Grove", 6, 3, "p1"),
+        createSite("Grove", 7, 3, "p1"),
+      ],
+    });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    const targets = moves.map((m) => (m as { targetHex: Hex }).targetHex);
+    expect(targets.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(targets.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(targets.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(targets.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("never offers a move into enemy-owned land beyond standard range", () => {
+    // (4,3) is p1, (5,3) onward p2 — the unit may move onto (4,3) but not
+    // deeper into p2's territory.
+    const state = ownedState({
+      sites: [
+        createSite("Grove", 4, 3, "p1"),
+        createSite("Grove", 5, 3, "p2"),
+        createSite("Grove", 6, 3, "p2"),
+        createSite("Grove", 7, 3, "p2"),
+      ],
+    });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    const targets = moves.map((m) => (m as { targetHex: Hex }).targetHex);
+    expect(targets.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(targets.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(targets.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
+    expect(targets.some((h) => sameHex(h, { q: 7, r: 3 }))).toBe(false);
+  });
+
+  it("never offers an extended move that crosses a water or mountain cell", () => {
+    // Owned row (4,3)…(7,3) but (5,3) is a mountain — extended moves are
+    // blocked beyond (4,3).
+    const map = flatMap();
+    map.cells[5 * map.height + 3] = { hex: { q: 5, r: 3 }, terrain: "mountain" };
+    const state = {
+      ...ownedState(),
+      map,
+    };
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    const targets = moves.map((m) => (m as { targetHex: Hex }).targetHex);
+    expect(targets.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(targets.some((h) => sameHex(h, { q: 5, r: 3 }))).toBe(false);
+    expect(targets.some((h) => sameHex(h, { q: 6, r: 3 }))).toBe(false);
   });
 });
 
@@ -506,6 +669,31 @@ describe("aiChooseMove — determinism and legality", () => {
       const target = action.targetHex;
       expect(isMountain(state.map, target)).toBe(false);
     }
+  });
+
+  it("uses the extended owned-land range and never exceeds it (#148)", () => {
+    // A p1 unit at (3,3) with p1-owned Groves along the east row (4,3)…(7,3):
+    // the AI may legitimately move up to OWN_LAND_RANGE hexes east, and must
+    // never choose a target beyond that owned-land route.
+    const state = flatState({
+      units: [createUnit("Monkey", "p1", { q: 3, r: 3 }, false)],
+      sites: [4, 5, 6, 7, 8].map((q) => createSite("Grove", q, 3, "p1")),
+    });
+    let usedExtended = false;
+    for (let seed = 0; seed < 800; seed++) {
+      const action = aiChooseMove(state, seed);
+      if (action.type !== "move") continue;
+      const distance = hexDistance({ q: 3, r: 3 }, action.targetHex);
+      // Standard (1) or extended up to OWN_LAND_RANGE — never beyond.
+      expect(distance).toBeGreaterThan(0);
+      expect(distance).toBeLessThanOrEqual(OWN_LAND_RANGE);
+      if (distance > 1) usedExtended = true;
+      // The move always applies without throwing (never an illegal teleport).
+      expect(() => applyAction(state, action)).not.toThrow();
+    }
+    // Across many seeds the AI does reach targets beyond the standard range,
+    // proving the extended owned-land range is part of its legal set.
+    expect(usedExtended).toBe(true);
   });
 });
 

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Move up to 4 hexes through your own land (M20-T3, #148). A unit whose
+  entire route stays within cells its own kingdom owns may move up to
+  `OWN_LAND_RANGE` (4 hexes) instead of the standard 1. Ownership of a cell is
+  derived in the pure core by `isOwnedBy` (a site owned by the kingdom always
+  wins; a unit's owner only colours a site-less cell — the same model the UI
+  territory display uses), and the shared BFS traversal `bfsReachable`
+  (replacing the inline walk in `reachableHexes`) backs both the standard and
+  the extended range so every legal enumerator agrees with `moveUnit`.
+  `reachableHexes` (in `src/core/ai.ts`) gained an optional `ownedBy`
+  predicate and `legalActions` now passes the mover's owned-land predicate, so
+  the AI's legal set (and therefore its decisions) reflects the extended
+  range; `moveUnit` (in `src/core/game.ts`) accepts a target on a route
+  entirely through passable, unoccupied own-land cells up to `OWN_LAND_RANGE`,
+  and `reachableForUnit` is the single-source derivation. Owned-land movement
+  never enters enemy or neutral territory and never crosses water or mountain
+  (M20-T1/T2 defences still apply), and any route with a non-owned step falls
+  back to the standard 1-hex range. Because the UI's reachable-target
+  highlight and click-to-move both derive from the core legal set
+  (`movementInfo`/`legalMoves`), the extended cells are highlighted when the
+  selected unit can traverse its own land. Codified in
+  `guidelines/ape-kingdom-rules.md` and covered by core tests (full own-land
+  route grants range 4, any off-own-land step caps at standard range, water and
+  mountain still block, and the AI never exceeds the legal range). Pure core
+  change (core stays 100% covered, no UI business logic).
+
 ### Fixed
 
 - Prevent any unit from moving onto a mountain cell (M20-T2, #147). A unit may

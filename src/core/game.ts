@@ -447,24 +447,161 @@ export function hexDistance(a: Hex, b: Hex): number {
   return Math.max(Math.abs(q1 - q2), Math.abs(r1 - r2), Math.abs(q1 + r1 - q2 - r2));
 }
 
+/* ------------------------------------------------------------------ */
+/* Owned-land movement (M20-T3, #148)                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The maximum range granted to a unit whose entire route stays within cells
+ * its own kingdom owns (see `isOwnedBy` and the movement rules in
+ * `guidelines/ape-kingdom-rules.md`). Standard movement is 1 hex; a route
+ * wholly through own land raises it to this value (up to 4 hexes).
+ */
+export const OWN_LAND_RANGE = 4;
+
+/** A stable string key for a hex, used to deduplicate sets of hexes. */
+function hexKey(hex: Hex): string {
+  return `${hex.q},${hex.r}`;
+}
+
+/**
+ * Whether a hex is owned by `playerId`'s kingdom.
+ *
+ * A cell is owned by a kingdom when the kingdom owns the site on it (a
+ * captured Grove, Nest, or Home Tree) or when one of its units occupies it.
+ * This is the pure core equivalent of the UI territory-owner derivation
+ * (see `territoryOwner` in `src/ui/presentation.ts`): the site owner always
+ * wins on a cell that has a site, and a unit's owner only colours a site-less
+ * cell. So a cell whose site is owned by an enemy is enemy territory even if
+ * one of the mover's units stands on it, and the extended own-land movement
+ * never treats it as own land.
+ */
+export function isOwnedBy(
+  state: GameState,
+  hex: Hex,
+  playerId: PlayerId,
+): boolean {
+  const site = state.sites.find((s) => sameHex(s.hex, hex));
+  if (site) return site.owner === playerId;
+  const unit = state.units.find((u) => sameHex(u.hex, hex));
+  return !!unit && unit.owner === playerId;
+}
+
+/**
+ * Breadth-first search from `origin` through cells that pass `passable` and
+ * are not `occupied`, collecting every distinct hex reachable within `range`
+ * steps (the origin itself is excluded). This is the shared traversal behind
+ * both the standard move range and the extended own-land range, so the legal
+ * enumerators, the reachable-target derivation, and `moveUnit` agree on which
+ * cells are reachable by construction.
+ */
+export function bfsReachable(
+  origin: Hex,
+  range: number,
+  occupied: Set<string>,
+  passable: (hex: Hex) => boolean,
+): Hex[] {
+  const result: Hex[] = [];
+  const seen = new Set<string>([hexKey(origin)]);
+  const queue: Array<{ hex: Hex; dist: number }> = [{ hex: origin, dist: 0 }];
+  while (queue.length > 0) {
+    const { hex, dist } = queue.shift() as { hex: Hex; dist: number };
+    if (dist >= range) continue;
+    for (const neighbour of adjacentHexes(hex)) {
+      const key = hexKey(neighbour);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (occupied.has(key)) continue;
+      if (!passable(neighbour)) continue;
+      result.push(neighbour);
+      queue.push({ hex: neighbour, dist: dist + 1 });
+    }
+  }
+  return result;
+}
+
+/**
+ * The full set of hexes a unit may legally move onto this turn, per the
+ * movement rules:
+ *
+ *  - the standard move range (the unit's Movement value, 1 hex) over any
+ *    passable, unoccupied land cell — this is how a unit captures new
+ *    territory; and
+ *  - the extended own-land range (`OWN_LAND_RANGE`, up to 4 hexes) over any
+ *    passable, unoccupied cell owned by the mover's kingdom — moving deeper
+ *    through your own land.
+ *
+ * Water and mountain cells are never reachable targets and are never moved
+ * through, and the extended range never enters enemy or neutral territory
+ * (the destination and every intermediate cell must be owned by the mover).
+ * This is the single source both the legal-move enumerators and `moveUnit`
+ * consult, so they stay consistent.
+ */
+export function reachableForUnit(
+  state: GameState,
+  unit: ApeUnit,
+): Hex[] {
+  const occupied = new Set(
+    state.units.filter((u) => u !== unit).map((u) => hexKey(u.hex)),
+  );
+  // A cell is passable when it is not water and not a mountain. A hex outside
+  // the map is treated as passable (the out-of-range checks stay the
+  // authority for unreachable targets), matching the existing terrain checks
+  // in `moveUnit` and `reachableHexes`. In practice the water border ring
+  // blocks any off-map escape, so unreachable off-map cells never surface.
+  const passable = (hex: Hex): boolean => {
+    const terrain = state.map.cells.find((c) => sameHex(c.hex, hex))?.terrain;
+    return terrain !== "water" && terrain !== "mountain";
+  };
+
+  const standard = bfsReachable(
+    unit.hex,
+    movementOf(unit.kind),
+    occupied,
+    passable,
+  );
+  const ownPassable = (hex: Hex): boolean =>
+    passable(hex) && isOwnedBy(state, hex, unit.owner);
+  const extended = bfsReachable(
+    unit.hex,
+    OWN_LAND_RANGE,
+    occupied,
+    ownPassable,
+  );
+
+  const seen = new Set<string>();
+  const result: Hex[] = [];
+  for (const hex of [...standard, ...extended]) {
+    const key = hexKey(hex);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(hex);
+  }
+  return result;
+}
+
 /**
  * Turn-sequence step C (movement part): Move and Capture.
  *
- * Moves a unit up to its Movement value (standard 1 hex) toward `targetHex`.
- * The unit must be owned by the current player and must not have already
- * acted this turn (a unit may not move after attacking, and newly recruited
- * apes are marked `hasActed = true` so they cannot act until the next turn).
+ * Moves a unit toward `targetHex`. The unit must be owned by the current
+ * player and must not have already acted this turn (a unit may not move after
+ * attacking, and newly recruited apes are marked `hasActed = true` so they
+ * cannot act until the next turn).
  *
  * The move is rejected with a typed `MoveError` when:
  *  - the unit has already acted this turn (`already-acted`);
- *  - the target hex is farther than the unit's Movement value (`out-of-range`);
+ *  - the target hex is out of range (`out-of-range`) — beyond the unit's
+ *    Movement value (standard 1 hex) and, when the unit could instead move up
+ *    to `OWN_LAND_RANGE` through its own land, not on a route entirely
+ *    through passable, unoccupied cells the mover's kingdom owns;
  *  - the target hex is occupied by another unit (`occupied`);
  *  - the target hex is a water cell (`water`) — units may not step onto water;
  *  - the target hex is a mountain cell (`mountain`) — units may not step onto a mountain.
  *
- * Because standard movement is 1 hex, "may not move through enemy units" is
- * enforced by the occupied-target check — with a single-step move there are
- * no intermediate path hexes to pass through.
+ * Standard movement is 1 hex, so "may not move through enemy units" is
+ * enforced by the occupied-target check. The extended own-land range (moving
+ * deeper through your own territory via `isOwnedBy`) never enters enemy or
+ * neutral territory and never crosses water or mountain.
  *
  * Moving onto an unoccupied Grove, Nest, or Home Tree captures that site for
  * the moving unit's owner (site ownership changes). Returns a new `GameState`
@@ -491,14 +628,42 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     );
   }
 
-  // The target must be within the unit's Movement value.
+  // The target must be within the unit's effective range. The standard range
+  // is the unit's Movement value (1 hex) toward any passable target. When the
+  // unit's entire route stays within cells its own kingdom owns (`isOwnedBy`),
+  // the unit may instead move up to `OWN_LAND_RANGE` (4 hexes) through that
+  // own land — so a farther target is in range iff there is a route entirely
+  // through passable, unoccupied own-land cells to it (the same traversal
+  // `reachableForUnit` uses).
   const distance = hexDistance(existing.hex, targetHex);
   const movement = movementOf(existing.kind);
-  if (distance > movement) {
+  const standardInRange = distance <= movement;
+
+  const occupied = new Set(
+    state.units.filter((u) => u !== existing).map((u) => hexKey(u.hex)),
+  );
+  const ownPassable = (hex: Hex): boolean => {
+    const terrain = state.map.cells.find((c) => sameHex(c.hex, hex))?.terrain;
+    return (
+      terrain !== "water" &&
+      terrain !== "mountain" &&
+      isOwnedBy(state, hex, existing.owner)
+    );
+  };
+  const ownReachable = bfsReachable(
+    existing.hex,
+    OWN_LAND_RANGE,
+    occupied,
+    ownPassable,
+  );
+  const ownLandInRange = ownReachable.some((h) => sameHex(h, targetHex));
+
+  if (!standardInRange && !ownLandInRange) {
     throw new MoveError(
       "out-of-range",
       `Cannot move ${existing.kind} from (${existing.hex.q},${existing.hex.r}) to ` +
-        `(${targetHex.q},${targetHex.r}): distance ${distance} exceeds movement ${movement}`,
+        `(${targetHex.q},${targetHex.r}): distance ${distance} is not within the ` +
+        `standard movement ${movement} nor an owned-land route of ${OWN_LAND_RANGE}`,
     );
   }
 

@@ -13,14 +13,7 @@
  */
 
 import type { GameState, Hex, ApeKind, ApeUnit } from "./game";
-import {
-  adjacentHexes,
-  sameHex,
-  costOf,
-  rankOf,
-  movementOf,
-  APE_KINDS,
-} from "./game";
+import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable } from "./game";
 import { isWater, isMountain, type GameMap } from "./mapGenerator";
 
 /* ------------------------------------------------------------------ */
@@ -91,31 +84,42 @@ function parseHex(key: string): Hex {
  * entirely. When no `map` is given the BFS is purely topological
  * (terrain-unaware), preserving the raw helper for callers that only care
  * about occupancy.
+ *
+ * When `ownedBy` is provided (a predicate asserting a cell is owned by the
+ * moving kingdom — the mover `isOwnedBy` its own land), the unit also gains
+ * the extended own-land range: it may move up to `OWN_LAND_RANGE` hexes
+ * through cells the mover's kingdom owns, in which case every intermediate
+ * cell and the destination must be owned by the mover and never enemy or
+ * neutral territory, water, or mountain. The result is the union of the
+ * standard range (over any passable empty land) and the extended own-land
+ * range.
  */
 export function reachableHexes(
   origin: Hex,
   movement: number,
   occupied: Set<string>,
   map?: GameMap,
+  ownedBy?: (hex: Hex) => boolean,
 ): Hex[] {
+  const passable = (hex: Hex): boolean =>
+    !(map && (isWater(map, hex) || isMountain(map, hex)));
+
+  const standard = bfsReachable(origin, movement, occupied, passable);
+
+  // Without ownership info there is no extended own-land range — the result
+  // is just the standard reachable set (purely topological or terrain-aware).
+  if (!ownedBy) return standard;
+
+  const ownPassable = (hex: Hex): boolean => passable(hex) && ownedBy(hex);
+  const extended = bfsReachable(origin, OWN_LAND_RANGE, occupied, ownPassable);
+
+  const seen = new Set<string>();
   const result: Hex[] = [];
-  const seen = new Set<string>([hexKey(origin)]);
-  const queue: Array<{ hex: Hex; dist: number }> = [{ hex: origin, dist: 0 }];
-  while (queue.length > 0) {
-    const { hex, dist } = queue.shift() as { hex: Hex; dist: number };
-    if (dist >= movement) continue;
-    for (const neighbour of adjacentHexes(hex)) {
-      const key = hexKey(neighbour);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      // A unit may not enter (or move through) an occupied hex.
-      if (occupied.has(key)) continue;
-      // A unit may not enter (or move through) a water cell or a mountain
-      // cell — neither is a legal move target nor a legal path step.
-      if (map && (isWater(map, neighbour) || isMountain(map, neighbour))) continue;
-      result.push(neighbour);
-      queue.push({ hex: neighbour, dist: dist + 1 });
-    }
+  for (const hex of [...standard, ...extended]) {
+    const key = hexKey(hex);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(hex);
   }
   return result;
 }
@@ -166,13 +170,16 @@ export function legalActions(state: GameState): GameAction[] {
   for (const unit of state.units) {
     if (unit.owner !== me || unit.hasActed) continue;
     const movement = movementOf(unit.kind);
-    // Pass the map so water and mountain cells are excluded from legal move
-    // targets.
+    // Pass the map (so water and mountain cells are excluded from legal move
+    // targets) and the mover's owned-land predicate (so the extended range of
+    // up to OWN_LAND_RANGE hexes through the mover's own territory is also
+    // legal, while never entering enemy/neutral territory).
     for (const targetHex of reachableHexes(
       unit.hex,
       movement,
       occupied,
       state.map,
+      (hex) => isOwnedBy(state, hex, me),
     )) {
       actions.push({ type: "move", unitHex: unit.hex, targetHex });
     }
