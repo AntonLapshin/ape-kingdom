@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20 (terrain & movement, #146/#147/#148), M21 (#143), M22 (#144), M23 (#145) PLANNED (first slices `pi:ready`); M24 (#158) PLANNED.**
+**M1–M19 COMPLETE and shipped; M20 (terrain & movement, #146/#147/#148), M21 (#143), M22 (#144), M23 (#145), M24 (#158) DONE; M25 PLANNED (bug fix #164).**
 The four already-implemented feedback issues (#136 End Turn, #139 gap,
 #140 selected preview, #141 reachable-highlight) were closed as resolved
 (M19-T2/#131, M18-T3/#125, M17-T3/#116, M10-T4/#63 respectively). New
@@ -16,6 +16,13 @@ land) — all `pi:ready`. The remaining feedback was then planned: M21-T1
 New post-ship feedback issue #158 (three "still not working" items: fog-of-war
 UI, persistent site-less territory, remove the bottom-left move list) is
 split as milestone M24 — M24-T1 #159, M24-T2 #160, M24-T3 #161, all `pi:ready`.
+New post-ship bug report #164 ("End Turn button isn't working — clicks
+just go through") is planned as milestone M25: M25-T1 #166 (fix the End
+Turn button so clicks register — the bottom-right `actions-overlay` is
+`pointer-events-none` and, unlike the other floating panels, does not wrap
+its `<EndTurnButton>` in `pointer-events-auto`, so the button inherits
+`pointer-events: none` and clicks pass through), `pi:ready`. Parent #164
+closed.
 Next slices (documented in manifest): M21-T2 graves, M22-T2 fog UI,
 M23-T2 analysis, M23-T3 smarter AI, M23-T4 circular map.
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine

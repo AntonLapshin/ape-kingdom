@@ -2,7 +2,7 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M20 done/planned; M21–M23 planned; M24 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M20 done; M21–M24 done/planned; M25 planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
@@ -12,7 +12,10 @@ First planned slices of M21 (M21-T1 #149 RULES.md), M22 (M22-T1 #151 core
 vision) and M23 (M23-T1 #150 remove "Turn: you") are `pi:ready`.
 New post-ship feedback issue #158 (three "still not working" items: fog-of-war
 UI, persistent site-less territory, remove the bottom-left move list) is
-planned as M24: M24-T1 #159, M24-T2 #160, M24-T3 #161 — all `pi:ready`.
+planned as M24: M24-T1 #159, M24-T2 #160, M24-T3 #161 — all `pi:ready` (complete).
+New post-ship bug issue #164 ("End Turn button isn't working — clicks just go
+through") is planned as M25: M25-T1 #166 (fix End Turn button interactivity)
+`pi:ready`.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
