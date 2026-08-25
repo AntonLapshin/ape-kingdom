@@ -21,6 +21,7 @@ import {
   movementOf,
   APE_KINDS,
 } from "./game";
+import { isWater, type GameMap } from "./mapGenerator";
 
 /* ------------------------------------------------------------------ */
 /* Action descriptors                                                  */
@@ -83,11 +84,18 @@ function parseHex(key: string): Hex {
  * occupied by another unit. Movement is BFS through empty hexes so the "may
  * not move through enemy units" rule is respected for any movement value.
  * The origin itself is excluded.
+ *
+ * When a `map` is provided, water cells are never reachable targets and are
+ * never moved through (a unit cannot step onto or across water), so water
+ * cells are excluded from the result entirely. When no `map` is given the
+ * BFS is purely topological (terrain-unaware), preserving the raw helper for
+ * callers that only care about occupancy.
  */
 export function reachableHexes(
   origin: Hex,
   movement: number,
   occupied: Set<string>,
+  map?: GameMap,
 ): Hex[] {
   const result: Hex[] = [];
   const seen = new Set<string>([hexKey(origin)]);
@@ -101,6 +109,9 @@ export function reachableHexes(
       seen.add(key);
       // A unit may not enter (or move through) an occupied hex.
       if (occupied.has(key)) continue;
+      // A unit may not enter (or move through) a water cell. Mountain is a
+      // solid land surface and stays a valid target here.
+      if (map && isWater(map, neighbour)) continue;
       result.push(neighbour);
       queue.push({ hex: neighbour, dist: dist + 1 });
     }
@@ -154,7 +165,13 @@ export function legalActions(state: GameState): GameAction[] {
   for (const unit of state.units) {
     if (unit.owner !== me || unit.hasActed) continue;
     const movement = movementOf(unit.kind);
-    for (const targetHex of reachableHexes(unit.hex, movement, occupied)) {
+    // Pass the map so water cells are excluded from legal move targets.
+    for (const targetHex of reachableHexes(
+      unit.hex,
+      movement,
+      occupied,
+      state.map,
+    )) {
       actions.push({ type: "move", unitHex: unit.hex, targetHex });
     }
   }

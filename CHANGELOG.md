@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Prevent any unit from moving onto a water cell (M20-T1, #146). A unit may not
+  step onto or across water: `reachableHexes`/`legalActions` (in
+  `src/core/ai.ts`) now take the generated map and never enumerate water cells
+  as move targets (and never move through one), `moveUnit` (in
+  `src/core/game.ts`) rejects an in-range, unoccupied water target with a new
+  typed `MoveError` of kind `water`, and the AI's legal set (and therefore its
+  decisions) never targets water. Because the UI's reachable-target highlight
+  and click-to-move both derive from the core legal set (`movementInfo`/
+  `legalMoves`), water cells are never shown as reachable nor submitted as a
+  move. `mapGenerator`'s `isWater`/`terrainAt` are already in `src/core`;
+  `reachableHexes` was extended with an optional `map` argument (no map ⇒
+  purely topological, preserving the raw occupancy helper). Adds core tests
+  (water excluded from `reachableHexes`/`legalActions`, `moveUnit` rejects a
+  water target with kind `water`, the AI never chooses a water move across many
+  seeds) and keeps the loop-mechanics tests terrain-agnostic via an all-land
+  test map. Pure core change (core stays 100% covered, no UI business logic).
+
 - Restore a way to create new units at the Home Tree (M19-T3, #132). Selecting a
   controlled Home Tree now surfaces the available recruit option(s) arboreally:
   per the rules a new ape may be placed on a controlled Home Tree hex (if empty)
