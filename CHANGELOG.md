@@ -96,6 +96,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is untouched (core stays 100% covered); the Board render test that asserted
   the label now asserts it is not rendered.
 
+### Changed
+
+- Make movement interactive-only: remove the "Your actions" non-recruit
+  move/attack/collect-income action-button list from the bottom-left
+  `CellInfoPanel` (M24-T3, #161). Movement is now done purely by selecting a
+  unit on the map and clicking a highlighted reachable destination (the
+  interactive select-from/select-to flow) — the redundant button list (and its
+  Clear button) is gone, so attack/collect are issued via the interactive map
+  flow as before. The panel keeps its read-only cell info (terrain, site,
+  unit) and the per-hex "Recruit here" options; no game-rule functionality is
+  lost. This is a thin UI-only refactor — `src/core` is untouched and stays
+  100% covered. The `CellInfoPanel` `onClear` prop is removed (the Clear
+  button was part of the removed section) and the corresponding wiring is
+  dropped from `PlayableGame`/the showcase; the view model's `clearActions`
+  (reset-turn) remains a tested session API.
+
 ### Fixed
 
 - Prevent any unit from moving onto a mountain cell (M20-T2, #147). A unit may

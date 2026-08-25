@@ -88,7 +88,6 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     reachableHexes,
     selectCell,
     selectAction,
-    clearActions,
     submitTurn,
   } = useGameSession(aiSeed);
   const { pan, panBy } = usePan();
@@ -279,16 +278,16 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
             info={selectedCell}
             legalActions={view.legalActions}
             onSelectAction={selectAction}
-            onClear={clearActions}
           />
         </div>
       </div>
 
       {/* Bottom-right corner: a single beautiful circular End Turn button
-          (M17-T2). The old ActionControls step indicator + action-list
-          panel is gone from this corner (issue 113-2); the non-recruit legal
-          actions now live in the bottom-left cell-info panel so the game stays
-          fully playable. */}
+          (M17-T2). The old ActionControls step indicator + action-list panel
+          is gone from this corner (issue 113-2); movement is now purely
+          interactive (select a unit on the map, then click a highlighted
+          reachable hex), so no move/attack action-list is rendered anywhere
+          (M24-T3 / issue 161). */}
       <div
         data-testid="actions-overlay"
         className="pointer-events-none absolute bottom-4 right-4 z-10"

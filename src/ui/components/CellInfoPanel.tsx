@@ -1,6 +1,6 @@
 import type { CellInfo } from "../../core/cellInfo";
 import type { GameAction } from "../../core/ai";
-import { SITE_LABELS, actionLabel, cellHexagonClass, cellOwner, legalRecruitActions } from "../presentation";
+import { SITE_LABELS, cellHexagonClass, cellOwner, legalRecruitActions } from "../presentation";
 import { Hexagon } from "./Hexagon";
 import { Unit } from "./Unit";
 
@@ -11,11 +11,9 @@ export interface CellInfoPanelProps {
    */
   info: CellInfo | null;
   /**
-   * The legal actions the human may select this turn (from the view model).
-   * The move/attack ones (which are not reachable through the selected-cell
-   * recruit section) are listed here so the game stays fully playable now that
-   * the bottom-right action list is replaced by the circular End Turn button
-   * (M17-T2).
+   * The legal actions the human may select this turn (from the view model),
+   * used only to filter which recruit items are genuinely legal this turn step
+   * (issue 123).
    */
   legalActions: GameAction[];
   /**
@@ -23,8 +21,6 @@ export interface CellInfoPanelProps {
    * flow).
    */
   onSelectAction: (action: GameAction) => void;
-  /** Discard this turn's selections (delegates to the view model / core). */
-  onClear: () => void;
 }
 
 /**
@@ -45,8 +41,7 @@ export interface CellInfoPanelProps {
  * when the hex is occupied, the unit badge it hosts — instead of the
  * previous "Water / Land" terrain pill.
  */
-export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: CellInfoPanelProps) {
-  const nonRecruit = nonRecruitActions(legalActions);
+export function CellInfoPanel({ info, onSelectAction, legalActions }: CellInfoPanelProps) {
   /**
    * The recruit items that are actually selectable this turn step (issue 123). The
    * derived `info.actions` come from `cellInfo` → `legalActions(state)`, which
@@ -164,53 +159,6 @@ export function CellInfoPanel({ info, onSelectAction, legalActions, onClear }: C
       ) : null}
         </>
       )}
-
-      {/* The turn's non-recruit legal actions (move / attack / collect-income)
-          plus Clear, moved here from the old bottom-right ActionControls so
-          the game stays fully playable while the bottom-right corner shows
-          only the circular End Turn button (M17-T2). Recruits are
-          already listed per selected hex above, so only the other action types
-          are shown here to avoid duplicate recruit buttons. This section is
-          always visible so the player can reach move/attack actions and Clear
-          even before selecting a hex. */}
-      {nonRecruit.length > 0 && (
-        <div className="space-y-1.5 border-t border-line pt-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-            Your actions
-          </p>
-          <div className="grid grid-cols-1 gap-1.5">
-            {nonRecruit.map((action, i) => (
-              <button
-                key={i}
-                type="button"
-                data-testid="action-button"
-                onClick={() => onSelectAction(action)}
-                className="btn-action rounded-md border border-line-strong bg-panel px-3 py-1.5 text-left text-xs text-text-primary transition hover:border-accent hover:bg-accent-soft"
-              >
-                {actionLabel(action)}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            data-testid="clear-actions"
-            onClick={onClear}
-            className="btn-action rounded-md border border-line-strong bg-panel px-3 py-1.5 text-xs font-medium text-text-body transition hover:bg-accent-soft"
-          >
-            Clear
-          </button>
-        </div>
-      )}
     </div>
   );
-}
-
-/**
- * Pure presentation filter: the non-recruit legal actions (move / attack /
- * collect-income) for the current turn. Recruit actions are excluded because
- * they are already offered per-selected-hex in the "Recruit here" section
- * above, so they are not duplicated here. Not game logic — just a UI grouping.
- */
-function nonRecruitActions(actions: GameAction[]): GameAction[] {
-  return actions.filter((a) => a.type !== "recruit");
 }
