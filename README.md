@@ -76,6 +76,8 @@ The project enforces a strict **core / UI split** (plan.md §19.1):
 
 ## Project documents
 
+- [`RULES.md`](RULES.md) — the full game rules: economics, units, movement,
+  combat, capturing territory, and the winning condition.
 - [`manifest.md`](manifest.md) — project charter / intent (purpose, goals, milestones)
 - [`project-state.md`](project-state.md) — current state and progress
 - [`CHANGELOG.md`](CHANGELOG.md) — versioned change log
