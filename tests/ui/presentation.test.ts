@@ -7,6 +7,7 @@ import {
   OWNER_BG,
   cellHexagonClass,
   cellOwner,
+  isEndTurnEnabled,
   hexagonPoints,
 } from "../../src/ui/presentation";
 
@@ -39,6 +40,42 @@ describe("cellHexagonClass", () => {
     for (const owner of ["p1", "p2"] as const) {
       expect(OWNER_BG[owner]).toMatch(/^bg-owner-/);
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* isEndTurnEnabled (End Turn enabled state, M19-T2/#131)              */
+/* ------------------------------------------------------------------ */
+
+describe("isEndTurnEnabled", () => {
+  it("is enabled whenever it is the human's turn and the game is not done", () => {
+    // The human (p1) is mid-turn with the game still running: enabled whether
+    // or not the player has already moved/fought all their units (#131).
+    expect(
+      isEndTurnEnabled({ currentPlayer: "p1", isDone: false }),
+    ).toBe(true);
+  });
+
+  it("is disabled once the game has ended", () => {
+    // A done game has no turn left to end, even on the human's turn.
+    expect(isEndTurnEnabled({ currentPlayer: "p1", isDone: true })).toBe(false);
+  });
+
+  it("is disabled when it is not the human's turn", () => {
+    // The AI's (p2) turn — the human cannot end a turn they are not playing.
+    expect(isEndTurnEnabled({ currentPlayer: "p2", isDone: false })).toBe(
+      false,
+    );
+    expect(isEndTurnEnabled({ currentPlayer: "p2", isDone: true })).toBe(false);
+  });
+
+  it("is not gated on all units having acted (#131)", () => {
+    // The enabled rule only depends on whose turn it is and whether the game is
+    // over — it never checks how many units have acted, so End Turn always
+    // works even with unmoved units remaining on the board.
+    expect(
+      isEndTurnEnabled({ currentPlayer: "p1", isDone: false }),
+    ).toBe(true);
   });
 });
 

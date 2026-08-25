@@ -424,6 +424,27 @@ describe("submitTurn", () => {
     ).toBe(true);
   });
 
+  it("submits from the movefight step even while other units remain unmoved (#131)", () => {
+    // Move one of p1's units (advancing to the movefight step) while other p1
+    // units never act, then submit the turn. End Turn must still work: it ends
+    // the human's turn and runs the AI reply regardless of how many units acted.
+    let session = createGameSession();
+    session = selectAction(session, firstMove(session));
+    expect(session.step).toBe("movefight");
+    // At least one p1 unit is still unmoved (hasActed false) on the projected
+    // movefight state, so this is exactly the "didn't move all my units" case.
+    expect(
+      session.state.units.some((u) => u.owner === "p1" && !u.hasActed),
+    ).toBe(true);
+
+    const next = submitTurn(session);
+    // The AI replied and the next human turn began.
+    expect(next.step).toBe("recruit");
+    expect(next.winner).toBeNull();
+    expect(next.state.currentPlayer).toBe("p1");
+    expect(next.moves).toEqual([]);
+  });
+
   it("marks the session done with a winner when the game ends", () => {
     let session = createGameSession();
     // p1 controls every Home Tree, so the human wins before the AI acts.

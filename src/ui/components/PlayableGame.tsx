@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useGameSession } from "../viewModels/useGameSession";
 import { usePan } from "../viewModels/usePan";
 import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
+import { isEndTurnEnabled } from "../presentation";
 import { exceedsDragThreshold } from "../viewModels/usePointer";
 import { Board } from "./Board";
 import { EndTurnButton } from "./EndTurnButton";
@@ -293,7 +294,10 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
         className="pointer-events-none absolute bottom-4 right-4 z-10"
       >
         <EndTurnButton
-          enabled={!view.isDone && view.currentPlayer === "p1"}
+          enabled={isEndTurnEnabled({
+            currentPlayer: view.currentPlayer,
+            isDone: view.isDone,
+          })}
           onSubmit={submitTurn}
         />
       </div>

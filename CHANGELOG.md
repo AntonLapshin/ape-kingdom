@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Make the End Turn button work any time during the human's turn, even when
+  some units haven't moved/fought (M19-T2, #131). The core session's
+  `submitTurn` already ends the human's turn and runs the AI reply regardless
+  of how many (if any) units acted — confirmed and locked in with regression
+  tests — and the button's enabled state was previously an inline expression
+  in the composition layer (`PlayableGame`). That rule (enabled whenever it is
+  the human's turn and the game is not done; never gated on all units having
+  acted) is now centralised in a single pure, tested presentation helper,
+  `isEndTurnEnabled` in `src/ui/presentation.ts`, and the dumb End Turn button
+  reads it from one source of truth. Adds `isEndTurnEnabled` unit tests plus
+  core and render-level regression tests that verify End Turn submits from
+  both the `recruit` step (before any move/fight) and the `movefight` step
+  (after moving one unit while other p1 units stay unmoved), always advancing
+  to the AI reply and the next human turn. Thin UI-layer change; no
+  `src/core` business logic was touched (core stays 100% covered).
+
 - Fix the territory-ownership *display* so an empty site stays owned after its
   unit vacates (M19-T1, #130). The core rule (captured sites stay owned until
   an enemy occupies them; ownership persists independently of which unit, if

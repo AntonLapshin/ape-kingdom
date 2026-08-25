@@ -869,6 +869,43 @@ describe("PlayableGame", () => {
     expect(screen.getByTestId("submit-turn")).toBeEnabled();
   });
 
+  it("regression: End Turn works from the movefight step with units still unmoved (#131)", () => {
+    render(<PlayableGame />);
+    const cells = () => screen.getAllByTestId("board-cell");
+
+    // Move the first p1 unit into a reachable target, advancing the session
+    // from recruit to the movefight step while other p1 units remain unmoved.
+    const unitCell = cells().find(
+      (c) =>
+        c.dataset.owner === "p1" &&
+        !!c.querySelector("[data-testid='board-unit']"),
+    )!;
+    act(() => fireEvent.click(unitCell));
+    const target = cells().find((c) => c.dataset.moveTarget === "true");
+    expect(target).toBeDefined();
+    act(() => fireEvent.click(target!));
+
+    // The End Turn button stays enabled after moving (it is not gated on all
+    // units having acted), on the movefight step with units left unmoved.
+    expect(screen.getByTestId("submit-turn")).toBeEnabled();
+
+    // Clicking End Turn ends the human's turn and triggers the AI reply,
+    // advancing to the next human turn — even though some units never moved.
+    act(() => fireEvent.click(screen.getByTestId("submit-turn")));
+    expect(screen.getAllByText(/Current: You/).length).toBeGreaterThan(0);
+    expect(screen.getByTestId("submit-turn")).toBeEnabled();
+  });
+
+  it("regression: End Turn works from the recruit step before any move/fight (#131)", () => {
+    render(<PlayableGame />);
+    // Fresh session: the human's turn begins on the recruit step with all
+    // units unmoved. Ending the turn must still submit and run the AI reply.
+    expect(screen.getByTestId("submit-turn")).toBeEnabled();
+    act(() => fireEvent.click(screen.getByTestId("submit-turn")));
+    expect(screen.getAllByText(/Current: You/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Recruit \/ Act/)).toBeInTheDocument();
+  });
+
   it("does not reveal how many bananas the AI has (M17-T2 / #115)", () => {
     render(<PlayableGame />);
     // The status/scores panel lists one entry per player but only the human's
