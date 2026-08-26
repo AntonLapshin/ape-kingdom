@@ -153,14 +153,14 @@ describe("cell geometry", () => {
     expect(CELL_SIZE).toBeLessThan(HEX_SIZE * 2);
   });
 
-  it("tightens the inter-hexagon gap to roughly half the original 8px (M18-T3/#125)", () => {
-    // M18-T3 reduces the inter-cell gap so the board reads tighter/cleaner.
-    // The new gap is roughly half of the former 8px, i.e. ~4px, keeping a
-    // visibly separate (not flooded) board.
-    expect(HEX_GAP).toBe(4);
-    expect(HEX_GAP).toBeLessThanOrEqual(4);
+  it("halves the inter-hexagon gap to ~2px (M27-T4/#187)", () => {
+    // M27-T4 halves the M18-T3 gap (~4px) so the map reads tighter/more
+    // connected. The new gap is ~2px, still keeping a visibly separate
+    // (not flooded) board via the SVG glass-edge highlight.
+    expect(HEX_GAP).toBe(2);
+    expect(HEX_GAP).toBeLessThanOrEqual(2);
     expect(HEX_GAP).toBeGreaterThan(0);
-    expect(CELL_SIZE).toBe(HEX_SIZE * 2 - 4);
+    expect(CELL_SIZE).toBe(HEX_SIZE * 2 - 2);
   });
 });
 
