@@ -2,7 +2,7 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M25 done; M26 planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M27 done; M28 first slice planned)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
@@ -557,10 +557,10 @@ levels** (1+1=2, 2+1=3, 2+2=4, 3+1=4) with **no way to combine 2+3** — and
 update RULES accordingly, and (4) make the gap between hexagons twice smaller.
 Split per plan.md §16.3 — planned 2026-08-26.
 
-**Sub-issues (first slice) — all `pi:ready`:**
-  - [ ] M27-T1 Circular map generator instead of diamond (#172) — `pi:ready`
-  - [ ] M27-T2 Fog of war always shows owning cells (#173) — `pi:ready`
-  - [ ] M27-T3 Unit joining by level addition (1+1=2, 2+1=3, 2+2=4, 3+1=4; no 2+3) + RULES (#174) — `pi:ready`
+**Sub-issues (first slice) — done:**
+  - [x] M27-T1 Circular map generator instead of diamond (#172) — DONE (PR #176)
+  - [x] M27-T2 Fog of war always shows owning cells (#173) — DONE (PR #177)
+  - [x] M27-T3 Unit joining by level addition (1+1=2, 2+1=3, 2+2=4, 3+1=4; no 2+3) + RULES (#174) — DONE (PR #178)
   - [ ] M27-T4 (next slice) Make the inter-hexagon gap twice smaller (#171-A4)
 
 ### M28 — AI player training subproject (#171, section B)
@@ -571,7 +571,8 @@ or thousands of self-play games to train a stronger AI using appropriate ML
 techniques/tools, and (2) ship the trained AI as a file usable when a human
 plays the game in the deployed UI. Large subproject — split per plan.md §16.3.
 
-**Sub-issues (first slice — planned next):**
-  - [ ] M28-T1 Headless-scriptable core (play full games via script, no UI)
-  - [ ] M28-T2 Self-play training harness + ML training of the AI
-  - [ ] M28-T3 Trained AI file used by the deployed UI opponent
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M28-T1a Headless full-game simulator in core (#179) — `pi:ready`
+  - [ ] M28-T1b Headless `npm run simulate` CLI (#180) — `pi:ready`
+  - [ ] M28-T2 (next slice) Self-play training harness + ML training of the AI
+  - [ ] M28-T3 (next slice) Trained AI file used by the deployed UI opponent

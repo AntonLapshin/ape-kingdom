@@ -4,16 +4,20 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20–M26 DONE; M27 PLANNED (#171 section A).**
+**M1–M19 COMPLETE and shipped; M20–M26 DONE; M27 DONE; M28 PLANNED (first slice).**
 M26 (highlighting target cells, #168) is now DONE (M26-T1 #169, PR #170
 merged). New post-ship issue #171 ("Additional scope") was split into M27
-(section A, small/medium fixes) and M28 (section B, AI training). First slice of
-M27 — M27-T1 #172 (circular map generator instead of diamond), M27-T2 #173
-(fog of war always shows owning cells), M27-T3 #174 (unit joining by level
-addition: 1+1=2, 2+1=3, 2+2=4, 3+1=4; no 2+3 + RULES) — all `pi:ready`.
-Next slices: M27-T4 (smaller inter-hex gap) and M28 (AI player training
-subproject: headless-scriptable core, self-play training, trained-AI file used
-by the deployed UI). Parent #171 closed.
+(section A, small/medium fixes) and M28 (section B, AI training).
+M27 (issue #171 section A, small/medium fixes) is now DONE: M27-T1 #172
+(circular map generator instead of diamond, PR #176 merged), M27-T2 #173 (fog
+of war always shows owning cells, PR #177 merged), M27-T3 #174 (unit joining by
+level addition, PR #178 merged) — all complete. Remaining M27-T4 (smaller
+inter-hex gap) is still a future slice.
+Issue #175 (AI player training subproject — #171 section B, M28) has been split:
+parent #175 closed, and the first slice is planned as M28-T1a #179 (headless
+full-game simulator in `src/core`) and M28-T1b #180 (`npm run simulate` CLI),
+both `pi:ready`. Next slices: M28-T2 (self-play training harness + ML) and
+M28-T3 (trained-AI file used by the deployed UI). Parent #171 closed.
 The four already-implemented feedback issues (#136 End Turn, #139 gap,
 #140 selected preview, #141 reachable-highlight) were closed as resolved
 (M19-T2/#131, M18-T3/#125, M17-T3/#116, M10-T4/#63 respectively). New
