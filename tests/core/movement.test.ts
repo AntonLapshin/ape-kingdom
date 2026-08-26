@@ -62,10 +62,11 @@ describe("movementInfo", () => {
     expect(info.movable).toBe(true);
     expect(info.reachable.length).toBeGreaterThan(0);
     // Every reachable hex is adjacent to (in movement range of) the home and
-    // unoccupied on the board.
+    // is either unoccupied or a join-eligible same-kingdom unit (joining adds
+    // levels: 1+1=2, …). A reachable target is never an enemy-occupied hex.
     for (const target of info.reachable) {
-      const occupied = state.units.some((u) => sameHex(u.hex, target));
-      expect(occupied).toBe(false);
+      const occupant = state.units.find((u) => sameHex(u.hex, target));
+      expect(occupant === undefined || occupant.owner === "p1").toBe(true);
     }
     // The home itself is not a move target.
     expect(info.reachable.some((h) => sameHex(h, home))).toBe(false);
@@ -96,8 +97,10 @@ describe("movementInfo", () => {
     expect(afterUnit!.hasActed).toBe(true);
   });
 
-  it("reports no reachable targets for a movable unit with nowhere to go", () => {
-    // A unit fully surrounded by friendly units has no legal move targets.
+  it("reports joinable friendly units as reachable targets for a movable unit", () => {
+    // A unit fully surrounded by friendly units can still join them: moving
+    // onto a same-kingdom unit adds the levels (1+1=2, 2+1=3, 2+2=4, 3+1=4),
+    // so every adjacent friendly Monkeys is a legal join (move) target.
     const state = activeTurn(standardSetup());
     const me = state.currentPlayer;
     const home = p1Home(state);
@@ -105,7 +108,7 @@ describe("movementInfo", () => {
     // Place friendly blockers on every adjacent hex of the origin, and clear
     // any other current-player units so only the origin unit can move.
     const blockers = adjacentHexes(origin.hex).map((hex) =>
-      createUnit("Monkey", me, hex),
+      createUnit("Monkey", me, hex, false),
     );
     const clearedUnits = state.units.filter(
       (u) => sameHex(u.hex, origin.hex) || u.owner !== me,
@@ -116,7 +119,11 @@ describe("movementInfo", () => {
     };
     const info = movementInfo(newState, origin.hex);
     expect(info.movable).toBe(true);
-    expect(info.reachable).toEqual([]);
+    // Every adjacent friendly Monkey is a join target (1+1=2 within max rank).
+    expect(info.reachable).toHaveLength(blockers.length);
+    for (const b of blockers) {
+      expect(info.reachable.some((h) => sameHex(h, b.hex))).toBe(true);
+    }
   });
 
   it("highlights the extended owned-land range for a unit moving through its own territory (#148)", () => {
