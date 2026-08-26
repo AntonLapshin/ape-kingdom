@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Headless simulate CLI (M28-T1b, #180). A new thin, headless Node script
+  `scripts/simulate.ts` (run via `npm run simulate`) drives the pure core
+  full-game simulator (`playAiGame` from `src/core/selfPlay.ts`, M28-T1a) to
+  play **N configurable self-play AI-vs-AI games** and report aggregate win
+  statistics — how many games each player won and how many were capped by the
+  `maxTurns` iteration guard — with no UI or browser involved. The number of
+  games and the base seed are configurable via CLI flags (`--games/-n`,
+  `--seed/-s`, `--max-turns/-m`), environment variables (`SIMULATE_GAMES`,
+  `SIMULATE_SEED`, `SIMULATE_MAX_TURNS`), or sensible defaults (10 games,
+  seed 0); each game uses `seed + index` so runs are deterministic and
+  reproducible. The script stays **thin and headless** — it only orchestrates
+  the core simulator, containing no business logic and no React/browser code
+  (it runs through the existing `vite-node` tooling with `@types/node`,
+  consistent with the project's `scripts/` conventions). It is executed with
+  `vite-node scripts/simulate.ts` and prints a compact results table (games
+  played, p1/p2 win counts and percentages, capped runs, average turns). The
+  script is a thin CLI whose logic is fully delegated to the already-100%-covered
+  core; it is verified via the existing core tests plus a manual `npm run
+  simulate` smoke run, and `src/core` stays 100% covered.
+
 - Headless full-game self-play simulator in core (M28-T1a, #179). A new pure
   `src/core` function `playAiGame` (in `src/core/selfPlay.ts`) plays a complete
   **AI-vs-AI** Ape Kingdom game to completion with no UI and no browser: both
