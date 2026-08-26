@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Headless full-game self-play simulator in core (M28-T1a, #179). A new pure
+  `src/core` function `playAiGame` (in `src/core/selfPlay.ts`) plays a complete
+  **AI-vs-AI** Ape Kingdom game to completion with no UI and no browser: both
+  sides are driven by the existing AI layer (`aiTurnActions`/`playTurn` from
+  `src/core/gameLoop.ts`, drawing from `aiChooseMove`/`chooseFromActions`),
+  alternating turns from a `standardSetup` map until a winner is produced.
+  The function is configurable: a `seed` makes a given run
+  deterministic/reproducible (same seed ⇒ same board, AI choices, winner and
+  trajectory); a `maxTurns` maximum-iteration guard (`DEFAULT_MAX_TURNS = 300`)
+  prevents infinite loops; a `mapConfig` lets callers trade board size for
+  simulation speed; and `aiOptions` tunes both sides' AI behavior. By default
+  it plays on a small 8×8 full-land `standardSetup` map (`DEFAULT_SELFPLAY_MAP`)
+  with the AI layer's default (naive) behavior — a configuration where AI-vs-AI
+  games reliably terminate with a winner in well under a second — which is the
+  practical default for the upcoming self-play training harness (M28). The
+  function returns the final `GameState` plus which player won and the turn
+  count, with no React/browser/business-logic leakage (core stays pure and
+  headless). New core tests cover a complete seeded run terminating with a
+  winner, reproducibility for the same seed, the `maxTurns` guard, custom map
+  config, and explicit AI options; `src/core` stays 100% covered.
+
 - Unit joining by level addition (M27-T3, #174). Moving a unit onto a
   **same-kingdom** unit now joins them by **adding the levels** (ranks):
   1+1=2, 1+2/2+1=3, 2+2=4, 1+3/3+1=4 — the two units merge into one of the
