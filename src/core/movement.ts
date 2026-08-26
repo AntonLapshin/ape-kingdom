@@ -2,10 +2,11 @@
  * Pure core movement derivation (M10-T4).
  *
  * Derives, for a selected board hex, whether it holds a movable human-owned
- * unit and — when it does — every reachable, unoccupied target hex the current
- * player may legally move that unit onto (the grayish move-target circles) and
- * every reachable target hex that holds an enemy unit the unit may legally
- * capture (the red capture circles, M26-T1 #169). This is the single source of
+ * unit and — when it does — every reachable target hex the current player may
+ * legally move that unit onto (unoccupied hexes plus join-eligible adjacent
+ * same-kingdom units, the grayish move-target circles) and every reachable
+ * target hex that holds an enemy unit the unit may legally capture (the red
+ * capture circles, M26-T1 #169). This is the single source of
  * the move-eligibility / reachable-target derivation so the UI needs no
  * business logic: the board highlights the reachable targets when a movable
  * unit is selected, and clicking one issues a `move`/`attack` action through
@@ -39,9 +40,11 @@ export interface MovementInfo {
    */
   movable: boolean;
   /**
-   * Every reachable, unoccupied target hex the selected unit may legally move
-   * onto this turn, derived from the current player's legal `move` actions.
-   * Empty when the hex is not a movable current-player unit.
+   * Every reachable target hex the selected unit may legally move onto this
+   * turn, derived from the current player's legal `move` actions: unoccupied
+   * hexes (the grayish move-target circles) **and** join-eligible adjacent
+   * same-kingdom units (joining adds levels, M27-T3 #174). Empty when the hex
+   * is not a movable current-player unit.
    */
   reachable: Hex[];
   /**
@@ -60,11 +63,13 @@ export interface MovementInfo {
  *
  * The reachable targets are the `move` actions in the legal set whose
  * `unitHex` matches the selected hex — i.e. every hex the current player may
- * legally move the unit at the selected hex onto this turn. The attackable
- * targets are the `attack` actions whose `attackerHex` matches the selected
- * hex — i.e. every adjacent enemy-occupied hex the selected unit may capture
- * (M26-T1, #169). The hex is `movable` when the selected unit is owned by the
- * current player, has not acted, and has at least one such legal move. `movable` is also true when the
+ * legally move the unit at the selected hex onto this turn (unoccupied hexes
+ * plus join-eligible adjacent same-kingdom units, M27-T3 #174). The
+ * attackable targets are the `attack` actions whose `attackerHex` matches the
+ * selected hex — i.e. every adjacent enemy-occupied hex the selected unit may
+ * capture (M26-T1, #169). The hex is `movable` when the selected unit is
+ * owned by the current player, has not acted, and has at least one such legal
+ * move. `movable` is also true when the
  * unit has no legal moves (so the UI can show the selection but no targets),
  * keeping the derivation honest to "a unit that has not yet acted".
  *
@@ -99,8 +104,9 @@ export function movementInfo(
 
   // Collect the legal move targets and legal attack (enemy-capture) targets
   // for this unit from the legal action set. Move actions target unoccupied
-  // hexes (the grayish move-target circles); attack actions target adjacent
-  // enemy-occupied hexes (the red capture circles).
+  // hexes and join-eligible adjacent same-kingdom units (M27-T3 #174, the
+  // grayish move-target circles); attack actions target adjacent enemy-occupied
+  // hexes (the red capture circles).
   const reachable: Hex[] = [];
   const attackable: Hex[] = [];
   for (const action of legalActions(state)) {

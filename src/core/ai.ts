@@ -13,7 +13,7 @@
  */
 
 import type { GameState, Hex, ApeKind, ApeUnit } from "./game";
-import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable } from "./game";
+import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable, canJoinUnits } from "./game";
 import { isWater, isMountain, type GameMap } from "./mapGenerator";
 
 /* ------------------------------------------------------------------ */
@@ -135,7 +135,8 @@ export function reachableHexes(
  *  - collect income (always legal — the reducer never rejects);
  *  - recruit: every affordable ape kind at every legal placement hex (a
  *    controlled Home Tree hex or an adjacent empty hex);
- *  - move: every unit that has not acted to every reachable, unoccupied hex;
+ *  - move: every unit that has not acted to every reachable, unoccupied hex,
+ *    plus every join-eligible adjacent same-kingdom unit (joining adds levels, #174);
  *  - attack: every unit that has not acted against every adjacent enemy unit.
  *
  * Actions are returned in turn-step order (income, recruit, move, attack).
@@ -166,7 +167,10 @@ export function legalActions(state: GameState): GameAction[] {
     }
   }
 
-  // C. Move: every not-acted unit to every reachable, unoccupied hex.
+  // C. Move: every not-acted unit to every reachable, unoccupied hex, plus
+  // every join-eligible adjacent friendly unit (joining adds levels — a unit
+  // may join an adjacent same-kingdom unit whose summed level stays ≤ max
+  // rank, e.g. 1+1=2, 2+1=3, 2+2=4, 3+1=4; 2+3 is not possible).
   for (const unit of state.units) {
     if (unit.owner !== me || unit.hasActed) continue;
     const movement = movementOf(unit.kind);
@@ -182,6 +186,14 @@ export function legalActions(state: GameState): GameAction[] {
       (hex) => isOwnedBy(state, hex, me),
     )) {
       actions.push({ type: "move", unitHex: unit.hex, targetHex });
+    }
+    // A join target is an adjacent same-kingdom unit (standard 1-hex move); a
+    // joined-into cell is occupied, so it is never reached via the BFS above.
+    for (const targetHex of adjacentHexes(unit.hex)) {
+      const target = state.units.find((u) => sameHex(u.hex, targetHex));
+      if (target && canJoinUnits(unit, target)) {
+        actions.push({ type: "move", unitHex: unit.hex, targetHex });
+      }
     }
   }
 

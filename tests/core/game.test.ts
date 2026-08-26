@@ -39,6 +39,9 @@ import {
   hexKey,
   bfsReachable,
   reachableForUnit,
+  kindForRank,
+  canJoinUnits,
+  MAX_RANK,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -1003,6 +1006,184 @@ describe("moveUnit", () => {
     }
     expect(caught).toBeInstanceOf(MoveError);
     expect((caught as MoveError).kind).toBe("occupied");
+  });
+
+  // Joining rule (#171-A3 / M27-T3): a unit moved onto a same-kingdom unit
+  // adds the two levels — 1+1=2, 2+1=3, 2+2=4, 3+1=4. The sum can never exceed
+  // the maximum rank (so there is no 2+3), and both units must still be
+  // movable this turn.
+  describe("unit joining by level addition (#174)", () => {
+    // Join a mover (rank a) into an adjacent same-kingdom target (rank b) and
+    // assert the merged unit becomes the kind of rank a+b, sits on the target
+    // hex, is acted, and no longer occupies the mover's origin.
+    function join(moverKind: ApeKind, targetKind: ApeKind): GameState {
+      const mover = createUnit(moverKind, "p1", { q: 2, r: 1 }, false);
+      const target = createUnit(targetKind, "p1", { q: 3, r: 1 }, false);
+      const state = moveState({ units: [mover, target] });
+      return moveUnit(state, mover, { q: 3, r: 1 });
+    }
+
+    it("does not allow joining an enemy unit (still occupied)", () => {
+      const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+      const other = createUnit("Monkey", "p2", { q: 3, r: 1 }, false);
+      const state = moveState({ units: [mover, other] });
+      expect(() => moveUnit(state, mover, { q: 3, r: 1 })).toThrowError(MoveError);
+      let caught: unknown;
+      try {
+        moveUnit(state, mover, { q: 3, r: 1 });
+      } catch (e) {
+        caught = e;
+      }
+      expect((caught as MoveError).kind).toBe("occupied");
+    });
+
+    it("1+1=2: Monkey joins Monkey to become a Gibbon", () => {
+      const next = join("Monkey", "Monkey");
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0]).toMatchObject({
+        kind: "Gibbon",
+        owner: "p1",
+        hex: { q: 3, r: 1 },
+        hasActed: true,
+      });
+      expect(rankOf(next.units[0].kind)).toBe(2);
+    });
+
+    it("2+1=3: Gibbon joins Monkey to become a Chimpanzee", () => {
+      const next = join("Gibbon", "Monkey");
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0].kind).toBe("Chimpanzee");
+      expect(rankOf(next.units[0].kind)).toBe(3);
+      expect(next.units[0].hex).toEqual({ q: 3, r: 1 });
+      expect(next.units[0].hasActed).toBe(true);
+    });
+
+    it("1+2=3: Monkey joins a Gibbon to become a Chimpanzee", () => {
+      const next = join("Monkey", "Gibbon");
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0].kind).toBe("Chimpanzee");
+      expect(next.units[0].hex).toEqual({ q: 3, r: 1 });
+    });
+
+    it("2+2=4: Gibbon joins Gibbon to become a Gorilla", () => {
+      const next = join("Gibbon", "Gibbon");
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0].kind).toBe("Gorilla");
+      expect(rankOf(next.units[0].kind)).toBe(4);
+      expect(next.units[0].hex).toEqual({ q: 3, r: 1 });
+      expect(next.units[0].hasActed).toBe(true);
+    });
+
+    it("3+1=4: Chimpanzee joins Monkey to become a Gorilla", () => {
+      const next = join("Chimpanzee", "Monkey");
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0].kind).toBe("Gorilla");
+      expect(rankOf(next.units[0].kind)).toBe(4);
+    });
+
+    it("1+3=4: Monkey joins a Chimpanzee to become a Gorilla", () => {
+      const next = join("Monkey", "Chimpanzee");
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0].kind).toBe("Gorilla");
+      expect(rankOf(next.units[0].kind)).toBe(4);
+    });
+
+    it("cannot combine 2+3 (Gibbon onto Chimpanzee): rejects cannot-join", () => {
+      const mover = createUnit("Gibbon", "p1", { q: 2, r: 1 }, false);
+      const target = createUnit("Chimpanzee", "p1", { q: 3, r: 1 }, false);
+      const state = moveState({ units: [mover, target] });
+      let caught: unknown;
+      try {
+        moveUnit(state, mover, { q: 3, r: 1 });
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(MoveError);
+      expect((caught as MoveError).kind).toBe("cannot-join");
+      // Nothing changed: both units remain unchanged.
+      expect(state.units).toHaveLength(2);
+      expect(state.units[0].kind).toBe("Gibbon");
+      expect(state.units[1].kind).toBe("Chimpanzee");
+    });
+
+    it("cannot combine 3+2 (Chimpanzee onto Gibbon): rejects cannot-join", () => {
+      const mover = createUnit("Chimpanzee", "p1", { q: 2, r: 1 }, false);
+      const target = createUnit("Gibbon", "p1", { q: 3, r: 1 }, false);
+      const state = moveState({ units: [mover, target] });
+      expect(() => moveUnit(state, mover, { q: 3, r: 1 })).toThrowError(MoveError);
+      let caught: unknown;
+      try {
+        moveUnit(state, mover, { q: 3, r: 1 });
+      } catch (e) {
+        caught = e;
+      }
+      expect((caught as MoveError).kind).toBe("cannot-join");
+    });
+
+    it("cannot combine when the target unit has already acted", () => {
+      // Mover is movable, but the target friendly unit already acted this turn
+      // — both must be movable to join.
+      const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+      const target = createUnit("Monkey", "p1", { q: 3, r: 1 }, true);
+      const state = moveState({ units: [mover, target] });
+      let caught: unknown;
+      try {
+        moveUnit(state, mover, { q: 3, r: 1 });
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(MoveError);
+      expect((caught as MoveError).kind).toBe("cannot-join");
+    });
+
+    it("cannot join into a max-rank (Gorilla) unit (4+anything exceeds 4)", () => {
+      const mover = createUnit("Gibbon", "p1", { q: 2, r: 1 }, false);
+      const target = createUnit("Gorilla", "p1", { q: 3, r: 1 }, false);
+      const state = moveState({ units: [mover, target] });
+      let caught: unknown;
+      try {
+        moveUnit(state, mover, { q: 3, r: 1 });
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(MoveError);
+      expect((caught as MoveError).kind).toBe("cannot-join");
+    });
+
+    it("does not recapture a site when joining a friendly unit", () => {
+      // The target friendly unit sits on a p1 Grove; joining leaves it p1
+      // owned (no recapture needed).
+      const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+      const target = createUnit("Monkey", "p1", { q: 3, r: 1 }, false);
+      const state = moveState({
+        units: [mover, target],
+        sites: [createSite("Grove", 3, 1, "p1")],
+      });
+      const next = moveUnit(state, mover, { q: 3, r: 1 });
+      expect(next.sites.find((s) => sameHex(s.hex, { q: 3, r: 1 }))?.owner).toBe("p1");
+    });
+
+    it("canJoinUnits: same-kingdom, both movable, sum ≤ max rank", () => {
+      const a = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+      const b = createUnit("Gibbon", "p1", { q: 3, r: 1 }, false);
+      const b2 = createUnit("Chimpanzee", "p1", { q: 4, r: 1 }, false);
+      expect(canJoinUnits(a, b)).toBe(true); // 1+2=3
+      expect(canJoinUnits(a, b2)).toBe(true); // 1+3=4
+      expect(canJoinUnits(a, createUnit("Gorilla", "p1", { q: 5, r: 1 }, false))).toBe(false); // 1+4>4
+      expect(canJoinUnits(b, b2)).toBe(false); // 2+3>4
+      expect(
+        canJoinUnits(a, createUnit("Monkey", "p1", { q: 5, r: 1 }, true)),
+      ).toBe(false); // target acted
+      expect(canJoinUnits(a, createUnit("Monkey", "p2", { q: 5, r: 1 }, false))).toBe(false); // enemy
+    });
+
+    it("kindForRank maps a level back to its ape kind", () => {
+      expect(kindForRank(1)).toBe("Monkey");
+      expect(kindForRank(2)).toBe("Gibbon");
+      expect(kindForRank(3)).toBe("Chimpanzee");
+      expect(kindForRank(4)).toBe("Gorilla");
+      expect(MAX_RANK).toBe(4);
+    });
   });
 
   it("rejects moving onto a water cell", () => {

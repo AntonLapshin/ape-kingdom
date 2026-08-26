@@ -214,6 +214,37 @@ export function rankOf(kind: ApeKind): ApeRank {
   return APE_TYPES[kind].rank;
 }
 
+/** The highest ape rank / level (Gorilla). Joining can never exceed it. */
+export const MAX_RANK: ApeRank = 4;
+
+/**
+ * The ape kind for a given rank/level (1=Monkey, 2=Gibbon, 3=Chimpanzee,
+ * 4=Gorilla), used to resolve the kind a joined unit becomes. `level` is the
+ * summed rank of the two joining units; it is always within 1–4 after the
+ * join-cap check (`canJoinUnits`), so this never indexes out of bounds.
+ */
+export function kindForRank(level: ApeRank): ApeKind {
+  return APE_KINDS[level - 1];
+}
+
+/**
+ * Whether two same-kingdom units may join by adding levels.
+ *
+ * Joining adds the two units' ranks: 1+1=2, 2+1=3, 2+2=4, 3+1=4. A join is
+ * possible only when the units belong to the same kingdom, both are still
+ * movable this turn (neither has already acted), and the summed level does
+ * not exceed the maximum rank (4). The cap is what makes 2+3 (and anything
+ * summing over 4) impossible to combine.
+ */
+export function canJoinUnits(a: ApeUnit, b: ApeUnit): boolean {
+  return (
+    a.owner === b.owner &&
+    !a.hasActed &&
+    !b.hasActed &&
+    rankOf(a.kind) + rankOf(b.kind) <= MAX_RANK
+  );
+}
+
 /** The banana cost to recruit an ape kind. */
 export function costOf(kind: ApeKind): number {
   return APE_TYPES[kind].cost;
@@ -436,6 +467,13 @@ export type MoveErrorKind =
   | "out-of-range"
   /** The target hex is occupied by another unit. */
   | "occupied"
+  /**
+   * The target hex holds a same-kingdom unit that cannot be joined: the
+   * summed level exceeds the maximum rank (e.g. 2+3), or one of the units has
+   * already acted this turn. Joining adds levels (1+1=2, 2+1=3, 2+2=4, 3+1=4)
+   * and is only possible while both units are movable and the total ≤ max rank.
+   */
+  | "cannot-join"
   /** The target hex is a water cell, which units may not step onto. */
   | "water"
   /** The target hex is a mountain cell, which units may not step onto. */
@@ -642,7 +680,13 @@ export function reachableForUnit(
  *    Movement value (standard 1 hex) and, when the unit could instead move up
  *    to `OWN_LAND_RANGE` through its own land, not on a route entirely
  *    through passable, unoccupied cells the mover's kingdom owns;
- *  - the target hex is occupied by another unit (`occupied`);
+ *  - the target hex is occupied by an enemy unit (`occupied`) — enemy-occupied
+ *    hexes are resolved by combat, never by moving onto them;
+ *  - the target hex holds a same-kingdom unit that cannot be joined
+ *    (`cannot-join`) — joining adds the two levels (1+1=2, 2+1=3, 2+2=4,
+ *    3+1=4) and is only possible while both units are still movable this turn
+ *    and the summed level does not exceed the maximum rank (4), so 2+3 (and
+ *    anything summing over 4) can never combine (M27-T3, #174);
  *  - the target hex is a water cell (`water`) — units may not step onto water;
  *  - the target hex is a mountain cell (`mountain`) — units may not step onto a mountain.
  *
@@ -715,14 +759,48 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     );
   }
 
-  // The target hex must not be occupied by another unit (a unit may not enter
-  // a hex occupied by another unit, nor move through enemy units — with a
-  // single-step standard move, the target is the only hex on the path).
-  if (state.units.some((u) => u !== existing && sameHex(u.hex, targetHex))) {
-    throw new MoveError(
-      "occupied",
-      `Cannot move to (${targetHex.q},${targetHex.r}): the hex is occupied`,
+  // The target hex must not be occupied by an enemy unit (a unit may not
+  // enter an enemy-occupied hex by moving — combat is resolved via `attackUnit`)
+  // nor by a same-kingdom unit unless the two can join by adding levels.
+  const targetUnit = state.units.find(
+    (u) => u !== existing && sameHex(u.hex, targetHex),
+  );
+  if (targetUnit) {
+    if (targetUnit.owner !== existing.owner) {
+      throw new MoveError(
+        "occupied",
+        `Cannot move to (${targetHex.q},${targetHex.r}): the hex holds an enemy unit`,
+      );
+    }
+    // Same-kingdom unit: joining. The unit may join a friendly unit by adding
+    // the two levels (1+1=2, 2+1=3, 2+2=4, 3+1=4), but only when the summed
+    // level does not exceed the maximum rank (4) — so 2+3 (and anything
+    // summing over 4) can never combine — and only while both units are still
+    // movable this turn (a unit that has already acted cannot join).
+    if (!canJoinUnits(existing, targetUnit)) {
+      throw new MoveError(
+        "cannot-join",
+        `Cannot join (${existing.hex.q},${existing.hex.r}) into ` +
+          `(${targetHex.q},${targetHex.r}): ${existing.kind}+${targetUnit.kind} ` +
+          `cannot combine (sum ${rankOf(existing.kind) + rankOf(targetUnit.kind)} ` +
+          `exceeds rank ${MAX_RANK}, or one unit has already acted)`,
+      );
+    }
+    // Join: the two units merge into a single unit of the summed level at the
+    // target hex. The joined unit has acted (the mover moved into it). The
+    // target hex is friendly territory, so no site/territory is recaptured -
+    // the mover's own kingdom already owns it.
+    const mergedKind = kindForRank(
+      (rankOf(existing.kind) + rankOf(targetUnit.kind)) as ApeRank,
     );
+    const units = state.units
+      .filter((u) => u !== targetUnit)
+      .map((u) =>
+        u === existing
+          ? { ...u, kind: mergedKind, hex: targetHex, hasActed: true }
+          : u,
+      );
+    return { ...state, units };
   }
 
   // The target hex must not be water — a unit may not step onto a water cell.

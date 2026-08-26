@@ -365,6 +365,51 @@ describe("legalActions — move", () => {
     expect(moves).toHaveLength(5);
   });
 
+  it("enumerates join-eligible adjacent same-kingdom units as move targets (#174)", () => {
+    // A p1 Monkey next to a p1 Monkey (1+1=2 ≤ max rank, both movable) is a
+    // legal join (move) target; an already-acted friendly unit or one whose
+    // sum exceeds max rank (2+3) is not.
+    const mover = createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
+    const friend = createUnit("Monkey", "p1", { q: 5, r: 4 }, false);
+    const actedFriend = createUnit("Monkey", "p1", { q: 3, r: 4 }, true);
+    const bigFriend = createUnit("Gorilla", "p1", { q: 3, r: 5 }, false);
+    const state = moveState({
+      units: [mover, friend, actedFriend, bigFriend],
+      map: flatMap(),
+    });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    // The joinable Monkey (1+1=2) is a legal move target.
+    expect(
+      moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 5, r: 4 })),
+    ).toBe(true);
+    // An already-acted friendly unit is not joinable → not a move target.
+    expect(
+      moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 3, r: 4 })),
+    ).toBe(false);
+    // A friendly unit whose sum exceeds max rank (1+4>4) is not joinable → not a target.
+    expect(
+      moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 3, r: 5 })),
+    ).toBe(false);
+  });
+
+  it("applying a legal join move merges the units by adding levels (#174)", () => {
+    const mover = createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
+    const target = createUnit("Monkey", "p1", { q: 5, r: 4 }, false);
+    const state = moveState({ units: [mover, target], map: flatMap() });
+    const join = legalActions(state).find(
+      (a) => a.type === "move" && sameHex(a.targetHex, { q: 5, r: 4 }),
+    );
+    expect(join).toBeDefined();
+    if (join && join.type === "move") {
+      const moverUnit = state.units.find((u) => sameHex(u.hex, join.unitHex))!;
+      const next = moveUnit(state, moverUnit, join.targetHex);
+      expect(next.units).toHaveLength(1);
+      expect(next.units[0].kind).toBe("Gibbon"); // 1+1=2
+      expect(next.units[0].hex).toEqual({ q: 5, r: 4 });
+      expect(next.units[0].hasActed).toBe(true);
+    }
+  });
+
   it("omits moves for units that have already acted", () => {
     const acted = createUnit("Monkey", "p1", { q: 4, r: 4 }, true);
     const state = moveState({ unit: acted });

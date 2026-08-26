@@ -147,6 +147,25 @@ cells**. When **any** cell on the route is not owned by the mover's kingdom (or
 is water or a mountain), the unit falls back to the **standard 1-hex**
 movement.
 
+### Joining units (combining by level addition)
+
+Instead of entering a hex occupied by another unit, a unit may **join** a
+**same-kingdom** unit on an adjacent hex by **adding the two levels**
+(ranks):
+
+- **1 + 1 = 2** (Monkey + Monkey → Gibbon)
+- **1 + 2 = 3** and **2 + 1 = 3** (Monkey + Gibbon → Chimpanzee)
+- **2 + 2 = 4** (Gibbon + Gibbon → Gorilla)
+- **1 + 3 = 4** and **3 + 1 = 4** (Monkey + Chimpanzee → Gorilla)
+
+Joining consumes **both** units into a single unit whose **level is the
+sum**, placed on the target hex; the joined unit has acted for the turn.
+A join is only possible while **both units are still movable** this turn
+(neither has already acted), and the summed level may **never exceed the
+maximum rank (4)**. So **2 + 3** (and anything summing over 4) can
+**never** combine. A unit may not join an **enemy** unit (enemy-occupied
+hexes are resolved by combat).
+
 ---
 
 ## Combat

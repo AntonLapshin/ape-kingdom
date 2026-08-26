@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unit joining by level addition (M27-T3, #174). Moving a unit onto a
+  **same-kingdom** unit now joins them by **adding the levels** (ranks):
+  1+1=2, 1+2/2+1=3, 2+2=4, 1+3/3+1=4 — the two units merge into one of the
+  summed level on the target hex, and the joined unit has acted for the turn.
+  A join is only legal while **both units are still movable** (neither has
+  already acted) and the summed level stays **≤ the maximum rank (4)** — so
+  2+3 (and anything summing over 4) can **never** combine; enemy-occupied
+  hexes are still resolved by combat, never joined. The core `moveUnit`
+  reducer (in `src/core/game.ts`) now handles friendly-target joins and throws
+  a new typed `MoveError("cannot-join")` for an impossible join, and new pure
+  helpers `canJoinUnits`, `kindForRank` and the `MAX_RANK` constant back the
+  rule. The legal-action enumerator (`legalActions`) and the reachable-target
+  derivation (`movementInfo`) now expose join-eligible adjacent friendly units
+  as legal move targets, so the UI/AI can actually perform a join through the
+  normal move flow. New core tests cover the 1+1, 2+1, 1+2, 2+2, 3+1, 1+3
+  merges, the blocked 2+3/3+2/1+4/4+any cases, the already-acted blocker, and
+  legal-action join enumeration. Updated `RULES.md` and
+  `guidelines/ape-kingdom-rules.md` to document the joining/level-addition
+  rule. `src/core` stays 100% covered.
+
 - Always reveal a kingdom's owning cells in the fog of war (M27-T2, #173).
   The core fog derivation `visibleHexes` (in `src/core/vision.ts`) now, in
   addition to revealing cells from owned sight lines (Home Trees and units),

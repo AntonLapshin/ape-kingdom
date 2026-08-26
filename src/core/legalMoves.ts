@@ -22,7 +22,8 @@ import type { GameState } from "./game";
  *  - collect income (always legal — the reducer never rejects);
  *  - recruit: every affordable ape kind at every legal placement hex (a
  *    controlled Home Tree hex or an adjacent empty hex);
- *  - move: every unit that has not acted to every reachable, unoccupied hex;
+ *  - move: every unit that has not acted to every reachable, unoccupied hex,
+ *    plus every join-eligible adjacent same-kingdom unit (joining adds levels, #174);
  *  - attack: every unit that has not acted against every adjacent enemy unit.
  *
  * Actions are returned in turn-step order (income, recruit, move, attack).
