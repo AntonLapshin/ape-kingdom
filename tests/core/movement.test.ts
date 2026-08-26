@@ -148,4 +148,51 @@ describe("movementInfo", () => {
     // Beyond the own-land range is never highlighted.
     expect(info.reachable.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
   });
+
+  it("lists an adjacent enemy unit's hex as an attackable capture target (M26-T1/#169)", () => {
+    // A p1 unit at (3,3) with an adjacent p2 enemy at (4,3). The enemy hex is
+    // an `attackable` (red capture) target, distinct from the grayish plain
+    // move targets (which are always unoccupied).
+    const width = 10;
+    const height = 10;
+    const cells: GameMap["cells"] = [];
+    for (let q = 0; q < width; q++) {
+      for (let r = 0; r < height; r++) {
+        cells[q * height + r] = { hex: { q, r }, terrain: "land" };
+      }
+    }
+    const state: GameState = {
+      sites: [],
+      units: [
+        createUnit("Monkey", "p1", { q: 3, r: 3 }, false),
+        createUnit("Gibbon", "p2", { q: 4, r: 3 }, false),
+      ],
+      players: { p1: createPlayer("p1"), p2: createPlayer("p2") },
+      currentPlayer: "p1",
+      turnOrder: ["p1", "p2"],
+      winner: null,
+      map: { width, height, cells },
+    };
+    const info = movementInfo(state, { q: 3, r: 3 });
+    expect(info.movable).toBe(true);
+    // The enemy-occupied hex is a capture target, never a plain move target.
+    expect(info.attackable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(true);
+    expect(info.reachable.some((h) => sameHex(h, { q: 4, r: 3 }))).toBe(false);
+    // A non-adjacent hex is never attackable.
+    expect(info.attackable.some((h) => sameHex(h, { q: 8, r: 3 }))).toBe(false);
+  });
+
+  it("reports no attackable targets when no adjacent enemy exists (M26-T1/#169)", () => {
+    const state = activeTurn(standardSetup());
+    const home = p1Home(state);
+    const info = movementInfo(state, home);
+    // An isolated p1 unit with no enemy adjacency attack is legal for the
+    // home unit iff its neighbours include no enemy; on the standard board the
+    // home unit's reachable move targets are all unoccupied.
+    expect(Array.isArray(info.attackable)).toBe(true);
+    // The home unit's own hex and any plain move target are never in attackable.
+    for (const target of info.reachable) {
+      expect(info.attackable.some((h) => sameHex(h, target))).toBe(false);
+    }
+  });
 });

@@ -10,6 +10,8 @@ import {
   selectedCellInfo,
   selectedMovement,
   isMoveTarget,
+  reachableTargetHexes,
+  enemyTargetHexes,
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup, createGameSession } from "../../src/core/gameSession";
@@ -353,6 +355,36 @@ describe("selectedMovement / isMoveTarget", () => {
     expect(info.movable).toBe(true);
     expect(info.reachable.length).toBeGreaterThan(0);
   });
+
+  it("reachableTargetHexes unions plain-move and enemy-capture targets (M26-T1/#169)", () => {
+    const movement = {
+      unit: null,
+      movable: true,
+      reachable: [{ q: 1, r: 0 }, { q: 2, r: 0 }],
+      attackable: [{ q: 3, r: 0 }],
+    };
+    const combined = reachableTargetHexes(movement);
+    expect(combined).toHaveLength(3);
+    for (const h of [...movement.reachable, ...movement.attackable]) {
+      expect(combined.some((x) => sameHex(x, h))).toBe(true);
+    }
+  });
+
+  it("enemyTargetHexes returns exactly the attackable (enemy-held) targets (M26-T1/#169)", () => {
+    const movement = {
+      unit: null,
+      movable: true,
+      reachable: [{ q: 1, r: 0 }],
+      attackable: [{ q: 3, r: 0 }, { q: 4, r: 0 }],
+    };
+    const enemy = enemyTargetHexes(movement);
+    expect(enemy).toHaveLength(2);
+    for (const h of movement.attackable) {
+      expect(enemy.some((x) => sameHex(x, h))).toBe(true);
+    }
+    // Plain move targets are never enemy targets.
+    expect(enemy.some((x) => sameHex(x, { q: 1, r: 0 }))).toBe(false);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -464,6 +496,32 @@ describe("useGameSession", () => {
     expect(result.current.reachableHexes.length).toBeGreaterThan(0);
   });
 
+  it("exposes enemyTargetHexes matching the core attackable targets (M26-T1/#169)", () => {
+    const { result } = renderHook(() => useGameSession());
+    const unitHex = result.current.view.board.find(
+      (c) => c.unit && c.unit.owner === "p1",
+    )!.hex;
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    // `enemyTargetHexes` exposes the core `attackable` (enemy-held) targets and
+    // `reachableHexes` is the union of plain-move and enemy-capture targets.
+    expect(result.current.enemyTargetHexes).toEqual(
+      result.current.movement.attackable,
+    );
+    const combined = [
+      ...result.current.movement.reachable,
+      ...result.current.movement.attackable,
+    ];
+    expect(result.current.reachableHexes).toEqual(combined);
+    // No enemy target is ever a plain move target (plain moves are unoccupied).
+    for (const enemy of result.current.enemyTargetHexes) {
+      expect(
+        result.current.movement.reachable.some((h) => sameHex(h, enemy)),
+      ).toBe(false);
+    }
+  });
+
   it("clicking a reachable target issues a move action and clears the selection", () => {
     const { result } = renderHook(() => useGameSession());
     // The session starts directly on the recruit step, so moves are already
@@ -486,6 +544,35 @@ describe("useGameSession", () => {
     );
     expect(moved).toBeDefined();
     expect(moved!.unit?.owner).toBe("p1");
+  });
+
+  it("clicking an enemy-held (red) target issues an attack and captures the enemy (M26-T1/#169)", () => {
+    const { result } = renderHook(() =>
+      useGameSession(0, { width: 7, height: 7, seed: 9 }),
+    );
+    // The 7x7 seed-9 board places a p1 Monkey at (3,2) directly adjacent to a
+    // p2 Monkey at (3,3), so the p1 unit can legally attack from the start of
+    // the turn (it has not acted yet).
+    const unitHex = { q: 3, r: 2 };
+    const enemyHex = { q: 3, r: 3 };
+    act(() => {
+      result.current.selectCell(unitHex);
+    });
+    // The enemy-held (red) target is surfaced as an attackable capture target.
+    expect(result.current.movement.movable).toBe(true);
+    expect(result.current.enemyTargetHexes).toContainEqual(enemyHex);
+    act(() => {
+      result.current.selectCell(enemyHex);
+    });
+    // Clicking the red target issues an attack: the selection clears (no
+    // highlight) and the p2 unit on that hex is captured (removed from the
+    // board), rather than the p1 unit moving onto it.
+    expect(result.current.selectedHex).toBeNull();
+    const captured = result.current.view.board.find(
+      (c) => c.hex.q === enemyHex.q && c.hex.r === enemyHex.r,
+    );
+    expect(captured).toBeDefined();
+    expect(captured!.unit).toBeNull();
   });
 
   it("clicking a non-reachable cell does not issue a move (no illegal move)", () => {

@@ -31,9 +31,17 @@ export interface CellProps {
    */
   isMoveTarget?: boolean;
   /**
+   * Whether this reachable move-target cell currently holds an enemy unit the
+   * selected unit may capture (M26-T1, #169). Such cells render a red circle
+   * (distinct from the grayish plain move-target circles) so attacks/captures
+   * are visually distinct. Ignored when `isMoveTarget` is false.
+   */
+  isEnemyTarget?: boolean;
+  /**
    * Whether this cell is hidden by fog of war (M22-T2, #159). A fogged cell
    * renders dark with no content so the human cannot see unrevealed cells;
-   * revealed cells render normally.
+   * revealed cells render normally. A fogged cell never shows a move-target
+   * circle (M26-T1, #169) so targets never leak through the shroud.
    */
   fogged?: boolean;
   /** The pixel x offset of this cell from the board origin. */
@@ -81,6 +89,7 @@ export function Cell({
   isCurrent = false,
   isSelected = false,
   isMoveTarget = false,
+  isEnemyTarget = false,
   fogged = false,
   x,
   y,
@@ -117,6 +126,7 @@ export function Cell({
       data-terrain={terrain}
       data-selected={isSelected ? "true" : "false"}
       data-move-target={isMoveTarget ? "true" : "false"}
+      data-enemy-target={isEnemyTarget ? "true" : "false"}
       data-fogged={fogged ? "true" : "false"}
       className={`hex-cell hex-glass hex-pop absolute flex flex-col items-center justify-center ${bg} border border-line-strong ${
         isCurrent ? "hex-current" : ""
@@ -148,6 +158,20 @@ export function Cell({
         </defs>
         <polygon points={points} className="hex-glass-edge" />
       </svg>
+      {/* Move-target circle (M26-T1, #169): an opaque grayish circle on every
+          reachable target cell — replacing the old green/teal ring — and red
+          on a reachable cell that holds an enemy unit, so attacks/captures are
+          visually distinct from plain moves. Never rendered on a fogged cell
+          so reachable targets stay hidden by fog of war. */}
+      {isMoveTarget && !fogged && (
+        <div
+          data-testid="move-target-circle"
+          data-enemy-target={isEnemyTarget ? "true" : "false"}
+          className={`move-target-circle ${
+            isEnemyTarget ? "bg-move-target-enemy" : "bg-move-target"
+          }`}
+        />
+      )}
       {IS_MOUNTAIN[terrain] && !fogged && (
         <img
           src={gameIcons.mountain}

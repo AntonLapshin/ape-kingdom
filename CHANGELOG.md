@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Render move-target circles instead of the green ring (M26-T1, #169). When a
+  unit is selected, every cell it can move to now shows an **opaque grayish
+  circle** (replacing the old green/teal `hex-move-target` ring); a reachable
+  cell that currently holds an **enemy unit** is rendered with a **red circle**
+  so attacks/captures are visually distinct from plain moves. The pure core
+  `movementInfo` derivation now also surfaces the selected unit's `attackable`
+  enemy-capture targets (adjacent enemies) alongside its reachable `move`
+  targets, both drawn from the legal actions — no new game rule. The view
+  model unions them into `reachableHexes` and exposes `enemyTargetHexes` for
+  the red circles; `selectCell` now issues an `attack` when the user clicks an
+  enemy-held (red) target and a `move` for a grayish target. The dumb `Cell`
+  renders a token-backed circle (`bg-move-target` / `bg-move-target-enemy`)
+  via new theme tokens, and the circle is never shown on a fogged cell so move
+  targets respect fog of war. Clicking a circled reachable cell still issues
+  the move/capture as before: clicking a grayish target issues a `move`, and
+  clicking an enemy-held (red) target issues an `attack` capturing the enemy.
+  View-model tests cover both the plain-move click and the red-target
+  capture-click paths. `src/core` stays 100% covered.
+
 - Add persistent site-less territory (M24-T2, #160). A site-less cell a
   kingdom's unit stood on / claimed now **stays owned by that kingdom after
   the unit vacates** it — it no longer reverts to neutral the moment the unit
