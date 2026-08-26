@@ -125,6 +125,40 @@ describe("Board", () => {
     expect(badge!.textContent).toBe("1");
   });
 
+  it("renders a unit that has already acted as dimmed/opaque (M19-T6/#190)", () => {
+    // p1's starting units are created with hasActed=true, so the standardSetup
+    // board view (no turn reset) surfaces them as acted and dims them. Render
+    // the view directly so the board's hasActed wiring is exercised.
+    render(<Board board={board} currentPlayer="p1" />);
+    const badges = screen.getAllByTestId("board-unit");
+    expect(badges.length).toBeGreaterThan(0);
+    for (const badge of badges) {
+      expect(badge.dataset.hasActed).toBe("true");
+      expect(badge.className).toContain("opacity-40");
+      expect(badge.className).toContain("grayscale");
+    }
+  });
+
+  it("renders an unacted unit normally (not dimmed) once the player can move (M19-T6/#190)", () => {
+    // Reset p1's units so they may act (hasActed=false) — the fresh-turn
+    // state the human sees — and confirm the board does not dim them.
+    const playable = {
+      ...state,
+      units: state.units.map((u) =>
+        u.owner === "p1" ? { ...u, hasActed: false } : u,
+      ),
+    };
+    render(<Board board={boardCells(playable)} currentPlayer="p1" />);
+    const badges = screen.getAllByTestId("board-unit");
+    const p1Badges = badges.filter((b) => b.dataset.owner === "p1");
+    expect(p1Badges.length).toBeGreaterThan(0);
+    for (const badge of p1Badges) {
+      expect(badge.dataset.hasActed).toBe("false");
+      expect(badge.className).not.toContain("opacity-");
+      expect(badge.className).not.toContain("grayscale");
+    }
+  });
+
   it("does not render a turn indicator over the map (M23-T1/#150)", () => {
     render(<Board board={board} currentPlayer="p1" />);
     // The turn is clear from the active state / End Turn flow, so no "Turn:"

@@ -68,4 +68,49 @@ describe("Unit", () => {
     expect(badge.className).toContain("bg-panel");
     expect(badge.className).toContain("backdrop-blur");
   });
+
+  it("flags a unit that has not acted as unacted (no dimming) by default (M19-T6/#190)", () => {
+    render(<Unit kind="Monkey" rank={1} owner="p1" />);
+    const badge = screen.getByTestId("board-unit");
+    expect(badge.dataset.hasActed).toBe("false");
+    // Unacted units render normally — no dimming/desaturation treatment.
+    expect(badge.className).not.toContain("opacity-");
+    expect(badge.className).not.toContain("grayscale");
+  });
+
+  it("renders an explicitly unacted unit with no dimming (M19-T6/#190)", () => {
+    render(<Unit kind="Gibbon" rank={2} owner="p1" hasActed={false} />);
+    const badge = screen.getByTestId("board-unit");
+    expect(badge.dataset.hasActed).toBe("false");
+    expect(badge.className).not.toContain("opacity-");
+    expect(badge.className).not.toContain("grayscale");
+  });
+
+  it("renders a unit that has already acted as dimmed/opaque (M19-T6/#190)", () => {
+    render(<Unit kind="Gorilla" rank={4} owner="p1" hasActed={true} />);
+    const badge = screen.getByTestId("board-unit");
+    expect(badge.dataset.hasActed).toBe("true");
+    // An acted unit is clearly dimmed (reduced opacity) and desaturated
+    // (grayscale) so the human can spot it at a glance.
+    expect(badge.className).toContain("opacity-40");
+    expect(badge.className).toContain("grayscale");
+  });
+
+  it("distinguishes an acted unit from an unacted one (M19-T6/#190)", () => {
+    const { container } = render(
+      <>
+        <Unit kind="Monkey" rank={1} owner="p1" hasActed={false} />
+        <Unit kind="Gibbon" rank={2} owner="p1" hasActed={true} />
+      </>,
+    );
+    const badges = container.querySelectorAll('[data-testid="board-unit"]');
+    expect(badges).toHaveLength(2);
+    // The unacted badge renders normally; the acted one is dimmed/desaturated.
+    expect(badges[0].getAttribute("data-has-acted")).toBe("false");
+    expect(badges[0].className).not.toContain("opacity-");
+    expect(badges[0].className).not.toContain("grayscale");
+    expect(badges[1].getAttribute("data-has-acted")).toBe("true");
+    expect(badges[1].className).toContain("opacity-40");
+    expect(badges[1].className).toContain("grayscale");
+  });
 });

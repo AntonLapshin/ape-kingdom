@@ -9,6 +9,14 @@ export interface UnitProps {
   rank: ApeRank;
   /** The player who owns this unit (drives the badge colour). */
   owner: PlayerId;
+  /**
+   * Whether the unit has already moved/fought this turn (M19-T6, #190).
+   * When true the badge is rendered dimmed/opaque (reduced opacity + slight
+   * desaturation) so the human can tell at a glance which units have already
+   * acted; when false it renders normally. Purely presentational — the acted
+   * state is derived by the view model from the core `hasActed` flag.
+   */
+  hasActed?: boolean;
 }
 
 /**
@@ -25,13 +33,16 @@ export interface UnitProps {
  * rank, and owner as props and renders them. No hooks, no context, no side
  * effects, no business logic.
  */
-export function Unit({ kind, rank, owner }: UnitProps) {
+export function Unit({ kind, rank, owner, hasActed = false }: UnitProps) {
   return (
     <span
       data-testid="board-unit"
       data-owner={owner}
       data-kind={kind}
-      className="mt-0.5 flex flex-col items-center rounded-xl border border-line bg-panel/80 px-1 py-0.5 text-[10px] font-bold text-text-primary backdrop-blur-sm"
+      data-has-acted={hasActed ? "true" : "false"}
+      className={`mt-0.5 flex flex-col items-center rounded-xl border border-line bg-panel/80 px-1 py-0.5 text-[10px] font-bold text-text-primary backdrop-blur-sm ${
+        hasActed ? "opacity-40 grayscale" : ""
+      }`}
     >
       <img
         src={gameIcons[apeKindIcon(kind)]}

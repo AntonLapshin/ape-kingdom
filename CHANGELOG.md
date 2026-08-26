@@ -22,6 +22,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Mark units that have already moved/fought this turn as opaque (M19-T6,
+  #190). Each rendered unit badge now dims (reduced opacity + slight
+  desaturation via `opacity-40 grayscale`) when it has already acted this
+  turn, so the human can tell at a glance which of their units have spent
+  their action vs. which still have actions available. The acted state is
+  derived entirely from existing core state (`ApeUnit.hasActed`, the flag the
+  `movefight` step sets after a move/attack and resets at the start of each
+  turn): the view model's `UnitView` now carries `hasActed` straight from the
+  core unit, and the dumb `Unit` component applies the dimmed treatment from
+  that prop (plus a `data-has-acted` attribute for legibility/testing).
+  Unacted units render normally and stay legible; newly recruited apes are
+  born `hasActed = true`, so they too dim until their next turn. No new core
+  logic — `src/core` is unchanged. Covered by new assertions in
+  `tests/ui/Unit.test.tsx`, `tests/ui/useGameSession.test.ts` and
+  `tests/ui/Board.test.tsx`. `src/core` stays 100% covered.
+
 - Apply a frosted-glass effect to the End Turn button (M29-T1, #186). The
   circular `end-turn-btn` disc now renders a clearly-visible token-backed
   frosted-glass surface consistent with the M14 glass design language: a
