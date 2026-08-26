@@ -92,6 +92,60 @@ function countEnclosedLakes(map: GameMap): number {
   return lakes;
 }
 
+/**
+ * The screen-geometry distance of a hex from the centre of a rendered hex
+ * board (mirrors `src/ui/presentation.ts` `hexToPixel`: x ∝ q + r/2, y ∝ r).
+ * Used by the circularity checks to measure land extent in rendered space
+ * rather than raw axial (q, r) space, which is the whole point of M27-T1
+ * (#172) — the raw (q, r) Euclidean metric hides the 60° hex-axis skew and
+ * yields a diamond landmass, so circularity must be asserted in screen space.
+ */
+function screenDist(
+  centreQ: number,
+  centreR: number,
+  q: number,
+  r: number,
+): number {
+  const dq = q - centreQ;
+  const dr = r - centreR;
+  return Math.hypot(dq + dr / 2, (Math.sqrt(3) / 2) * dr);
+}
+
+/**
+ * The circularity measure of a landmass (M27-T1, #172): the ratio of the
+ * largest to the smallest average land-extent (from the centre) across a
+ * fixed number of angular sectors of a rendered hex board.
+ *
+ * Land cells are bucketed by the angle of their screen-space vector from the
+ * centre into `sectors` equal-angle wedges; for each wedge we average the
+ * screen distances of its land cells (so sparse corners don't over-weight a
+ * single outlier cell). A roughly circular island has that average nearly
+ * equal in every direction, so the max/min ratio is close to 1. The old
+ * diamond landmass (raw (q, r) Euclidean) consistently measures above ~1.5
+ * while the circular one stays at or below ~1.49, so whether an island is
+ * "roughly circular" is asserted as this ratio being ≤ 1.5.
+ */
+function circularityRatio(map: GameMap, sectors: number): number {
+  const centreQ = Math.floor(map.width / 2);
+  const centreR = Math.floor(map.height / 2);
+  const sums = new Array<number>(sectors).fill(0);
+  const counts = new Array<number>(sectors).fill(0);
+  for (const cell of map.cells) {
+    if (!isLandSurface(cell.terrain)) continue;
+    const dq = cell.hex.q - centreQ;
+    const dr = cell.hex.r - centreR;
+    const angle = Math.atan2((Math.sqrt(3) / 2) * dr, dq + dr / 2);
+    const idx = ((Math.floor(((angle + Math.PI) / (2 * Math.PI)) * sectors)) %
+      sectors +
+      sectors) %
+      sectors;
+    sums[idx] += screenDist(centreQ, centreR, cell.hex.q, cell.hex.r);
+    counts[idx]++;
+  }
+  const averages = sums.map((s, i) => s / counts[i]);
+  return Math.max(...averages) / Math.min(...averages);
+}
+
 /** Return the `kind` of a MapError thrown by a callback. */
 function thrownKind(fn: () => unknown): string {
   try {
@@ -279,6 +333,50 @@ describe("mapGenerator", () => {
       expect(map.cells).toHaveLength(25);
       expect(allBorderWater(map)).toBe(true);
       expect(isSingleContiguousIsland(map)).toBe(true);
+    });
+
+    it("produces a roughly circular landmass instead of a diamond (#172)", () => {
+      // The default map's average land extent must be nearly equal in every
+      // direction (max/min sector ratio ≤ 1.5). The old raw-(q,r)-Euclidean
+      // diamond consistently exceeded ~1.5; the circular generator stays ≤ ~1.49.
+      // Assert across several deterministic seeds (including the default) so
+      // the wavy coastline doesn't let one seed sneak through.
+      for (const seed of [0, 1, 2, 3, 4]) {
+        const map = generateMap({ seed });
+        expect(circularityRatio(map, 8)).toBeLessThanOrEqual(1.5);
+      }
+      // And on the default call itself.
+      expect(circularityRatio(generateMap(), 8)).toBeLessThanOrEqual(1.5);
+    });
+
+    it("keeps the centre roughly equidistant from every edge (#172)", () => {
+      // A circular island has no direction where the land recedes sharply
+      // toward (or bulges far toward) the grid border: the farthest land
+      // reach in any 8-sector wedge must not be dramatically larger than the
+      // shortest, and the island must extend outside its innermost core in
+      // every direction (no wedge collapses to a sliver as the diamond did at
+      // its top/bottom corners).
+      const map = generateMap({ seed: 7 });
+      const centreQ = Math.floor(map.width / 2);
+      const centreR = Math.floor(map.height / 2);
+      const maxes = new Array<number>(8).fill(0);
+      const counts = new Array<number>(8).fill(0);
+      for (const cell of map.cells) {
+        if (!isLandSurface(cell.terrain)) continue;
+        const dq = cell.hex.q - centreQ;
+        const dr = cell.hex.r - centreR;
+        const angle = Math.atan2((Math.sqrt(3) / 2) * dr, dq + dr / 2);
+        const idx =
+          ((Math.floor(((angle + Math.PI) / (2 * Math.PI)) * 8) % 8) + 8) % 8;
+        maxes[idx] = Math.max(
+          maxes[idx],
+          screenDist(centreQ, centreR, cell.hex.q, cell.hex.r),
+        );
+        counts[idx]++;
+      }
+      // Every direction has land, and no direction's reach far outpaces another.
+      expect(counts.every((c) => c > 0)).toBe(true);
+      expect(Math.max(...maxes) / Math.min(...maxes)).toBeLessThanOrEqual(1.8);
     });
 
     it("propagates config validation errors", () => {

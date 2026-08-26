@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Produce a circular map instead of a diamond (M27-T1, #172). The core map
+  generator now measures a hex's distance from the board centre in
+  **screen geometry** rather than raw axial (q, r) Euclidean space. Because the
+  rendered pointy-top hex axes meet at 60° (a cell sits at pixel
+  `x ∝ q + r/2`, `y ∝ √3/2·r`), the old raw (q, r) metric treated them as
+  orthogonal and coloured a **diamond/rhombus** landmass; the new metric
+  (`screenDist`/`screenOffset` in `src/core/mapGenerator.ts`) is the true
+  rendered distance, so the island is now centered and roughly equidistant
+  from every edge (a small deviation is allowed). The star-shaped island,
+  seed-modulated wavy coastline (phase/amplitude/lobes), mountains/lakes and
+  seeded determinism are all preserved unchanged, and the change stays purely
+  in `src/core` (no UI or gameplay-rule change). New `buildIsland` tests assert
+  circularity — an 8-sector screen-space land-extent max/min ratio ≤ 1.5
+  across several seeds — and that the centre's land reaches every direction
+  without a wedge collapsing. `src/core` stays 100% covered.
+
 - Render move-target circles instead of the green ring (M26-T1, #169). When a
   unit is selected, every cell it can move to now shows an **opaque grayish
   circle** (replacing the old green/teal `hex-move-target` ring); a reachable
