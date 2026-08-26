@@ -125,6 +125,33 @@ describe("Board", () => {
     expect(badge!.textContent).toBe("1");
   });
 
+  it("renders a grave marker on a cell with no unit (M21-T2/#191)", () => {
+    // Place an enemy grave on an empty cell and verify the board renders a
+    // grave chip there (and never alongside the cell's own unit).
+    const emptyHex = state.map.cells
+      .map((c) => c.hex)
+      .find((h) => !state.units.some((u) => sameHex(u.hex, h)))!;
+    const withGrave = {
+      ...state,
+      graves: [{ hex: emptyHex, owner: "p2" as const }],
+    };
+    render(<Board board={boardCells(withGrave)} currentPlayer="p1" />);
+    const graves = screen.getAllByTestId("board-grave");
+    expect(graves).toHaveLength(1);
+    expect(graves[0].dataset.owner).toBe("p2");
+    // The grave cell carries no unit badge.
+    const graveCell = screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.hex === `${emptyHex.q},${emptyHex.r}`)!;
+    expect(graveCell.querySelector('[data-testid="board-unit"]')).toBeNull();
+    expect(graveCell.querySelector('[data-testid="board-grave"]')).not.toBeNull();
+  });
+
+  it("renders no grave markers on a board with none (M21-T2/#191)", () => {
+    render(<Board board={board} currentPlayer="p1" />);
+    expect(screen.queryAllByTestId("board-grave")).toHaveLength(0);
+  });
+
   it("renders a unit that has already acted as dimmed/opaque (M19-T6/#190)", () => {
     // p1's starting units are created with hasActed=true, so the standardSetup
     // board view (no turn reset) surfaces them as acted and dims them. Render

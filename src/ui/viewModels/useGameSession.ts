@@ -53,6 +53,13 @@ export interface BoardCell {
   /** The unit on this hex, or null if there is none. */
   unit: UnitView | null;
   /**
+   * The grave marker on this hex (M21-T2, #191), or null if there is none.
+   * A grave is left where a bankrupt kingdom's unit died; it carries the
+   * owning kingdom's id so the dumb `Grave` atom can render the marker. No
+   * game logic — the grave markers are decided by `src/core`.
+   */
+  grave: { owner: PlayerId } | null;
+  /**
    * The territory owner of this hex (M24-T2, #160): the kingdom that owns the
    * cell's site, or the persistent owner of a site-less cell (retained after
    * a unit vacates). Derived from core `territoryOwner` so the board tints
@@ -161,6 +168,10 @@ export function boardCells(
   for (const unit of state.units) {
     unitByHex.set(`${unit.hex.q},${unit.hex.r}`, unit);
   }
+  const graveByHex = new Map<string, { owner: PlayerId }>();
+  for (const grave of state.graves ?? []) {
+    graveByHex.set(`${grave.hex.q},${grave.hex.r}`, { owner: grave.owner });
+  }
   return [...state.map.cells]
     .sort((a, b) => cellKey(a.hex).localeCompare(cellKey(b.hex)))
     .map(({ hex, terrain }) => {
@@ -179,6 +190,7 @@ export function boardCells(
             }
           : null,
         owner: territoryOwner(state.sites, state.units, state.territory, hex),
+        grave: graveByHex.get(key) ?? null,
         fogged: revealed !== null && !revealed.has(key),
       };
     });

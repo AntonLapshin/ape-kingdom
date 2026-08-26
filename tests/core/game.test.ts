@@ -42,6 +42,12 @@ import {
   kindForRank,
   canJoinUnits,
   MAX_RANK,
+  Grave,
+  createGrave,
+  gravesFor,
+  graveUpkeep,
+  graveAt,
+  resolveBankruptcy,
 } from "../../src/core/game";
 
 describe("ape unit static tables (Ape Units table)", () => {
@@ -238,6 +244,7 @@ function gameState(opts: {
   turnOrder?: string[];
   winner?: string | null;
   territory?: Record<string, PlayerId>;
+  graves?: Grave[];
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
@@ -248,6 +255,7 @@ function gameState(opts: {
     winner: opts.winner ?? null,
     map: generateMap({ width: 7, height: 7, seed: 0 }),
     territory: opts.territory,
+    graves: opts.graves,
   };
 }
 
@@ -326,6 +334,255 @@ describe("collectIncome", () => {
     // Input is unchanged.
     expect(state.players.p1.bananas).toBe(0);
     expect(state.sites).toEqual([createSite("Nest", 0, 0, "p1")]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Graves mechanic (M21-T2, #191)                                       */
+/* ------------------------------------------------------------------ */
+
+describe("grave helpers", () => {
+  it("createGrave marks a hex with an owning kingdom", () => {
+    expect(createGrave({ q: 2, r: 1 }, "p1")).toEqual({
+      hex: { q: 2, r: 1 },
+      owner: "p1",
+    });
+  });
+
+  it("gravesFor returns only the graves belonging to the given kingdom", () => {
+    const state = flatState({
+      graves: [
+        createGrave({ q: 1, r: 0 }, "p1"),
+        createGrave({ q: 2, r: 0 }, "p2"),
+        createGrave({ q: 3, r: 0 }, "p1"),
+      ],
+    });
+    expect(gravesFor(state, "p1")).toEqual([
+      createGrave({ q: 1, r: 0 }, "p1"),
+      createGrave({ q: 3, r: 0 }, "p1"),
+    ]);
+    expect(gravesFor(state, "p2")).toEqual([createGrave({ q: 2, r: 0 }, "p2")]);
+  });
+
+  it("treats an absent graves list as empty", () => {
+    expect(gravesFor(flatState(), "p1")).toEqual([]);
+  });
+
+  it("graveUpkeep is -1 per grave the kingdom owns", () => {
+    const state = flatState({
+      graves: [
+        createGrave({ q: 1, r: 0 }, "p1"),
+        createGrave({ q: 2, r: 0 }, "p2"),
+        createGrave({ q: 3, r: 0 }, "p1"),
+      ],
+    });
+    // p1 owns 2 graves → -2; p2 owns 1 → -1.
+    expect(graveUpkeep(state, "p1")).toBe(-2);
+    expect(graveUpkeep(state, "p2")).toBe(-1);
+    expect(graveUpkeep(state, "p3")).toBe(0);
+  });
+
+  it("graveAt returns the grave on a hex (or null)", () => {
+    const grave = createGrave({ q: 2, r: 0 }, "p1");
+    const state = flatState({ graves: [grave] });
+    expect(graveAt(state, { q: 2, r: 0 })).toEqual(grave);
+    expect(graveAt(state, { q: 5, r: 5 })).toBeNull();
+    expect(graveAt(flatState(), { q: 0, r: 0 })).toBeNull();
+  });
+});
+
+describe("resolveBankruptcy", () => {
+  it("returns the state unchanged when the kingdom is not in arrears", () => {
+    const state = gameState({
+      sites: [createSite("Grove", 0, 0, "p1")],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 5), p2: createPlayer("p2", 0) },
+    });
+    const next = resolveBankruptcy(state, "p1");
+    expect(next).toBe(state);
+    expect(next.units).toHaveLength(1);
+    expect(next.graves ?? []).toHaveLength(0);
+  });
+
+  it("treats exactly zero bananas as not bankrupt", () => {
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+    });
+    expect(resolveBankruptcy(state, "p1")).toBe(state);
+    expect(resolveBankruptcy(state, "p1").units).toHaveLength(1);
+  });
+
+  it("removes every unit of the bankrupt kingdom and drops a grave on each of its cells", () => {
+    const state = gameState({
+      units: [
+        createUnit("Monkey", "p1", { q: 1, r: 0 }),
+        createUnit("Gibbon", "p1", { q: 3, r: 0 }),
+        createUnit("Chimpanzee", "p2", { q: 5, r: 0 }), // survivor
+      ],
+      players: { p1: createPlayer("p1", -1), p2: createPlayer("p2", 4) },
+    });
+    const next = resolveBankruptcy(state, "p1");
+    // Only p2's unit survives; p1's two units became two graves.
+    expect(next.units).toEqual([createUnit("Chimpanzee", "p2", { q: 5, r: 0 })]);
+    expect(next.graves).toEqual([
+      createGrave({ q: 1, r: 0 }, "p1"),
+      createGrave({ q: 3, r: 0 }, "p1"),
+    ]);
+    // Other state is untouched.
+    expect(next.players.p1.bananas).toBe(-1);
+    expect(next.players.p2.bananas).toBe(4);
+  });
+
+  it("removes an existing grave already on a cell a dying unit occupied", () => {
+    // A bankrupt kingdom's unit stands on a cell that already holds a grave
+    // (e.g. a grave left by an earlier bankruptcy on the same spot). The unit
+    // dies and becomes its own grave; the pre-existing grave is not duplicated.
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 2, r: 0 })],
+      graves: [createGrave({ q: 2, r: 0 }, "p1")],
+      players: { p1: createPlayer("p1", -3), p2: createPlayer("p2", 0) },
+    });
+    const next = resolveBankruptcy(state, "p1");
+    expect(next.graves).toEqual([createGrave({ q: 2, r: 0 }, "p1")]);
+    expect(next.units).toHaveLength(0);
+  });
+
+  it("keeps the graves of other kingdoms unchanged", () => {
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      graves: [createGrave({ q: 4, r: 0 }, "p2")],
+      players: { p1: createPlayer("p1", -1), p2: createPlayer("p2", 0) },
+    });
+    const next = resolveBankruptcy(state, "p1");
+    expect(next.graves).toEqual([
+      createGrave({ q: 4, r: 0 }, "p2"),
+      createGrave({ q: 1, r: 0 }, "p1"),
+    ]);
+  });
+
+  it("returns a new GameState and does not mutate the input", () => {
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      players: { p1: createPlayer("p1", -2), p2: createPlayer("p2", 0) },
+    });
+    const next = resolveBankruptcy(state, "p1");
+    expect(next).not.toBe(state);
+    expect(next.units).not.toBe(state.units);
+    // Input is unchanged.
+    expect(state.units).toHaveLength(1);
+    expect(state.graves ?? []).toHaveLength(0);
+  });
+});
+
+describe("collectIncome with graves (M21-T2)", () => {
+  it("pays -1 per grave owned from the turn's income", () => {
+    // p1 collects Grove(1)+HomeTree(3)=4, owns 2 graves (-2) → net +2.
+    const state = gameState({
+      sites: [createSite("Grove", 1, 0, "p1"), createSite("HomeTree", 2, 0, "p1")],
+      graves: [createGrave({ q: 3, r: 0 }, "p1"), createGrave({ q: 4, r: 0 }, "p1")],
+      players: { p1: createPlayer("p1", 5), p2: createPlayer("p2", 0) },
+    });
+    const next = collectIncome(state);
+    expect(next.players.p1.bananas).toBe(5 + 4 - 2);
+  });
+
+  it("triggers bankruptcy when income (minus grave upkeep) drives money negative", () => {
+    // p1 controls no sites, owns 2 graves → net -2 on a 0 balance → bankrupt.
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      graves: [createGrave({ q: 3, r: 0 }, "p1"), createGrave({ q: 4, r: 0 }, "p1")],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+    });
+    const next = collectIncome(state);
+    // Both p1 units die and become graves; money is now negative. Existing
+    // graves (preserved in their original order) precede the newly created ones.
+    expect(next.units).toHaveLength(0);
+    expect(next.graves).toEqual([
+      createGrave({ q: 3, r: 0 }, "p1"),
+      createGrave({ q: 4, r: 0 }, "p1"),
+      createGrave({ q: 1, r: 0 }, "p1"),
+    ]);
+    expect(next.players.p1.bananas).toBe(-2);
+  });
+
+  it("does not bankrupt a player whose graves upkeep stays within income", () => {
+    // HomeTree(3) income, 1 grave (-1) → net +2, still positive.
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 })],
+      sites: [createSite("HomeTree", 0, 0, "p1")],
+      graves: [createGrave({ q: 3, r: 0 }, "p1")],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+    });
+    const next = collectIncome(state);
+    expect(next.players.p1.bananas).toBe(0 + 3 - 1);
+    expect(next.units).toHaveLength(1);
+    expect((next.graves ?? []).length).toBe(1);
+  });
+});
+
+describe("moveUnit harvests a grave (M21-T2)", () => {
+  it("clears a grave and grants +2 to the mover's kingdom when moving onto it", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = flatState({
+      units: [mover],
+      graves: [createGrave({ q: 3, r: 1 }, "p2")],
+      currentPlayer: "p1",
+    });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    // The grave is cleared and the mover gained +2 bananas.
+    expect(next.graves).toEqual([]);
+    expect(next.players.p1.bananas).toBe(0 + 2);
+    // The unit now stands on the cleared cell and has acted.
+    expect(next.units[0].hex).toEqual({ q: 3, r: 1 });
+    expect(next.units[0].hasActed).toBe(true);
+  });
+
+  it("harvesting an enemy grave grants the +2 to the harvester (not the grave owner)", () => {
+    const mover = createUnit("Gibbon", "p1", { q: 2, r: 1 }, false);
+    const state = flatState({
+      units: [mover],
+      graves: [createGrave({ q: 3, r: 1 }, "p2")],
+      players: { p1: createPlayer("p1", 1), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.players.p1.bananas).toBe(1 + 2);
+    // The grave owner's balance is untouched.
+    expect(next.players.p2.bananas).toBe(0);
+    expect(next.graves).toEqual([]);
+  });
+
+  it("harvesting a grave the mover's own kingdom owns is also allowed", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = flatState({
+      units: [mover],
+      graves: [createGrave({ q: 3, r: 1 }, "p1")],
+      currentPlayer: "p1",
+    });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.players.p1.bananas).toBe(2);
+    expect(next.graves).toEqual([]);
+  });
+
+  it("keeps graves the mover does not pass onto", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = flatState({
+      units: [mover],
+      graves: [createGrave({ q: 5, r: 1 }, "p2")],
+      currentPlayer: "p1",
+    });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.graves).toEqual([createGrave({ q: 5, r: 1 }, "p2")]);
+    expect(next.players.p1.bananas).toBe(0);
+  });
+
+  it("moving onto a normal empty hex grants no harvest", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 1 }, false);
+    const state = flatState({ units: [mover], currentPlayer: "p1" });
+    const next = moveUnit(state, mover, { q: 3, r: 1 });
+    expect(next.players.p1.bananas).toBe(0);
+    expect(next.graves ?? []).toHaveLength(0);
   });
 });
 
@@ -525,16 +782,19 @@ function flatState(opts: {
   units?: ApeUnit[];
   currentPlayer?: string;
   territory?: Record<string, PlayerId>;
+  graves?: Grave[];
+  players?: Record<string, Player>;
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
     units: opts.units ?? [],
-    players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+    players: opts.players ?? { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
     currentPlayer: opts.currentPlayer ?? "p1",
     turnOrder: ["p1", "p2"],
     winner: null,
     map: flatMap(),
     territory: opts.territory,
+    graves: opts.graves,
   };
 }
 

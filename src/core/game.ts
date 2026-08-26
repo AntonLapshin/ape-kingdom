@@ -96,6 +96,14 @@ export function areAdjacent(a: Hex, b: Hex): boolean {
 /* Sites                                                               */
 /* ------------------------------------------------------------------ */
 
+/** A grave marker left where a bankrupt kingdom's unit died (M21-T2, #191). */
+export interface Grave {
+  /** The hex this grave occupies. */
+  hex: Hex;
+  /** The kingdom that owned the dead unit (pays this grave's upkeep each turn). */
+  owner: PlayerId;
+}
+
 /** The three kinds of sites in the game. */
 export type SiteKind = "Grove" | "Nest" | "HomeTree";
 
@@ -168,6 +176,14 @@ export interface GameState {
    * as empty.
    */
   territory?: Record<string, PlayerId>;
+  /**
+   * Grave markers (M21-T2, #191): a grave is left where a unit died when its
+   * kingdom's money went negative. Each grave costs its owning kingdom -1 per
+   * turn (collected as upkeep against income), and a unit may clear a grave by
+   * moving onto it, earning +2 for the harvester. Optional for
+   * backward-compatibility with hand-built test states.
+   */
+  graves?: Grave[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -281,6 +297,11 @@ export function createUnit(
   return { kind, owner, hex, hasActed };
 }
 
+/** Create a grave marker on a hex, owned by the given kingdom. */
+export function createGrave(hex: Hex, owner: PlayerId): Grave {
+  return { hex, owner };
+}
+
 /** Create a site on a hex, neutral by default. */
 export function createSite(
   kind: SiteKind,
@@ -337,28 +358,89 @@ export function incomeFor(playerId: PlayerId, sites: Site[]): number {
   }, 0);
 }
 
+/** The grave markers on the state belonging to `playerId`. */
+export function gravesFor(state: GameState, playerId: PlayerId): Grave[] {
+  return (state.graves ?? []).filter((g) => g.owner === playerId);
+}
+
+/**
+ * The grave upkeep owed by `playerId` this turn: -1 per grave they own.
+ *
+ * Each grave costs its owning kingdom -1 banana per turn (M21-T2, #191). The
+ * current player's graves are paid against that turn's collected income.
+ */
+export function graveUpkeep(state: GameState, playerId: PlayerId): number {
+  const count = gravesFor(state, playerId).length;
+  return count === 0 ? 0 : -count;
+}
+
+/**
+ * The grave at a hex, or `null` when the hex holds no grave.
+ */
+export function graveAt(state: GameState, hex: Hex): Grave | null {
+  return (state.graves ?? []).find((g) => sameHex(g.hex, hex)) ?? null;
+}
+
+/**
+ * Apply the bankruptcy / graves penalty to a kingdom whose money went
+ * negative (M21-T2, #191): every unit that kingdom owns is removed and
+ * replaced by a grave marker on its cell.
+ *
+ * When `state.players[playerId].bananas < 0`, all of that player's units die:
+ * each unit is removed from `state.units` and a grave owned by that kingdom is
+ * placed on the unit's former hex (`createGrave`). Units on the same target
+ * cell each become their own grave (a cell can never hold two units, so every
+ * grave lands on a distinct, now-empty cell). The remaining state (sites,
+ * territory, other players) is unchanged.
+ *
+ * A kingdom `not` in arrears is returned unchanged. Returns a new `GameState`;
+ * does not mutate the input.
+ */
+export function resolveBankruptcy(state: GameState, playerId: PlayerId): GameState {
+  const player = state.players[playerId];
+  if (!player || player.bananas >= 0) return state;
+
+  const dying = state.units.filter((u) => u.owner === playerId);
+  const deadHexes = new Set(dying.map((u) => hexKey(u.hex)));
+  const units = state.units.filter((u) => u.owner !== playerId);
+  const graves = [
+    ...(state.graves ?? []).filter((g) => !deadHexes.has(hexKey(g.hex))),
+    ...dying.map((u) => createGrave(u.hex, playerId)),
+  ];
+  return { ...state, units, graves };
+}
+
 /**
  * Turn-sequence step A: Collect Income.
  *
  * Credits the current player with the banana income of every site they
- * control (Grove=1, Nest=2, Home Tree=3 per `SITE_TYPES`). Neutral sites
- * produce no income. Bananas may be saved without limit, so the income is
- * added to the current player's existing balance.
+ * control (Grove=1, Nest=2, Home Tree=3 per `SITE_TYPES`), then pays that
+ * player's grave upkeep (M21-T2, #191): -1 banana per grave they own. Neutral
+ * sites produce no income. Bananas may be saved without limit, so the income
+ * (less grave upkeep) is added to the current player's existing balance.
+ *
+ * If, after collecting income and paying grave upkeep, the current player's
+ * balance is negative, the graves mechanic triggers: all of that player's
+ * units die and are replaced by grave markers on their cells
+ * (`resolveBankruptcy`).
  *
  * Returns a new `GameState` and does not mutate the input.
  */
 export function collectIncome(state: GameState): GameState {
   const income = incomeFor(state.currentPlayer, state.sites);
-  return {
+  const upkeep = graveUpkeep(state, state.currentPlayer);
+  const bananas = state.players[state.currentPlayer].bananas + income + upkeep;
+  const collected = {
     ...state,
     players: {
       ...state.players,
       [state.currentPlayer]: {
         ...state.players[state.currentPlayer],
-        bananas: state.players[state.currentPlayer].bananas + income,
+        bananas,
       },
     },
   };
+  return resolveBankruptcy(collected, state.currentPlayer);
 }
 
 /* ------------------------------------------------------------------ */
@@ -833,6 +915,22 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     u === existing ? { ...u, hex: targetHex, hasActed: true } : u,
   );
 
+  // Harvest a grave (M21-T2, #191): moving onto a hex that holds a grave
+  // (and is otherwise unoccupied, so allowed by the checks above) clears that
+  // grave and grants the mover's kingdom +2 bananas. A cell can never hold
+  // two units, so a grave hex is always empty of units — a unit moves onto it
+  // exactly like a normal empty land cell, but the grave is consumed for its
+  // reward.
+  const grave = graveAt(state, targetHex);
+  let graves = state.graves;
+  let harvest = 0;
+  if (grave) {
+    // A grave was found, so `state.graves` is necessarily defined (graveAt
+    // only returns a grave present in that list).
+    graves = state.graves!.filter((g) => g !== grave);
+    harvest = 2;
+  }
+
   // Capture an unoccupied site at the target hex for the moving unit's owner.
   const sites = state.sites.map((site) =>
     sameHex(site.hex, targetHex) ? { ...site, owner: existing.owner } : site,
@@ -857,7 +955,23 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     territory[hexKey(hex)] = existing.owner;
   }
 
-  return { ...state, units, sites, territory };
+  return {
+    ...state,
+    units,
+    sites,
+    territory,
+    graves,
+    players:
+      harvest > 0
+        ? {
+            ...state.players,
+            [existing.owner]: {
+              ...state.players[existing.owner],
+              bananas: state.players[existing.owner].bananas + harvest,
+            },
+          }
+        : state.players,
+  };
 }
 
 /* ------------------------------------------------------------------ */

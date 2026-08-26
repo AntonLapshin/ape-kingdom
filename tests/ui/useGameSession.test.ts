@@ -145,6 +145,28 @@ describe("boardCells", () => {
     expect(empty!.terrain).toBeDefined();
   });
 
+  it("carries a grave marker onto a cell from the core graves list (M21-T2/#191)", () => {
+    const state = standardSetup();
+    const emptyHex = state.map.cells
+      .map((c) => c.hex)
+      .find((h) => !state.units.some((u) => sameHex(u.hex, h)))!;
+    const withGrave = {
+      ...state,
+      graves: [
+        { hex: emptyHex, owner: "p2" as const },
+      ],
+    };
+    const graveCell = boardCells(withGrave).find((c) =>
+      sameHex(c.hex, emptyHex),
+    );
+    expect(graveCell?.grave).toEqual({ owner: "p2" });
+    // Cells without a grave surface null.
+    const other = boardCells(withGrave).find(
+      (c) => !sameHex(c.hex, emptyHex),
+    )!;
+    expect(other.grave).toBeNull();
+  });
+
   it("marks no cells fogged when no revealed set is provided (full visibility)", () => {
     const state = standardSetup();
     expect(boardCells(state).every((c) => c.fogged === false)).toBe(true);
