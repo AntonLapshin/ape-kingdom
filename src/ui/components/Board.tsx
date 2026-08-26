@@ -130,6 +130,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
                 kind={cell.unit.kind}
                 rank={cell.unit.rank}
                 owner={cell.unit.owner}
+                hasActed={cell.unit.hasActed}
               />
             )}
           </Cell>

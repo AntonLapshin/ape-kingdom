@@ -80,6 +80,15 @@ export interface UnitView {
   rank: ApeRank;
   /** The player who owns this unit. */
   owner: PlayerId;
+  /**
+   * Whether the unit has already moved/fought this turn (M19-T6, #190).
+   * Derived straight from the core `hasActed` flag so a unit that has acted
+   * is rendered dimmed/opaque and an unacted one renders normally. No game
+   * logic here — the acted state is decided by `src/core`. Newly recruited
+   * apes are created with `hasActed = true`, so they too render dimmed until
+   * their next turn.
+   */
+  hasActed: boolean;
 }
 
 /** A renderable summary of one player. */
@@ -162,7 +171,12 @@ export function boardCells(
         terrain,
         site: siteByHex.get(key) ?? null,
         unit: unit
-          ? { kind: unit.kind, rank: rankOf(unit.kind), owner: unit.owner }
+          ? {
+              kind: unit.kind,
+              rank: rankOf(unit.kind),
+              owner: unit.owner,
+              hasActed: unit.hasActed,
+            }
           : null,
         owner: territoryOwner(state.sites, state.units, state.territory, hex),
         fogged: revealed !== null && !revealed.has(key),

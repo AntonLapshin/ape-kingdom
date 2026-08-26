@@ -91,6 +91,43 @@ describe("boardCells", () => {
     expect(gorillaCell?.unit?.rank).toBe(4);
   });
 
+  it("carries each unit's acted state from core onto the view (M19-T6/#190)", () => {
+    const state = standardSetup();
+    // Core starting units are created with hasActed=true, so they surface as
+    // acted on the view (dimmed).
+    const acted = boardCells(state).find((c) =>
+      sameHex(c.hex, p1Home(state)),
+    );
+    expect(acted?.unit?.hasActed).toBe(true);
+
+    // Reset p1's units so they may act this turn (hasActed=false).
+    const playable = {
+      ...state,
+      units: state.units.map((u) =>
+        u.owner === "p1" ? { ...u, hasActed: false } : u,
+      ),
+    };
+    const unacted = boardCells(playable).find((c) =>
+      sameHex(c.hex, p1Home(state)),
+    );
+    expect(unacted?.unit?.hasActed).toBe(false);
+  });
+
+  it("exposes hasActed=false for every unit in a fresh session view (M19-T6/#190)", () => {
+    const session = createGameSession();
+    const view = toGameSessionView({
+      state: session.state,
+      step: session.step,
+      winner: session.winner,
+      legalMoves: session.legalMoves,
+    });
+    // A fresh turn starts with the human's units reset so they can act — so
+    // the human's own units render un-dimmed (movable) at the start of the turn.
+    const p1Units = view.board.filter((c) => c.unit?.owner === "p1");
+    expect(p1Units.length).toBeGreaterThan(0);
+    expect(p1Units.every((c) => c.unit!.hasActed === false)).toBe(true);
+  });
+
   it("marks a cell site or unit as null when absent", () => {
     const state = standardSetup();
     const cells = boardCells(state);
