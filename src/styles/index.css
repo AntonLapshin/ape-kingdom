@@ -439,17 +439,29 @@
   box-shadow: none;
 }
 
-/* The circular End Turn button (M17-T2) — the sole occupant of the bottom-
-   right corner. A token-backed glass disc with a warm accent fill, a soft
-   drop shadow and a gentle hover lift so it reads as the primary HUD action
-   (issue 113-2). It references only design tokens (`--color-accent`,
-   `--color-accent-strong`, shadow tokens, `--color-inverted`) — no raw hex. */
+/* The circular End Turn button (M17-T2, M29-T1 frosted-glass polish) — the
+   sole occupant of the bottom-right corner. A clearly-visible token-backed
+   frosted-glass disc: a translucent accent-tinted fill layered over the
+   `glass` backdrop blur (so the map shows through as genuine glassmorphism),
+   a soft inner highlight, a subtle bordered rim and an accented soft shadow
+   so it reads as a premium primary HUD action (issues 113-2, 186). It
+   references only design tokens (`--color-accent`, `--color-accent-strong`,
+   the `--color-glass-*` family, shadow tokens, `--color-inverted`) via
+   `color-mix` — no raw hex / rgba. */
 .end-turn-btn {
+  /* Translucent accent-tinted frosted fill. Because the button also carries
+     the `glass` utility (a genuine backdrop blur), this translucency lets the
+     board show through blurred, producing the distinct frosted-glass effect
+     rather than an opaque flat disc. All colours derive from tokens via
+     `color-mix`; none are hard-coded. */
   background: linear-gradient(
     180deg,
-    var(--color-accent),
-    var(--color-accent-strong)
+    color-mix(in srgb, var(--color-accent) 78%, var(--color-glass-soft)),
+    color-mix(in srgb, var(--color-accent-strong) 82%, var(--color-glass-soft))
   );
+  /* A subtle bordered rim plus a soft inner highlight reinforce the glass
+     edge; the accented drop shadow floats the control over the map. */
+  border-color: var(--color-glass-line);
   box-shadow:
     0 6px 18px var(--color-shadow-accent),
     inset 0 1px 0 var(--color-glass-inner);

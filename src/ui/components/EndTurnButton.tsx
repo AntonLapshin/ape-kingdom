@@ -24,12 +24,14 @@ export interface EndTurnButtonProps {
 }
 
 /**
- * The circular "End Turn" button (M17-T2).
+ * The circular "End Turn" button (M17-T2, frosted-glass polish M29-T1).
  *
- * A self-contained circular control with a token-backed glass surface, a
- * warm accent fill, a soft drop shadow and a hover lift so it reads as a
- * polished, primary HUD action. It uses the existing token surfaces/tokens
- * (`glass`, `--color-accent`, shadow tokens) so no raw colours are hard-coded.
+ * A self-contained circular control with a clearly-visible token-backed
+ * frosted-glass surface: a translucent accent-tinted fill layered over the
+ * `glass` backdrop blur, a soft inner highlight, a subtle bordered rim and an
+ * accented soft shadow so it reads as a polished, premium HUD action. It uses
+ * the existing token surfaces/tokens (`glass`, `--color-accent*`,
+ * `--color-glass-*`, shadow tokens) so no raw colours are hard-coded.
  */
 export function EndTurnButton({ enabled, onSubmit }: EndTurnButtonProps) {
   return (
