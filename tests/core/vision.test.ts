@@ -14,6 +14,7 @@ import {
   sameHex,
   type ApeKind,
   type ApeUnit,
+  type PlayerId,
   type Site,
 } from "../../src/core/game";
 import { generateMap } from "../../src/core/mapGenerator";
@@ -23,7 +24,11 @@ import type { GameState } from "../../src/core/game";
 const map = generateMap({ width: 7, height: 7, seed: 1, islandSize: 1, mountainDensity: 0, lakeDensity: 0 });
 
 /** Build a minimal GameState around the shared map. */
-function makeState(units: ApeUnit[] = [], sites: Site[] = []): GameState {
+function makeState(
+  units: ApeUnit[] = [],
+  sites: Site[] = [],
+  territory?: Record<string, PlayerId>,
+): GameState {
   return {
     sites,
     units,
@@ -32,6 +37,7 @@ function makeState(units: ApeUnit[] = [], sites: Site[] = []): GameState {
     turnOrder: ["p1", "p2"],
     winner: null,
     map,
+    territory,
   };
 }
 
@@ -210,6 +216,102 @@ describe("visibleHexes — per-player ownership", () => {
     expect(forP2.some((h) => sameHex(h, a))).toBe(false);
   });
 });
+
+describe("visibleHexes — owning cells are always revealed (M27-T2, #173)", () => {
+  it("reveals a persistent site-less territory cell far outside any unit's vision", () => {
+    // p1's Monkey at the centre sees only 1 ring around it.
+    const source = { q: 3, r: 3 };
+    // A far site-less cell p1 owns (persistent territory) well outside the
+    // Monkey's 1-ring vision.
+    const owned = { q: 0, r: 0 };
+    expect(hexDistance(source, owned)).toBeGreaterThan(1);
+    const state = makeState(
+      [createUnit("Monkey", "p1", source)],
+      [],
+      { "0,0": "p1" },
+    );
+    const revealed = visibleHexes(state, "p1", true);
+
+    expect(revealed.some((h) => sameHex(h, owned))).toBe(true);
+  });
+
+  it("reveals a captured Grove/Nest site owned by the kingdom outside any vision", () => {
+    // No units at all; a Groove owned by p1 far away with no Home Tree.
+    const owned = { q: 0, r: 6 };
+    const state = makeState(
+      [],
+      [createSite("Grove", owned.q, owned.r, "p1")],
+    );
+    const revealed = visibleHexes(state, "p1", true);
+
+    expect(revealed.some((h) => sameHex(h, owned))).toBe(true);
+  });
+
+  it("reveals the p1 Home Tree site even with no units and no other territory", () => {
+    const tree = { q: 1, r: 3 };
+    const state = makeState(
+      [],
+      [createSite("HomeTree", tree.q, tree.r, "p1")],
+    );
+    const revealed = visibleHexes(state, "p1", true);
+
+    expect(revealed.some((h) => sameHex(h, tree))).toBe(true);
+  });
+
+  it("a unit on a site-less cell keeps it visible as owned territory even after it vacates", () => {
+    // p1's Monkey stands on `owned` (reveals it) and recorded it as
+    // persistent site-less territory; a second far cell p1 also owns is
+    // visible even though no unit is near it.
+    const standing = { q: 3, r: 3 };
+    const farOwned = { q: 0, r: 0 };
+    const state = makeState(
+      [createUnit("Monkey", "p1", standing)],
+      [],
+      { "0,0": "p1" },
+    );
+    const revealed = visibleHexes(state, "p1", true);
+
+    expect(revealed.some((h) => sameHex(h, standing))).toBe(true);
+    expect(revealed.some((h) => sameHex(h, farOwned))).toBe(true);
+  });
+
+  it("does not reveal a neutral (unowned) far cell outside any unit's vision", () => {
+    const source = { q: 3, r: 3 };
+    const neutral = { q: 0, r: 0 };
+    const state = makeState([createUnit("Monkey", "p1", source)]);
+    const revealed = visibleHexes(state, "p1", true);
+
+    // The neutral cell is far from p1's unit and not owned by anyone.
+    expect(revealed.some((h) => sameHex(h, neutral))).toBe(false);
+  });
+
+  it("does not reveal an enemy-owned cell outside the player's own vision", () => {
+    const source = { q: 3, r: 3 };
+    const enemyOwned = { q: 0, r: 0 };
+    const state = makeState(
+      [createUnit("Monkey", "p1", source)],
+      [],
+      { "0,0": "p2" },
+    );
+    const forP1 = visibleHexes(state, "p1", true);
+
+    expect(forP1.some((h) => sameHex(h, enemyOwned))).toBe(false);
+  });
+
+  it("an opponent does not see p1's owned territory", () => {
+    // p1 owns a far site-less cell; p2 should not see it unless it has its
+    // own sight line there.
+    const p1Owned = { q: 0, r: 0 };
+    const state = makeState(
+      [],
+      [createSite("Grove", p1Owned.q, p1Owned.r, "p1")],
+    );
+    const forP2 = visibleHexes(state, "p2", true);
+
+    expect(forP2.some((h) => sameHex(h, p1Owned))).toBe(false);
+  });
+});
+
 
 describe("visibleHexes — cumulative & monotonic", () => {
   it("unions sight lines so a hex revealed by any line is present once", () => {

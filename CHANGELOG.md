@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Always reveal a kingdom's owning cells in the fog of war (M27-T2, #173).
+  The core fog derivation `visibleHexes` (in `src/core/vision.ts`) now, in
+  addition to revealing cells from owned sight lines (Home Trees and units),
+  always reveals every cell owned by the viewing kingdom's persistent
+  site-less territory model (`territoryOwner`/`isOwnedBy`) — its Home Tree,
+  captured Groves/Nests, and the site-less cells it claims — even when no
+  unit stands on or near them. Owning cells are thus never hidden behind fog
+  regardless of unit vision; neutral (unowned) and enemy-owned cells still
+  obey normal vision/fog. The view model (`revealedHexKeys`/`boardCells`) and
+  the dumb board/Cell components needed no change — they already derive the
+  fogged set from `visibleHexes` — so the UI stays thin. New `visibleHexes`
+  tests cover territory-owned cells outside unit vision, an owned Grove/Nest
+  and Home Tree with no units, unit-vacated site-less territory, and that
+  neutral/enemy cells and the opponent's territory remain hidden. Updated
+  `guidelines/ape-kingdom-rules.md` so the source of truth documents that a
+  kingdom's own territory is always visible. `src/core` stays 100% covered.
+
 - Produce a circular map instead of a diamond (M27-T1, #172). The core map
   generator now measures a hex's distance from the board centre in
   **screen geometry** rather than raw axial (q, r) Euclidean space. Because the
