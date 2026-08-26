@@ -27,7 +27,7 @@
  */
 
 import type { GameState, Hex, PlayerId } from "./game";
-import { hexDistance } from "./game";
+import { hexDistance, isOwnedBy } from "./game";
 
 /* ------------------------------------------------------------------ */
 /* Vision model                                                        */
@@ -122,9 +122,15 @@ function revealAround(
  * derivation is deterministic.
  *
  * When `fog` is true the revealed set is returned (the map starts hidden and
- * only visible cells are revealed). When `fog` is false (the default) every
- * map cell is returned, so existing game logic that assumes full visibility
- * is unaffected until the UI slice (M22-T2) enables fog.
+ * only visible cells are revealed). In addition to the player's owned sight
+ * lines, every cell owned by `player`'s kingdom is always revealed (M27-T2,
+ * #173): a kingdom's territory — its Home Tree, captured Groves/Nests, and
+ * its persistent site-less territory (per `territoryOwner`/`isOwnedBy`) — is
+ * never hidden behind fog regardless of unit vision. Neutral (unowned) cells
+ * and enemy-owned cells still obey normal vision/fog. When `fog` is false
+ * (the default) every map cell is returned, so existing game logic that
+ * assumes full visibility is unaffected until the UI slice (M22-T2) enables
+ * fog.
  */
 export function visibleHexes(
   state: GameState,
@@ -148,6 +154,16 @@ export function visibleHexes(
   for (const unit of state.units) {
     if (unit.owner !== player) continue;
     revealAround(unit.hex, unitVision(unit.kind), byKey, revealed);
+  }
+
+  // A cell owned by the player's kingdom is always revealed (M27-T2, #173):
+  // a kingdom's territory is never hidden behind fog regardless of unit
+  // vision. Owned cells are resolved via the persistent site-less territory
+  // model (`territoryOwner`/`isOwnedBy`) — the kingdom's Home Trees, captured
+  // Groves/Nests, and site-less cells it claims — so they stay visible even
+  // when no unit stands on them or anywhere nearby.
+  for (const [key, hex] of byKey) {
+    if (isOwnedBy(state, hex, player)) revealed.add(key);
   }
 
   const result: Hex[] = [];

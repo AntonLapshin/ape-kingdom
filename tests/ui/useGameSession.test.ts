@@ -205,6 +205,29 @@ describe("revealedHexKeys (fog-of-war view adaptation)", () => {
     // hidden unless p1's own units light it (which they don't at game start).
     expect(includesP2Home).toBe(false);
   });
+
+  it("a kingdom's owned territory cell is always revealed even outside unit vision (M27-T2, #173)", () => {
+    // A minimal state where p1 owns (via site-less persistent territory) a
+    // cell far away from every p1 unit/site sight line, plus a p1 unit so the
+    // state is definite. The owned cell must still be unfogged on the board.
+    const state: GameState = {
+      ...standardSetup(),
+      units: [createUnit("Monkey", "p1", { q: 3, r: 3 })],
+      sites: [],
+      territory: { "0,0": "p1" },
+    };
+    const view = toGameSessionView({
+      state,
+      step: "recruit",
+      winner: null,
+      legalMoves: [],
+    });
+    const ownedCell = view.board.find((c) => c.hex.q === 0 && c.hex.r === 0);
+    expect(ownedCell).toBeDefined();
+    // The owned territory cell is revealed (not fogged) by the fog board view.
+    expect(ownedCell!.fogged).toBe(false);
+    expect(ownedCell!.owner).toBe("p1");
+  });
 });
 
 /* ------------------------------------------------------------------ */

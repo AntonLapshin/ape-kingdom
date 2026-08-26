@@ -64,6 +64,10 @@ Vision / Exploration
 
 When starting the game the map is hidden (black). Cells become visible as a player
 moves units and gains territory; each kingdom sees only through its own sight lines.
+A kingdom's own territory (its Home Tree, captured Groves/Nests, and its persistent
+site-less territory) is always visible to that kingdom, even when no unit stands on
+or near it — owning cells are never hidden behind fog. Neutral and enemy-owned cells
+obey normal vision/fog.
 
 A sight source reveals every cell within its vision radius (in hexes), measured as
 rings of surrounding cells from the source hex. Visibility is cumulative: a hex once
