@@ -19,7 +19,12 @@ through") was planned as M25: M25-T1 #166 (fix End Turn button interactivity)
 New post-ship UI request #168 ("Highlighting target cells": instead of
 highlighting reachable cells, render an opaque grayish circle on each cell the
 selected unit can move to, red when the target cell holds an enemy unit) is
-planned as M26: M26-T1 #169 `pi:ready`.
+planned as M26: M26-T1 #169 `pi:ready` (now DONE, PR #170 merged).
+New post-ship issue #171 ("Additional scope") is split into M27 (section A,
+small/medium fixes): M27-T1 #172 (circular map generator), M27-T2 #173 (fog of
+war always shows owning cells), M27-T3 #174 (unit joining by level addition)
+— all `pi:ready`, with M27-T4 (smaller inter-hex gap) as the next slice; and
+M28 (section B, AI player training subproject) planned next.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -538,5 +543,35 @@ captures/attacks are visually distinct. Purely a UI presentation change — the
 reachable-hex set already exists and enemy occupancy is read from existing core
 state (no new core game rule). Split per plan.md §16.3 — planned 2026-08-25.
 
-**Sub-issues (first slice) — `pi:ready`:**
-  - [ ] M26-T1 Render move-target circles (grayish; red on enemy) instead of the green ring (#169)
+**Sub-issues (first slice) — done:**
+  - [x] M26-T1 Render move-target circles (grayish; red on enemy) instead of the green ring (#169)
+
+### M27 — Small & medium fixes (#171, section A)
+
+**Goal:** Apply the small/medium fixes from issue #171 section A: (1) the map
+generator should produce a **circle** map instead of a diamond so the center is
+roughly equidistant to all edges, (2) fog of war should always show owning
+cells (a kingdom's owned cells are always visible regardless of unit vision),
+(3) update the unit-joining rules — a unit joining a same-kingdom unit **adds
+levels** (1+1=2, 2+1=3, 2+2=4, 3+1=4) with **no way to combine 2+3** — and
+update RULES accordingly, and (4) make the gap between hexagons twice smaller.
+Split per plan.md §16.3 — planned 2026-08-26.
+
+**Sub-issues (first slice) — all `pi:ready`:**
+  - [ ] M27-T1 Circular map generator instead of diamond (#172) — `pi:ready`
+  - [ ] M27-T2 Fog of war always shows owning cells (#173) — `pi:ready`
+  - [ ] M27-T3 Unit joining by level addition (1+1=2, 2+1=3, 2+2=4, 3+1=4; no 2+3) + RULES (#174) — `pi:ready`
+  - [ ] M27-T4 (next slice) Make the inter-hexagon gap twice smaller (#171-A4)
+
+### M28 — AI player training subproject (#171, section B)
+
+**Goal:** Add the AI player training subproject from issue #171 section B:
+(1) make the core playable headlessly via a script so it can simulate hundreds
+or thousands of self-play games to train a stronger AI using appropriate ML
+techniques/tools, and (2) ship the trained AI as a file usable when a human
+plays the game in the deployed UI. Large subproject — split per plan.md §16.3.
+
+**Sub-issues (first slice — planned next):**
+  - [ ] M28-T1 Headless-scriptable core (play full games via script, no UI)
+  - [ ] M28-T2 Self-play training harness + ML training of the AI
+  - [ ] M28-T3 Trained AI file used by the deployed UI opponent
