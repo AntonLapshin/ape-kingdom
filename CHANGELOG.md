@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Halve the inter-hexagon gap (M27-T4, #187). The visible gap between
+  adjacent board hexagons is halved from `HEX_GAP = 4` to `HEX_GAP = 2` in
+  `src/ui/presentation.ts`, making `CELL_SIZE = HEX_SIZE * 2 - HEX_GAP` render
+  the drawn hexagons ~2px smaller than their layout box (adjacent cells now
+  ~2px apart instead of ~4px) so the map reads tighter and more connected. The
+  board still renders cleanly: cells remain visually separated by the SVG
+  glass-edge highlight and no cells overlap. Purely presentational — no
+  `src/core` change; uses the existing sizing token in `presentation.ts` with
+  no other hard-coded values. Covered by updated cell-geometry assertions in
+  `tests/ui/presentation.test.ts`. `src/core` stays 100% covered.
+
 ### Added
 
 - Apply a frosted-glass effect to the End Turn button (M29-T1, #186). The

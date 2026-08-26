@@ -102,12 +102,13 @@ export const HEX_SIZE = 44;
 
 /**
  * The visible gap (in px) left between adjacent board hexagons (M17-T3, #116,
- * tightened M18-T3, #125). The rendered hexagon is this many pixels smaller
- * than its layout box so a few pixels of the (dark) board show through between
- * neighbouring cells. M18-T3 halves the original 8px gap to ~4px so the board
- * reads cleaner and tighter while the SVG glass edges still separate cells.
+ * tightened M18-T3, #125, halved M27-T4, #187). The rendered hexagon is this
+ * many pixels smaller than its layout box so a few pixels of the (dark) board
+ * show through between neighbouring cells. M18-T3 halved the original 8px gap
+ * to ~4px, and M27-T4 halves it again to ~2px so the map reads tighter and
+ * more connected while the SVG glass-edge highlight still separates cells.
  */
-export const HEX_GAP = 4;
+export const HEX_GAP = 2;
 
 /**
  * The rendered width/height of each board cell's bounding box (px). The layout
