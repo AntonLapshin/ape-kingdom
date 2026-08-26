@@ -2,7 +2,7 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M27 done; M28 first slice planned)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M13–M28 first slice done)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
@@ -24,7 +24,10 @@ New post-ship issue #171 ("Additional scope") is split into M27 (section A,
 small/medium fixes): M27-T1 #172 (circular map generator), M27-T2 #173 (fog of
 war always shows owning cells), M27-T3 #174 (unit joining by level addition)
 — all `pi:ready`, with M27-T4 (smaller inter-hex gap) as the next slice; and
-M28 (section B, AI player training subproject) planned next.
+M28 (section B, AI player training subproject) planned next: M28-T1a (#179 headless
+full-game simulator) and M28-T1b (#180 `npm run simulate` CLI) are DONE (PRs #181/#182
+merged); M28-T2 (self-play training harness + ML) and M28-T3 (trained-AI file for the UI)
+remain as next slices.
 See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
@@ -184,9 +187,9 @@ Planned from unplanned issue #47.
   - Keep all atoms pure (no hooks/context/side effects); core stays 100% covered
 
 **Sub-issues (first slice):**
-  - [ ] M8-T1 `Cell` atom component + showcase (#47)
-  - [ ] M8-T2 `Unit` atom component + showcase (#47)
-  - [ ] M8-T3 `Content` atom component + showcase (#47)
+  - [x] M8-T1 `Cell` atom component + showcase (#47)
+  - [x] M8-T2 `Unit` atom component + showcase (#47)
+  - [x] M8-T3 `Content` atom component + showcase (#47)
   - [ ] M8-T4 Refactor `Board` to compose atoms (#47) — planned next slice
 
 ### M9 — Map generator
@@ -322,9 +325,9 @@ core/UI split intact; `src/core` stays pure and 100% covered.
     board clicking (cell info / movement), not buttons.
 
 **Sub-issues (first slice):**
-  - [ ] M13-T1 Automatic income collection at turn start (core) (#88 item 2)
-  - [ ] M13-T2 Color land cells by owner (UI) (#88 item 3)
-  - [ ] M13-T3 Blue border for the selected cell (UI) (#88 item 1)
+  - [x] M13-T1 Automatic income collection at turn start (core) (#88 item 2)
+  - [x] M13-T2 Color land cells by owner (UI) (#88 item 3)
+  - [x] M13-T3 Blue border for the selected cell (UI) (#88 item 1)
   - [ ] M13-T4 Dark non-gradient background for the game viewport (UI) (#88 item 4) — planned next slice
   - [ ] M13-T5 Hide the AI's banana count (UI) (#88 item 5) — planned next slice
   - [ ] M13-T6 Right-bottom panel reduced to only End Turn (UI) (#88 item 6) — planned next slice
@@ -378,8 +381,8 @@ of truth), then implemented and tested in the core.
     100% core coverage.
 
 **Sub-issues (first slice):**
-  - [ ] M15-T1 Verify & test rules 1-2 of #102 in the core (#104)
-  - [ ] M15-T2 Codify protection-zone mechanics (rules 3-4) in the rules doc (#105)
+  - [x] M15-T1 Verify & test rules 1-2 of #102 in the core (#104)
+  - [x] M15-T2 Codify protection-zone mechanics (rules 3-4) in the rules doc (#105)
 
 ### M16 — Game image assets (#103)
 
@@ -397,7 +400,7 @@ GUIDELINES-WEB-THEME.md.
     logic change.
 
 **Sub-issues (first slice):**
-  - [ ] M16-T1 Extract pixel-art game icons from uploaded image (#106)
+  - [x] M16-T1 Extract pixel-art game icons from uploaded image (#106)
 
 ### M17 — UI adjustments follow-ups (#113)
 
@@ -443,9 +446,9 @@ should be opaque. Pure UI/bug-fix work; `src/core` stays pure and 100%
 covered. Split per plan.md §16.3 — planned 2026-08-24.
 
 **Sub-issues (first slice):**
-  - [ ] M19-T1 Fix territory ownership display (#130) — `pi:ready`
-  - [ ] M19-T2 Make End Turn work anytime (#131) — `pi:ready`
-  - [ ] M19-T3 Restore a way to create new units (#132) — `pi:ready`
+  - [x] M19-T1 Fix territory ownership display (#130) — `pi:ready`
+  - [x] M19-T2 Make End Turn work anytime (#131) — `pi:ready`
+  - [x] M19-T3 Restore a way to create new units (#132) — `pi:ready`
   - [ ] M19-T4 (next slice) Glass edge made more subtle (#129-3)
   - [ ] M19-T5 (next slice) Remove the Move {from} => {to} action list (#129-5)
   - [ ] M19-T6 (next slice) Mark moved units as opaque (#129-6)
@@ -463,9 +466,9 @@ core. Pure core mechanic change; `src/core` stays pure and 100% covered.
 Planned 2026-08-25.
 
 **Sub-issues (first slice) — all `pi:ready`:**
-  - [ ] M20-T1 No way to step on the water (#146) — `pi:ready`
-  - [ ] M20-T2 No way to step on the mountain (#147) — `pi:ready`
-  - [ ] M20-T3 Move up to 4 cells through your own land (#148) — `pi:ready`
+  - [x] M20-T1 No way to step on the water (#146) — `pi:ready`
+  - [x] M20-T2 No way to step on the mountain (#147) — `pi:ready`
+  - [x] M20-T3 Move up to 4 cells through your own land (#148) — `pi:ready`
 
 ### M21 — Game rules & graves economics (#143)
 
@@ -477,7 +480,7 @@ unit can harvest a grave by moving onto it for +2 (clearing the grave). Docs +
 core mechanic. Split per plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice):**
-  - [ ] M21-T1 Create comprehensive RULES.md (#149) — `pi:ready`
+  - [x] M21-T1 Create comprehensive RULES.md (#149) — `pi:ready`
   - [ ] M21-T2 (next slice) Graves mechanic when money goes negative (core)
 
 ### M22 — Map exploration / fog of war (#144)
@@ -488,7 +491,7 @@ Gibbon +2 (2 levels), Home Tree +3, all other units +3. Large core + UI
 feature. Split per plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice):**
-  - [ ] M22-T1 Core vision/fog-of-war model (#151) — `pi:ready`
+  - [x] M22-T1 Core vision/fog-of-war model (#151) — `pi:ready`
   - [ ] M22-T2 (next slice) UI rendering of revealed vs hidden cells
 
 ### M23 — Analysis & improvements (#145)
@@ -500,7 +503,7 @@ smarter, (3) change the map generator from a diamond shape to a circle, and
 plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice):**
-  - [ ] M23-T1 Remove "Turn: you" indicator from the map (#150) — `pi:ready`
+  - [x] M23-T1 Remove "Turn: you" indicator from the map (#150) — `pi:ready`
   - [ ] M23-T2 (next slice) Analysis: review rules/build for enjoyment gaps
   - [ ] M23-T3 (next slice) Smarter AI opponent
   - [ ] M23-T4 (next slice) Circular map generator (replace diamond shape)
@@ -517,9 +520,9 @@ must be purely interactive (select a unit on the map, then click a
 destination). Split per plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice) — all `pi:ready`:**
-  - [ ] M24-T1 Fog of war / map exploration UI (#159)
-  - [ ] M24-T2 Cell keeps belonging to the kingdom after the unit vacates (#160) (core rule change + UI)
-  - [ ] M24-T3 Remove the bottom-left Move/action list; interactive-only movement (#161)
+  - [x] M24-T1 Fog of war / map exploration UI (#159)
+  - [x] M24-T2 Cell keeps belonging to the kingdom after the unit vacates (#160) (core rule change + UI)
+  - [x] M24-T3 Remove the bottom-left Move/action list; interactive-only movement (#161)
 
 ### M25 — End Turn button not clicking (#164)
 
@@ -572,7 +575,7 @@ techniques/tools, and (2) ship the trained AI as a file usable when a human
 plays the game in the deployed UI. Large subproject — split per plan.md §16.3.
 
 **Sub-issues (first slice) — `pi:ready`:**
-  - [ ] M28-T1a Headless full-game simulator in core (#179) — `pi:ready`
-  - [ ] M28-T1b Headless `npm run simulate` CLI (#180) — `pi:ready`
+  - [x] M28-T1a Headless full-game simulator in core (#179) — `pi:ready`
+  - [x] M28-T1b Headless `npm run simulate` CLI (#180) — `pi:ready`
   - [ ] M28-T2 (next slice) Self-play training harness + ML training of the AI
   - [ ] M28-T3 (next slice) Trained AI file used by the deployed UI opponent
