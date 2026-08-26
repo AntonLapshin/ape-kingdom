@@ -5,6 +5,7 @@ import {
   createUnit,
   createSite,
   createPlayer,
+  createGrave,
   sameHex,
   collectIncome,
   recruitUnit,
@@ -363,6 +364,33 @@ describe("legalActions — move", () => {
     );
     // 6 neighbours minus the occupied one = 5.
     expect(moves).toHaveLength(5);
+  });
+
+  it("enumerates a grave hex as a legal move target (harvestable, never illegal, #191)", () => {
+    // A grave occupies an otherwise empty cell — it holds no unit, so it is a
+    // plain, legal move target exactly like any empty land hex. Moving onto it
+    // harvests the grave (grants +2) via `moveUnit`; the AI legal-action layer
+    // never has to special-case a grave and never targets it illegally.
+    const mover = createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
+    const state: GameState = {
+      ...moveState({ unit: mover, map: flatMap() }),
+      graves: [createGrave({ q: 5, r: 4 }, "p2")],
+    };
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    // All 6 neighbours are legal; the grave hex (5,4) is among them.
+    expect(moves).toHaveLength(6);
+    expect(
+      moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 5, r: 4 })),
+    ).toBe(true);
+    // And applying that move harvests the grave: it is cleared and the mover's
+    // kingdom gains +2 (never rejected).
+    const harvest = legalActions(state).find(
+      (a) => a.type === "move" && sameHex(a.targetHex, { q: 5, r: 4 }),
+    );
+    if (!harvest || harvest.type !== "move") throw new Error("no harvest move");
+    const next = moveUnit(state, state.units[0], harvest.targetHex);
+    expect(next.graves).toEqual([]);
+    expect(next.players.p1.bananas).toBe(2);
   });
 
   it("enumerates join-eligible adjacent same-kingdom units as move targets (#174)", () => {

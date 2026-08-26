@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add the graves economics mechanic when a kingdom's money goes negative
+  (M21-T2, #191). When a kingdom's banana balance drops below zero, all of its
+  units die and a `Grave` marker (`src/core` `Grave` type) appears on each of
+  their former cells. Each grave costs its owning kingdom -1 banana per turn,
+  paid as upkeep against that turn's collected income (`graveUpkeep` inside
+  `collectIncome`). A unit may harvest a grave by moving onto it: the grave is
+  cleared and the harvester's kingdom gains +2 bananas (`moveUnit`). Because a
+  grave cell holds no unit, the AI legal-action layer treats it as a plain
+  legal move target (never illegal) and may harvest it per the rules — covered
+  by a `legalActions` test. The rules are codified in
+  `guidelines/ape-kingdom-rules.md` and `RULES.md`. The graves render on the
+  board via a thin dumb `Grave` component wired through the view model's
+  `BoardCell.grave`, shown only on cells that hold no unit. All logic is pure
+  and in `src/core` with 100% coverage; tested across `game.test.ts`,
+  `ai.test.ts`, `useGameSession.test.ts`, `Board.test.tsx` and a new
+  `Grave.test.tsx`.
+
 ### Changed
 
 - Halve the inter-hexagon gap (M27-T4, #187). The visible gap between

@@ -8,6 +8,7 @@ import { boardTransform } from "../viewModels/useZoom";
 import { Cell } from "./Cell";
 import { Content } from "./Content";
 import { Unit } from "./Unit";
+import { Grave } from "./Grave";
 
 export interface BoardProps {
   /** The renderable board cells (hex + site/unit) from the view model. */
@@ -133,6 +134,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
                 hasActed={cell.unit.hasActed}
               />
             )}
+            {cell.grave && !cell.unit && <Grave owner={cell.grave.owner} />}
           </Cell>
         );
       })}

@@ -60,6 +60,15 @@ For more players, add roughly 2 Groves and 1 Nest per extra player, and give eac
 
 Neutral sites produce no income until captured.
 
+Graves
+
+When a kingdom's money goes negative, all of its units die and a grave appears
+in place of each one.
+
+- Each grave costs its owning kingdom -1 banana per turn (paid from income).
+- A unit may harvest a grave by moving onto it: the grave is cleared and the
+  harvester's kingdom gains +2 bananas.
+
 Vision / Exploration
 
 When starting the game the map is hidden (black). Cells become visible as a player

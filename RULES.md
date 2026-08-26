@@ -42,6 +42,18 @@ your turn** from every site you control.
 
 ---
 
+## Graves
+
+When a kingdom's **money goes negative**, **all of its units die** and a
+**grave** appears in place of each one.
+
+- Each grave costs its owning kingdom **-1 banana per turn** (paid from that
+  turn's income).
+- A unit may **harvest** a grave by **moving onto it**: the grave is cleared
+  and the harvester's kingdom gains **+2 bananas**.
+
+---
+
 ## Units — the four ape ranks
 
 There are **four ape ranks**. A rank determines combat strength, recruitment
