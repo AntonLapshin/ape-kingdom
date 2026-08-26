@@ -548,13 +548,13 @@ describe("useGameSession", () => {
 
   it("clicking an enemy-held (red) target issues an attack and captures the enemy (M26-T1/#169)", () => {
     const { result } = renderHook(() =>
-      useGameSession(0, { width: 7, height: 7, seed: 9 }),
+      useGameSession(0, { width: 7, height: 7, seed: 12 }),
     );
-    // The 7x7 seed-9 board places a p1 Monkey at (3,2) directly adjacent to a
-    // p2 Monkey at (3,3), so the p1 unit can legally attack from the start of
-    // the turn (it has not acted yet).
-    const unitHex = { q: 3, r: 2 };
-    const enemyHex = { q: 3, r: 3 };
+    // The 7x7 seed-12 board places a p1 Monkey at (3,1) directly adjacent to a
+    // p2 Monkey at (3,2), so the p1 unit can legally attack from the start of
+    // the turn (it has not acted yet) and an equal-rank clash destroys both.
+    const unitHex = { q: 3, r: 1 };
+    const enemyHex = { q: 3, r: 2 };
     act(() => {
       result.current.selectCell(unitHex);
     });

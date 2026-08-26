@@ -1022,21 +1022,21 @@ describe("moveUnit", () => {
   });
 
   it("rejects moving onto a mountain cell", () => {
-    // The unit sits at (1,3); its neighbour (2,3) is a mountain on the
+    // The unit sits at (3,1); its neighbour (4,1) is a mountain on the
     // default test map. The unit may not step onto the mountain.
     const state = moveState({
-      unit: createUnit("Monkey", "p1", { q: 1, r: 3 }, false),
+      unit: createUnit("Monkey", "p1", { q: 3, r: 1 }, false),
     });
     let caught: unknown;
     try {
-      moveUnit(state, state.units[0], { q: 2, r: 3 });
+      moveUnit(state, state.units[0], { q: 4, r: 1 });
     } catch (e) {
       caught = e;
     }
     expect(caught).toBeInstanceOf(MoveError);
     expect((caught as MoveError).kind).toBe("mountain");
     // The state is unchanged — no unit moves onto a mountain.
-    expect(state.units[0].hex).toEqual({ q: 1, r: 3 });
+    expect(state.units[0].hex).toEqual({ q: 3, r: 1 });
     expect(state.units[0].hasActed).toBe(false);
   });
 
@@ -1253,8 +1253,8 @@ describe("territory ownership persistence & loss", () => {
       units: [mover],
       currentPlayer: "p1",
     });
-    const next = moveUnit(state, mover, { q: 4, r: 1 });
-    expect(next.units[0].hex).toEqual({ q: 4, r: 1 });
+    const next = moveUnit(state, mover, { q: 2, r: 1 });
+    expect(next.units[0].hex).toEqual({ q: 2, r: 1 });
     expect(next.sites.find((s) => sameHex(s.hex, { q: 3, r: 1 }))?.owner).toBe("p1");
   });
 

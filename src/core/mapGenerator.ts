@@ -252,12 +252,65 @@ export function resolveConfig(config?: MapConfig): ResolvedMapConfig {
 /* ------------------------------------------------------------------ */
 
 /**
+ * The screen-geometry offset of a hex from the centre of a rendered hex board
+ * (M27-T1, #172), scaled so the constant factors cancel against `maxDist`.
+ *
+ * On a rendered pointy-top hex board the axial (q, r) axes are **not**
+ * orthogonal: a cell at pixel offset `x = W·(q + r/2)`, `y = H·r` where
+ * `W = √3·HEX_SIZE` and `H = 1.5·HEX_SIZE` (see `src/ui/presentation.ts`).
+ * Measuring a cell's distance from the centre in raw (q, r) Euclidean space
+ * therefore colours a **diamond/rhombus** landmass (the q and r axes are
+ * treated as orthogonal even though they meet at 60°) instead of a roughly
+ * circular one. Dividing both axes by the common `W` factor (which cancels in
+ * `buildIsland`) leaves `x' = q + r/2` and `y' = (H/W)·r = (√3/2)·r`, so
+ * Euclidean distance in these screen-normalised coordinates is the true
+ * rendered distance and yields a circular island.
+ */
+function screenOffset(
+  centre: Hex,
+  q: number,
+  r: number,
+): { x: number; y: number } {
+  const dq = q - centre.q;
+  const dr = r - centre.r;
+  return { x: dq + dr / 2, y: (Math.sqrt(3) / 2) * dr };
+}
+
+/** The rendered (screen-geometry) distance between the centre and a hex. */
+function screenDist(centre: Hex, q: number, r: number): number {
+  const { x, y } = screenOffset(centre, q, r);
+  return Math.hypot(x, y);
+}
+
+/**
+ * The farthest screen-geometry distance from the centre to any of the four
+ * grid corners. Used as the radius reference so `baseRadius` scales the
+ * island relative to the farthest reachable corner whatever the metric.
+ */
+function maxScreenDist(
+  centre: Hex,
+  width: number,
+  height: number,
+): number {
+  let max = 0;
+  for (const { q, r } of [
+    { q: 0, r: 0 },
+    { q: width - 1, r: 0 },
+    { q: 0, r: height - 1 },
+    { q: width - 1, r: height - 1 },
+  ]) {
+    max = Math.max(max, screenDist(centre, q, r));
+  }
+  return max;
+}
+
+/**
  * Build the island land mask from a star-shaped radial height map. Every
- * interior cell is land when its distance from the centre is within a
- * seed-modulated radius. Because the region is star-shaped (convex around the
- * centre) it is inherently connected and has no enclosed "natural" water
- * holes, so the only fully-enclosed interior water cells come from carving
- * lakes later. The border cells are always excluded.
+ * interior cell is land when its screen-geometry distance from the centre is
+ * within a seed-modulated radius. Because the region is star-shaped (convex
+ * around the centre) it is inherently connected and has no enclosed "natural"
+ * water holes, so the only fully-enclosed interior water cells come from
+ * carving lakes later. The border cells are always excluded.
  */
 function buildIsland(
   rng: () => number,
@@ -266,10 +319,7 @@ function buildIsland(
   islandSize: number,
   centre: Hex,
 ): Set<string> {
-  const maxDist = Math.hypot(
-    Math.max(centre.q, width - 1 - centre.q),
-    Math.max(centre.r, height - 1 - centre.r),
-  );
+  const maxDist = maxScreenDist(centre, width, height);
   const baseRadius = islandSize * maxDist;
   const phase = rng() * 2 * Math.PI;
   const amplitude = 0.1 + rng() * 0.15; // irregular coastline, max 0.25
@@ -279,7 +329,7 @@ function buildIsland(
   for (let q = 0; q < width; q++) {
     for (let r = 0; r < height; r++) {
       if (q === 0 || q === width - 1 || r === 0 || r === height - 1) continue;
-      const d = Math.hypot(q - centre.q, r - centre.r);
+      const d = screenDist(centre, q, r);
       if (d === 0) {
         island.add(key({ q, r }));
         continue;

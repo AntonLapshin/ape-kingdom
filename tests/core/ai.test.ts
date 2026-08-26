@@ -28,6 +28,7 @@ function gameState(opts: {
   currentPlayer?: string;
   turnOrder?: string[];
   winner?: string | null;
+  map?: GameMap;
 } = {}): GameState {
   return {
     sites: opts.sites ?? [],
@@ -36,7 +37,7 @@ function gameState(opts: {
     currentPlayer: opts.currentPlayer ?? "p1",
     turnOrder: opts.turnOrder ?? ["p1", "p2"],
     winner: opts.winner ?? null,
-    map: generateMap({ width: 7, height: 7, seed: 0 }),
+    map: opts.map ?? generateMap({ width: 7, height: 7, seed: 0 }),
   };
 }
 
@@ -149,9 +150,11 @@ describe("reachableHexes", () => {
   });
 
   it("excludes mountain cells as reachable targets", () => {
-    const map = generateMap({ width: 7, height: 7, seed: 0 });
-    // A unit at (2,2) on the map: its mountain neighbour (2,3) is never
-    // reachable, while its land neighbours remain reachable.
+    // A unit at (2,2) on an otherwise-flat map with (2,3) forced to a
+    // mountain: its mountain neighbour (2,3) is never reachable, while its
+    // land neighbours remain reachable.
+    const map = flatMap();
+    map.cells[2 * map.height + 3] = { hex: { q: 2, r: 3 }, terrain: "mountain" };
     const hexes = reachableHexes({ q: 2, r: 2 }, 1, new Set(), map);
     expect(hexes.some((h) => sameHex(h, { q: 2, r: 3 }))).toBe(false);
     expect(
@@ -162,10 +165,12 @@ describe("reachableHexes", () => {
   });
 
   it("does not move through a mountain to reach a cell beyond it", () => {
-    const map = generateMap({ width: 7, height: 7, seed: 0 });
     // Mountain at (2,3). A unit at (1,3) within movement 2 cannot reach
-    // (3,3) through the mountain, and there is no land path around it within
-    // 2 steps, so (3,3) must not be reachable.
+    // (3,3) through the mountain (both 2-step routes run through the
+    // mountain), and there is no land path around it within 2 steps, so
+    // (3,3) must not be reachable.
+    const map = flatMap();
+    map.cells[2 * map.height + 3] = { hex: { q: 2, r: 3 }, terrain: "mountain" };
     const hexes = reachableHexes({ q: 1, r: 3 }, 2, new Set(), map);
     expect(hexes.some((h) => sameHex(h, { q: 3, r: 3 }))).toBe(false);
     // The mountain itself is never reachable either.
@@ -322,6 +327,7 @@ describe("legalActions — move", () => {
     units?: ApeUnit[];
     sites?: Site[];
     currentPlayer?: string;
+    map?: GameMap;
   } = {}): GameState {
     const unit = opts.unit ?? createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
     return gameState({
@@ -329,14 +335,15 @@ describe("legalActions — move", () => {
       units: opts.units ?? [unit],
       players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
       currentPlayer: opts.currentPlayer ?? "p1",
+      map: opts.map,
     });
   }
 
   it("enumerates a move to every adjacent, unoccupied hex for a not-acted unit", () => {
-    const state = moveState(); // Monkey at (4,4), movement 1
+    // On an all-land flat map all 6 neighbours of (4,4) are legal move targets.
+    const state = moveState({ map: flatMap() }); // Monkey at (4,4), movement 1
     const moves = legalActions(state).filter((a) => a.type === "move");
-    // All 6 neighbours of (4,4) are land-surface on the test map, so all 6
-    // are reachable targets.
+    // All 6 neighbours of (4,4) are land-surface, so all 6 are reachable.
     expect(moves).toHaveLength(6);
     for (const m of moves) {
       if (m.type === "move") {
@@ -349,7 +356,7 @@ describe("legalActions — move", () => {
   it("omits moves into hexes occupied by another unit", () => {
     const mover = createUnit("Monkey", "p1", { q: 4, r: 4 }, false);
     const other = createUnit("Gorilla", "p2", { q: 5, r: 4 });
-    const state = moveState({ units: [mover, other] });
+    const state = moveState({ units: [mover, other], map: flatMap() });
     const moves = legalActions(state).filter((a) => a.type === "move");
     expect(moves.some((m) => m.type === "move" && sameHex(m.targetHex, { q: 5, r: 4 }))).toBe(
       false,
@@ -388,9 +395,14 @@ describe("legalActions — move", () => {
   });
 
   it("excludes mountain cells as legal move targets", () => {
-    // Monkey at (2,2) on the map: its mountain neighbour (2,3) must never
-    // appear as a legal move target.
-    const state = moveState({ unit: createUnit("Monkey", "p1", { q: 2, r: 2 }, false) });
+    // Monkey at (2,2) on an otherwise-flat map with (2,3) forced to a
+    // mountain: that neighbour must never appear as a legal move target.
+    const map = flatMap();
+    map.cells[2 * map.height + 3] = { hex: { q: 2, r: 3 }, terrain: "mountain" };
+    const state = moveState({
+      unit: createUnit("Monkey", "p1", { q: 2, r: 2 }, false),
+      map,
+    });
     const moves = legalActions(state).filter((a) => a.type === "move");
     const targets = moves.map((m) => (m as { targetHex: { q: number; r: number } }).targetHex);
     expect(targets.some((h) => sameHex(h, { q: 2, r: 3 }))).toBe(false);
