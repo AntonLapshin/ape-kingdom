@@ -411,3 +411,51 @@ describe("src/styles/index.css — SVG hexagon glass edge (M18-T3/#125)", () => 
   });
 });
 
+/* ------------------------------------------------------------------ */
+/* End Turn button frosted-glass polish (M29-T1 / #186)               */
+/* ------------------------------------------------------------------ */
+describe("src/styles/index.css — End Turn frosted-glass effect (M29-T1/#186)", () => {
+  it("applies a translucent accent-tinted frosted fill via color-mix tokens", () => {
+    // The .end-turn-btn disc must layer its warm accent fill over the `glass`
+    // backdrop blur as a translucent surface (so the map shows through as
+    // genuine frosted glass) rather than an opaque flat disc. The translucency
+    // is expressed with `color-mix` over the `--color-accent*` and
+    // `--color-glass-soft` tokens — no raw hex / rgba.
+    const btn = STYLES.match(/\.end-turn-btn\s*\{([^}]*)\}/)?.[1];
+    expect(btn).toBeTruthy();
+    expect(btn).toMatch(/linear-gradient\(/);
+    expect(btn).toMatch(/color-mix\(in srgb, var\(--color-accent\)/);
+    expect(btn).toMatch(/var\(--color-glass-soft\)/);
+  });
+
+  it("keeps the bordered-rim highlight and soft accented shadow, token-only", () => {
+    // A subtle border highlight plus a soft inner highlight / accented drop
+    // shadow complete the glass edge — all referencing tokens, no raw colors.
+    const btn = STYLES.match(/\.end-turn-btn\s*\{([^}]*)\}/)?.[1];
+    expect(btn).toContain("var(--color-glass-line)");
+    expect(btn).toContain("var(--color-glass-inner)");
+    expect(btn).toContain("var(--color-shadow-accent)");
+    expect(btn).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(btn).not.toMatch(/rgba?\(/);
+  });
+
+  it("distinguishes the frosted End Turn disc from the plain glass utility", () => {
+    // Acceptance criterion: the effect is clearly visible — not just the plain
+    // `glass` class alone. The .end-turn-btn rule must carry its own
+    // translucent accent-tinted glass layer (color-mix + glass-soft) on top of
+    // the generic `glass` surface, and must pull the glassy inner highlights.
+    const btn = STYLES.match(/\.end-turn-btn\s*\{([^}]*)\}/)?.[1];
+    expect(btn).toMatch(/color-mix\(in srgb, var\(--color-accent\)/);
+    expect(btn).toMatch(/var\(--color-accent-strong\)/);
+    expect(btn).toContain("var(--color-glass-inner)");
+    // The End Turn button component must continue to carry the `glass` surface
+    // so the backdrop blur applies (readers clearly visible glassmorphism).
+    const BUTTON = readFileSync(
+      resolve(ROOT, "src/ui/components/EndTurnButton.tsx"),
+      "utf8",
+    );
+    expect(BUTTON).toMatch(/glass\b/);
+    expect(BUTTON).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+});
+

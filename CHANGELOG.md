@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Apply a frosted-glass effect to the End Turn button (M29-T1, #186). The
+  circular `end-turn-btn` disc now renders a clearly-visible token-backed
+  frosted-glass surface consistent with the M14 glass design language: a
+  translucent accent-tinted fill (via `color-mix` over the `--color-accent*`
+  and `--color-glass-soft` tokens) layered over the `glass` backdrop blur, a
+  subtle bordered rim (`--color-glass-line`), a soft inner highlight
+  (`--color-glass-inner`) and an accented soft drop shadow
+  (`--color-shadow-accent`) — so the map shows through blurred and it reads as
+  a premium primary HUD action rather than plain glass alone. Purely
+  presentational: the button keeps its `enabled`//`onSubmit` props, disabled
+  state, `data-testid="submit-turn"` and `aria-label="End Turn"`; no game
+  rules or behavior change. The `glass` backdrop-blur utility stays on the
+  button so the translucency yields genuine glassmorphism. Uses only existing
+  theme tokens — no raw hard-coded colours. No core/`src/core` change; covered
+  by added theme assertions (tests/theme.test.ts) and component tests
+  (tests/ui/EndTurnButton.test.tsx). `src/core` stays 100% covered.
+
 - Headless simulate CLI (M28-T1b, #180). A new thin, headless Node script
   `scripts/simulate.ts` (run via `npm run simulate`) drives the pure core
   full-game simulator (`playAiGame` from `src/core/selfPlay.ts`, M28-T1a) to
