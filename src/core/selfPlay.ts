@@ -41,6 +41,11 @@ import type { MapConfig } from "./mapGenerator";
 import type { AiOptions } from "./ai";
 import { standardSetup } from "./gameSession";
 import { aiTurnActions, playTurn } from "./gameLoop";
+import type {
+  DecisionRecorder,
+  TrainingDataset,
+  TrainingDecision,
+} from "./trainingDataset";
 
 /**
  * The default `MapConfig` passed to `standardSetup` for a headless self-play
@@ -99,6 +104,15 @@ export interface PlayAiGameOptions {
    * default small map.
    */
   aiOptions?: AiOptions;
+  /**
+   * When true, the run records a `TrainingDataset` of every AI decision
+   * (state → chosen-action labelled example) and returns it alongside the
+   * game result. Recording is purely observational — it never changes the
+   * game trajectory or outcome — so a recorded run is identical to the same
+   * run with recording off. Default false, so existing callers
+   * (`npm run simulate`, tests) are unaffected.
+   */
+  recordDataset?: boolean;
 }
 
 /** The result of a completed `playAiGame` run. */
@@ -112,6 +126,14 @@ export interface PlayAiGameResult {
   winner: PlayerId | null;
   /** The number of full turns played to reach this result. */
   turns: number;
+  /**
+   * The recorded training dataset of every AI decision, present only when
+   * the run was started with `recordDataset: true`. Otherwise undefined, so
+   * existing callers are unaffected. The dataset is observationally
+   * independent of the game outcome: a run with recording enabled produces
+   * the exact same `state` / `winner` / `turns` as the same run without it.
+   */
+  dataset?: TrainingDataset;
 }
 
 /**
@@ -144,13 +166,43 @@ export function playAiGame(options: PlayAiGameOptions = {}): PlayAiGameResult {
   let state = standardSetup(mapConfig);
   let turns = 0;
 
+  // Optional observational recorder: when enabled, every AI decision across
+  // the whole game (both the current player's turn and the AI reply, every
+  // full turn) is appended to `dataset`. The recorder never mutates state or
+  // influences action choice, so enabling it cannot change the outcome.
+  const dataset: TrainingDataset = [];
+  const record: DecisionRecorder | undefined = options.recordDataset
+    ? (decision: TrainingDecision) => {
+        dataset.push(decision);
+      }
+    : undefined;
+
   while (!state.winner && turns < maxTurns) {
     // Generate the current player's full turn (recruit/move/fight) via the AI
     // layer on the start-of-turn state, then play it and the AI reply.
-    const currentMoves = aiTurnActions(state, seed * 1000 + turns, aiOptions);
-    state = playTurn(state, currentMoves, seed * 1000 + turns + 1, aiOptions);
+    const currentMoves = aiTurnActions(
+      state,
+      seed * 1000 + turns,
+      aiOptions,
+      record,
+      turns,
+    );
+    state = playTurn(
+      state,
+      currentMoves,
+      seed * 1000 + turns + 1,
+      aiOptions,
+      record,
+      turns,
+    );
     turns++;
   }
 
-  return { state, winner: state.winner, turns };
+  const result: PlayAiGameResult = {
+    state,
+    winner: state.winner,
+    turns,
+  };
+  if (options.recordDataset) result.dataset = dataset;
+  return result;
 }

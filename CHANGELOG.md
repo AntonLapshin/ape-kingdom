@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Record a self-play training dataset (state → action pairs) in core
+  (M28-T2a, #202). New pure `src/core/trainingDataset.ts` defines the
+  serializable `TrainingDecision` record (turn, acting player, full `GameState`
+  at decision time, the ordered list of legal actions considered, and the
+  single chosen `GameAction`) plus the ordered `TrainingDataset` and the
+  observation-only `DecisionRecorder` callback. The headless self-play path
+  now threads an optional recorder through `aiTurnActions` / `runAiTurn` /
+  `playTurn`, and `playAiGame` gains a `recordDataset` option that returns the
+  recorded dataset alongside the existing result. Recording defaults to off
+  (so `npm run simulate` and existing callers are unaffected) and is purely
+  observational: it never mutates state or influences action selection, so a
+  recorded run produces the exact same trajectory, winner, and turn count as
+  the same run with recording off. The dataset — the labelled (game-state →
+  chosen-action) examples a policy can learn from — is JSON-serializable and
+  feeds the subsequent M28-T2b training harness. New logic is pure, lives in
+  `src/core`, and is 100% covered by tests in `trainingDataset.test.ts`.
+
+### Added
+
 - Implement the Protection / Safety Zones rule (M23-T2-G4, #195). A unit
   protects its surrounding (adjacent) cells from opposing units of the same
   rank, and a Home Tree protects its surrounding cells from opposing Monkeys
