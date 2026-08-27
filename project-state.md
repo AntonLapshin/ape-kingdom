@@ -4,7 +4,7 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20–M27 DONE; M28 in progress (training subproject planned).**
+**M1–M19 COMPLETE and shipped; M20–M27 DONE; M28 in progress (M28-T2a DONE).**
 M26 (highlighting target cells, #168) is now DONE (M26-T1 #169, PR #170
 merged). New post-ship issue #171 ("Additional scope") was split into M27
 (section A, small/medium fixes) and M28 (section B, AI training).
@@ -23,6 +23,11 @@ small policy and emits a serialized trained-AI file, `priority:p1`), and
 M28-T3 #204 (use the trained-AI file for the deployed UI opponent, with a
 fallback to the rule-legal AI, `priority:p2`). M28-T3 also delivers the
 M23-T3 "smarter AI" goal. Parent #171 closed.
+M28-T2a #202 (record a self-play training dataset) is now DONE (PR #205
+merged 2026-08-27): new pure `src/core/trainingDataset.ts` plus an optional
+observational `DecisionRecorder` threaded through the self-play path, with
+`playAiGame(..., { recordDataset })` defaulting to off. Remaining M28 slices:
+M28-T2b #203 and M28-T3 #204 (`pi:ready`).
 The enjoyment-gap analysis (M23-T2, #192/#200) was delivered with follow-up
 issues #195–#199; #195 (Protection/Safety Zones rule) was implemented (PR
 #201) and #196–#199 (balance tweaks) were closed as deferred.
