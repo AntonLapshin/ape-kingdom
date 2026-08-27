@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a headless self-play training harness that emits a trained-AI
+  file (M28-T2b, #203). New pure `src/core/training.ts` implements a
+  dependency-light **win-weighted centroid policy**: `actionFeatures` turns a
+  candidate `GameAction` + `GameState` into a fixed-length feature vector; a
+  serializable `TrainedAiPolicy` (`weights`, `bias`, `gamesSeen`,
+  `decisionsSeen`, `source`, `version`) is fitted by `fitPolicy` /
+  `fitPolicyFromGames` from decisions labelled good/bad by whether the acting
+  player won; and `scoreWithPolicy` / `chooseTrainedAction` select legal
+  actions at runtime by the fitted weights (highest score wins, ties broken
+  deterministically by a seed). A thin headless CLI (`scripts/train.ts` + `npm
+  run train`) runs N seeded self-play games with the M28-T2a recorder,
+  computes every game/fit in core, writes the serialized policy to
+  `public/trained-ai.json` (deterministic for a given seed, loadable by the
+  M28-T3 UI opponent), and prints auditable training metrics (games run,
+  decisive games, decisions used, fitted weights). No external ML dependencies
+  are added; all training logic is pure, in `src/core`, and 100% covered by
+  `training.test.ts`.
+
 - Record a self-play training dataset (state → action pairs) in core
   (M28-T2a, #202). New pure `src/core/trainingDataset.ts` defines the
   serializable `TrainingDecision` record (turn, acting player, full `GameState`
