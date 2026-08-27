@@ -248,5 +248,18 @@ That player **wins and rules the Ape Kingdom**.
 
 ---
 
+## Development conventions
+
+- **Headless self-play / simulation evidence** (e.g. win-rate balance checks)
+  must use the committed CLI **`npm run simulate`** (`scripts/simulate.ts`).
+  Do **not** create ad-hoc scratch scripts (e.g. `check.ts`, `runcheck.ts`,
+  `probe.ts`, or `/tmp/evidence.ts`) that import `playAiGame` directly and
+  loop over many seeds — they are untracked, expensive (many minutes / high
+  CPU), and linger as orphaned processes. If a new simulation use-case is
+  needed, extend `scripts/simulate.ts` and wire it into `package.json`
+  instead.
+
+---
+
 *This file is the player/developer-facing rules reference. The authoritative
 ruleset is [`guidelines/ape-kingdom-rules.md`](guidelines/ape-kingdom-rules.md).*
