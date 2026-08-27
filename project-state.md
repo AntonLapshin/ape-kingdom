@@ -4,20 +4,28 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20–M26 DONE; M27 DONE; M28 PLANNED (first slice).**
+**M1–M19 COMPLETE and shipped; M20–M27 DONE; M28 in progress (training subproject planned).**
 M26 (highlighting target cells, #168) is now DONE (M26-T1 #169, PR #170
 merged). New post-ship issue #171 ("Additional scope") was split into M27
 (section A, small/medium fixes) and M28 (section B, AI training).
 M27 (issue #171 section A, small/medium fixes) is now DONE: M27-T1 #172
 (circular map generator instead of diamond, PR #176 merged), M27-T2 #173 (fog
 of war always shows owning cells, PR #177 merged), M27-T3 #174 (unit joining by
-level addition, PR #178 merged) — all complete. Remaining M27-T4 (smaller
-inter-hex gap) is still a future slice.
+level addition, PR #178 merged), M27-T4 #187 (smaller inter-hex gap, PR #189
+merged) — all complete. M27 is COMPLETE.
 Issue #175 (AI player training subproject — #171 section B, M28) has been split:
-parent #175 closed, and the first slice is planned as M28-T1a #179 (headless
-full-game simulator in `src/core`) and M28-T1b #180 (`npm run simulate` CLI),
-both `pi:ready`. Next slices: M28-T2 (self-play training harness + ML) and
-M28-T3 (trained-AI file used by the deployed UI). Parent #171 closed.
+parent #175 closed. M28-T1a #179 (headless full-game simulator in `src/core`)
+and M28-T1b #180 (`npm run simulate` CLI) are DONE (PRs #181/#182 merged).
+Next slice — M28 training subproject — planned 2026-08-27 as three `pi:ready`
+issues: M28-T2a #202 (record a self-play training dataset, state→action pairs,
+in core, `priority:p1`), M28-T2b #203 (headless training harness that fits a
+small policy and emits a serialized trained-AI file, `priority:p1`), and
+M28-T3 #204 (use the trained-AI file for the deployed UI opponent, with a
+fallback to the rule-legal AI, `priority:p2`). M28-T3 also delivers the
+M23-T3 "smarter AI" goal. Parent #171 closed.
+The enjoyment-gap analysis (M23-T2, #192/#200) was delivered with follow-up
+issues #195–#199; #195 (Protection/Safety Zones rule) was implemented (PR
+#201) and #196–#199 (balance tweaks) were closed as deferred.
 The four already-implemented feedback issues (#136 End Turn, #139 gap,
 #140 selected preview, #141 reachable-highlight) were closed as resolved
 (M19-T2/#131, M18-T3/#125, M17-T3/#116, M10-T4/#63 respectively). New
@@ -36,8 +44,9 @@ Turn button so clicks register — the bottom-right `actions-overlay` is
 its `<EndTurnButton>` in `pointer-events-auto`, so the button inherits
 `pointer-events: none` and clicks pass through), `pi:ready` — now DONE
 (PR #167 merged). Parent #164 closed.
-Next slices (documented in manifest): M21-T2 graves, M22-T2 fog UI,
-M23-T2 analysis, M23-T3 smarter AI, M23-T4 circular map.
+Next slices (documented in manifest): M23-T3 smarter AI (delivered by M28), and
+M28-T2a #202, M28-T2b #203, M28-T3 #204 (the AI-training subproject — all
+`pi:ready`).
 Foundation (guidelines, core scaffold, CI, Pages), the full core game engine
 (all rules reducers), the AI opponent / Human vs AI game loop, the interactive
 playable client UI, the beautiful animated Tailwind UI polish,

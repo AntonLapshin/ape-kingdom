@@ -2,7 +2,7 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M13–M28 first slice done)** — milestones M1–M11 are complete and the POC is
+**Status: in-progress (M1–M27 COMPLETE; M28 in progress)** — milestones M1–M11 are complete and the POC is
 shipped (completed_at: 2026-08-23T21:41:10Z). Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
@@ -22,13 +22,18 @@ selected unit can move to, red when the target cell holds an enemy unit) is
 planned as M26: M26-T1 #169 `pi:ready` (now DONE, PR #170 merged).
 New post-ship issue #171 ("Additional scope") is split into M27 (section A,
 small/medium fixes): M27-T1 #172 (circular map generator), M27-T2 #173 (fog of
-war always shows owning cells), M27-T3 #174 (unit joining by level addition)
-— all `pi:ready`, with M27-T4 (smaller inter-hex gap) as the next slice; and
+war always shows owning cells), M27-T3 #174 (unit joining by level addition),
+M27-T4 #187 (smaller inter-hex gap) — all DONE (PRs #176/#177/#178/#189
+merged), so M27 is COMPLETE; and
 M28 (section B, AI player training subproject) planned next: M28-T1a (#179 headless
 full-game simulator) and M28-T1b (#180 `npm run simulate` CLI) are DONE (PRs #181/#182
-merged); M28-T2 (self-play training harness + ML) and M28-T3 (trained-AI file for the UI)
-remain as next slices.
-See `project-state.md`
+merged). Remaining M28 slices: M28-T2a (record a self-play training
+dataset), M28-T2b (headless training harness + trained-AI file) and M28-T3
+(trained-AI file used by the deployed UI) — the next planned batch (also
+delivers M23-T3 "smarter AI").
+The enjoyment-gap analysis (M23-T2, #192/#200) was delivered with follow-ups
+#195 (Protection/Safety Zones — implemented, PR #201) and #196–#199 (balance
+ebbs, deferred). See `project-state.md`
 and `CHANGELOG.md` for details. This file is a living document maintained by the
 > auto-pi PM persona as the project evolves. The milestones below are the
 > backbone of the project: the PM plans issues against them.
@@ -190,7 +195,7 @@ Planned from unplanned issue #47.
   - [x] M8-T1 `Cell` atom component + showcase (#47)
   - [x] M8-T2 `Unit` atom component + showcase (#47)
   - [x] M8-T3 `Content` atom component + showcase (#47)
-  - [ ] M8-T4 Refactor `Board` to compose atoms (#47) — planned next slice
+  - [x] M8-T4 Refactor `Board` to compose atoms (#47) — DONE (`Board` composes `Cell`/`Content`/`Unit`)
 
 ### M9 — Map generator
 
@@ -328,9 +333,9 @@ core/UI split intact; `src/core` stays pure and 100% covered.
   - [x] M13-T1 Automatic income collection at turn start (core) (#88 item 2)
   - [x] M13-T2 Color land cells by owner (UI) (#88 item 3)
   - [x] M13-T3 Blue border for the selected cell (UI) (#88 item 1)
-  - [ ] M13-T4 Dark non-gradient background for the game viewport (UI) (#88 item 4) — planned next slice
-  - [ ] M13-T5 Hide the AI's banana count (UI) (#88 item 5) — planned next slice
-  - [ ] M13-T6 Right-bottom panel reduced to only End Turn (UI) (#88 item 6) — planned next slice
+  - [x] M13-T4 Dark non-gradient background for the game viewport (UI) (#88 item 4) — DONE (`bg-board-dark` on the board layer)
+  - [x] M13-T5 Hide the AI's banana count (UI) (#88 item 5) — DONE (`StatusPanel` shows only p1's bananas)
+  - [x] M13-T6 Right-bottom panel reduced to only End Turn (UI) (#88 item 6) — DONE (bottom-right holds only the circular End Turn button)
 
 ### M14 — UI design polish (#94)
 
@@ -449,9 +454,9 @@ covered. Split per plan.md §16.3 — planned 2026-08-24.
   - [x] M19-T1 Fix territory ownership display (#130) — `pi:ready`
   - [x] M19-T2 Make End Turn work anytime (#131) — `pi:ready`
   - [x] M19-T3 Restore a way to create new units (#132) — `pi:ready`
-  - [ ] M19-T4 (next slice) Glass edge made more subtle (#129-3)
-  - [ ] M19-T5 (next slice) Remove the Move {from} => {to} action list (#129-5)
-  - [ ] M19-T6 (next slice) Mark moved units as opaque (#129-6)
+  - [x] M19-T4 (next slice) Glass edge made more subtle (#129-3) — DONE (subtle `hex-glass-edge` SVG rim)
+  - [x] M19-T5 (next slice) Remove the Move {from} => {to} action list (#129-5) — DONE (interactive-only movement, #165)
+  - [x] M19-T6 (next slice) Mark moved units as opaque (#129-6) — DONE (#190, PR #193)
 
 ### M20 — Terrain & movement legality (#137/#142/#138)
 
@@ -481,7 +486,7 @@ core mechanic. Split per plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice):**
   - [x] M21-T1 Create comprehensive RULES.md (#149) — `pi:ready`
-  - [ ] M21-T2 (next slice) Graves mechanic when money goes negative (core)
+  - [x] M21-T2 (next slice) Graves mechanic when money goes negative (core) — DONE (#191, PR #194)
 
 ### M22 — Map exploration / fog of war (#144)
 
@@ -492,7 +497,7 @@ feature. Split per plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice):**
   - [x] M22-T1 Core vision/fog-of-war model (#151) — `pi:ready`
-  - [ ] M22-T2 (next slice) UI rendering of revealed vs hidden cells
+  - [x] M22-T2 (next slice) UI rendering of revealed vs hidden cells — DONE (#159 fog-of-war UI, PR #162)
 
 ### M23 — Analysis & improvements (#145)
 
@@ -504,9 +509,9 @@ plan.md §16.3 — planned 2026-08-25.
 
 **Sub-issues (first slice):**
   - [x] M23-T1 Remove "Turn: you" indicator from the map (#150) — `pi:ready`
-  - [ ] M23-T2 (next slice) Analysis: review rules/build for enjoyment gaps
-  - [ ] M23-T3 (next slice) Smarter AI opponent
-  - [ ] M23-T4 (next slice) Circular map generator (replace diamond shape)
+  - [x] M23-T2 (next slice) Analysis: review rules/build for enjoyment gaps — DONE (#192, PR #200; follow-ups #195–#199)
+  - [ ] M23-T3 (next slice) Smarter AI opponent — delivered by the M28 training subproject (M28-T2/T3)
+  - [x] M23-T4 (next slice) Circular map generator (replace diamond shape) — DONE (#172, PR #176)
 
 ### M24 — Recent requests not implemented properly (#158)
 
@@ -564,7 +569,7 @@ Split per plan.md §16.3 — planned 2026-08-26.
   - [x] M27-T1 Circular map generator instead of diamond (#172) — DONE (PR #176)
   - [x] M27-T2 Fog of war always shows owning cells (#173) — DONE (PR #177)
   - [x] M27-T3 Unit joining by level addition (1+1=2, 2+1=3, 2+2=4, 3+1=4; no 2+3) + RULES (#174) — DONE (PR #178)
-  - [ ] M27-T4 (next slice) Make the inter-hexagon gap twice smaller (#171-A4)
+  - [x] M27-T4 (next slice) Make the inter-hexagon gap twice smaller (#171-A4) — DONE (#187, PR #189)
 
 ### M28 — AI player training subproject (#171, section B)
 
@@ -578,4 +583,6 @@ plays the game in the deployed UI. Large subproject — split per plan.md §16.3
   - [x] M28-T1a Headless full-game simulator in core (#179) — `pi:ready`
   - [x] M28-T1b Headless `npm run simulate` CLI (#180) — `pi:ready`
   - [ ] M28-T2 (next slice) Self-play training harness + ML training of the AI
+    - [ ] M28-T2a Record a self-play training dataset (state → chosen-action pairs) in the core
+    - [ ] M28-T2b Headless training harness that trains a policy model and emits a serialized trained-AI file
   - [ ] M28-T3 (next slice) Trained AI file used by the deployed UI opponent
