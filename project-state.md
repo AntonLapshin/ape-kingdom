@@ -4,8 +4,12 @@
 
 ## Status
 
-**M1–M19 COMPLETE and shipped; M20–M27 DONE; M28 in progress (M28-T2a DONE).**
-M26 (highlighting target cells, #168) is now DONE (M26-T1 #169, PR #170
+**PROJECT COMPLETE — all milestones M1–M28 done (completed_at 2026-08-27).**
+Every planned sub-issue is implemented, tested, and merged; CI + Pages green;
+861 tests pass; 100% coverage on `src/core/**`; build succeeds.
+
+History: **M1–M19 COMPLETE and shipped; M20–M27 DONE; M28 (AI training) DONE.**
+M26 (highlighting target cells, #168) is DONE (M26-T1 #169, PR #170
 merged). New post-ship issue #171 ("Additional scope") was split into M27
 (section A, small/medium fixes) and M28 (section B, AI training).
 M27 (issue #171 section A, small/medium fixes) is now DONE: M27-T1 #172

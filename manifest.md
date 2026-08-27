@@ -2,8 +2,8 @@
 
 > Project charter / intent.
 
-**Status: in-progress (M1–M27 COMPLETE; M28 in progress)** — milestones M1–M11 are complete and the POC is
-shipped (completed_at: 2026-08-23T21:41:10Z). Post-ship feedback is planned
+**Status: done** — all milestones M1–M28 are COMPLETE and merged (completed_at:
+2026-08-27T22:58:00Z). Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
 #146/#147/#148 `pi:ready`), M21 (#143 game rules + graves), M22 (#144 map
@@ -77,12 +77,12 @@ and Review Engineer review must be checked against them:
 
 ## Success criteria
 
-- [ ] npm install && npm test && npm run build pass in CI with a green GitHub Pages demo deployed
-- [ ] src/core/** holds 100% test coverage and the core is fully decoupled from the UI (no React/DOM imports)
-- [ ] The complete Ape Kingdom rule set from ws/temp/ape-kingdom-rules.md is implemented and unit-tested in src/core
-- [ ] A human can play a full game against the AI in the browser client, with the AI making valid moves and a clear win/loss outcome
-- [ ] The /guidelines folder exists in the repo containing the implementation guidelines from ws/temp, and README/project docs reference them for all personas
-- [ ] The UI is a polished, animated TailwindCSS experience featuring gradients and smooth transitions, running as a separate client from the core
+- [x]  npm install && npm test && npm run build pass in CI with a green GitHub Pages demo deployed
+- [x]  src/core/** holds 100% test coverage and the core is fully decoupled from the UI (no React/DOM imports)
+- [x]  The complete Ape Kingdom rule set from ws/temp/ape-kingdom-rules.md is implemented and unit-tested in src/core
+- [x]  A human can play a full game against the AI in the browser client, with the AI making valid moves and a clear win/loss outcome
+- [x]  The /guidelines folder exists in the repo containing the implementation guidelines from ws/temp, and README/project docs reference them for all personas
+- [x]  The UI is a polished, animated TailwindCSS experience featuring gradients and smooth transitions, running as a separate client from the core
 
 ## Milestones
 
@@ -510,7 +510,7 @@ plan.md §16.3 — planned 2026-08-25.
 **Sub-issues (first slice):**
   - [x] M23-T1 Remove "Turn: you" indicator from the map (#150) — `pi:ready`
   - [x] M23-T2 (next slice) Analysis: review rules/build for enjoyment gaps — DONE (#192, PR #200; follow-ups #195–#199)
-  - [ ] M23-T3 (next slice) Smarter AI opponent — delivered by the M28 training subproject (M28-T2/T3)
+  - [x] M23-T3 (next slice) Smarter AI opponent — delivered by the M28 training subproject (M28-T2/T3) — DONE (PR #207)
   - [x] M23-T4 (next slice) Circular map generator (replace diamond shape) — DONE (#172, PR #176)
 
 ### M24 — Recent requests not implemented properly (#158)
@@ -582,7 +582,7 @@ plays the game in the deployed UI. Large subproject — split per plan.md §16.3
 **Sub-issues (first slice) — `pi:ready`:**
   - [x] M28-T1a Headless full-game simulator in core (#179) — `pi:ready`
   - [x] M28-T1b Headless `npm run simulate` CLI (#180) — `pi:ready`
-  - [ ] M28-T2 (next slice) Self-play training harness + ML training of the AI
-    - [ ] M28-T2a Record a self-play training dataset (state → chosen-action pairs) in the core
-    - [ ] M28-T2b Headless training harness that trains a policy model and emits a serialized trained-AI file
-  - [ ] M28-T3 (next slice) Trained AI file used by the deployed UI opponent
+  - [x] M28-T2 (next slice) Self-play training harness + ML training of the AI
+    - [x] M28-T2a Record a self-play training dataset (state → chosen-action pairs) in the core (#202, PR #205)
+    - [x] M28-T2b Headless training harness that trains a policy model and emits a serialized trained-AI file (#203, PR #206)
+  - [x] M28-T3 (next slice) Trained AI file used by the deployed UI opponent (#204, PR #207)

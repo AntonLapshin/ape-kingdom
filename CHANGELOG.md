@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Project status
+
+- **Project complete.** All milestones M1–M28 are implemented, tested, merged,
+  and deployed. 861 tests pass, 100% coverage on `src/core/**`, build succeeds,
+  CI + GitHub Pages green at
+  https://AntonLapshin.github.io/ape-kingdom/. Completed 2026-08-27.
+
 ### Added
 
 - Use the trained-AI file for the deployed UI opponent, falling back
