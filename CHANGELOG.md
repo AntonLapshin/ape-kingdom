@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add an enjoyment-gap analysis of the rules and build (M23-T2, #192). The new
+  `docs/analysis.md` reviews the core game loop, economy, combat, and win
+  conditions against `guidelines/ape-kingdom-rules.md` for enjoyment gaps
+  (stalemate risks, runaway economies, frustrating outcomes), grounded in
+  headless self-play runs. It identifies seven gaps — a severe second-mover
+  advantage (p2 wins ~87% of strategic-AI games), map scale vs. movement speed
+  (early-game tedium), a runaway/avalanche economy with no comeback mechanic,
+  the Protection/Safety Zones rule being unimplemented (rules↔build gap), a
+  graves death-spiral risk, a redundant 2-player win condition, and slow
+  naive-AI pacing — each with concrete, rule-consistent proposals and rough
+  impact. Actionable findings are distilled into follow-up issues #195–#199
+  with appropriate priorities. Docs-only; no `src/core` change, so tests and
+  build are unaffected.
+
+### Added
+
 - Add the graves economics mechanic when a kingdom's money goes negative
   (M21-T2, #191). When a kingdom's banana balance drops below zero, all of its
   units die and a `Grave` marker (`src/core` `Grave` type) appears on each of
