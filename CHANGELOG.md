@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Use the trained-AI file for the deployed UI opponent, falling back
+  gracefully to the rule-legal AI (M28-T3, #204). New pure
+  `src/core/trainedOpponent.ts` bridges the M28-T2b fitted policy into the
+  browser opponent: `isValidTrainedPolicy` validates an arbitrary parsed
+  value (a missing / unparseable / malformed `public/trained-ai.json` is
+  rejected rather than crashing), `rankWithPolicy` rank-orders the legal
+  actions by trained score, and `chooseAiAction` selects the highest-scoring
+  trained action at higher precedence than the base AI while falling back to
+  the rule-legal `chooseFromActions` when the policy is absent or invalid.
+  The trained policy is threaded through the AI turn (`aiTurnActions` /
+  `runAiTurn` / `playTurn`) and the game session (`createGameSession` /
+  `submitTurn`), and the `useGameSession` view model loads
+  `trained-ai.json` from the app base URL and upgrades the session's opponent
+  in place (progress is never reset; a missing/invalid file leaves the
+  rule-legal fallback). This delivers the M23-T3 "smarter AI" opponent. All
+  decision logic is pure and 100% covered by `trainedOpponent.test.ts` plus
+  game-loop / session / view-model test extensions.
+
 - Add a headless self-play training harness that emits a trained-AI
   file (M28-T2b, #203). New pure `src/core/training.ts` implements a
   dependency-light **win-weighted centroid policy**: `actionFeatures` turns a

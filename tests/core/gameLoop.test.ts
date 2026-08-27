@@ -10,6 +10,10 @@ import {
 } from "../../src/core/game";
 import { legalActions } from "../../src/core/ai";
 import {
+  TRAINED_AI_SOURCE,
+  TRAINED_AI_VERSION,
+} from "../../src/core/training";
+import {
   applyAction,
   advanceTurn,
   applyHumanMoves,
@@ -377,6 +381,67 @@ describe("aiTurnActions", () => {
       }).not.toThrow();
     }
   });
+
+  it("with a null trained policy behaves exactly like the base AI (fallback)", () => {
+    // M28-T3 backward-compatibility: passing no trained policy (null) must
+    // produce the exact same turn as the pre-existing call, so the deployed
+    // opponent falls back cleanly when the trained file is unavailable.
+    const state = standardSetup();
+    expect(aiTurnActions(state, 42)).toEqual(
+      aiTurnActions(state, 42, {}, undefined, 0, null),
+    );
+  });
+
+  it("uses a valid trained policy at higher precedence over the base AI", () => {
+    // A state where the AI's current player (p1) has a Monkey that can capture
+    // a p2-owned Grove by moving onto it. A capture-heavy policy must select
+    // that capture as the first meaningful action regardless of the seed.
+    const state = gameState({
+      sites: [
+        createSite("HomeTree", 0, 0, "p1"),
+        createSite("HomeTree", 5, 0, "p2"),
+        createSite("Grove", 2, 0, "p2"),
+      ],
+      units: [createUnit("Monkey", "p1", { q: 1, r: 0 }, false)],
+      players: { p1: createPlayer("p1", 10), p2: createPlayer("p2", 10) },
+      currentPlayer: "p1",
+    });
+    const policy = {
+      weights: [0, 0, 100, 0, 0, 0], // strongly prefer captures
+      bias: 0,
+      gamesSeen: 1,
+      decisionsSeen: 1,
+      source: TRAINED_AI_SOURCE,
+      version: TRAINED_AI_VERSION,
+    };
+    const actions = aiTurnActions(state, 7, {}, undefined, 0, policy);
+    // The capture move onto the Grove is the highest-scoring action, so it is
+    // the first action the trained opponent takes.
+    expect(actions.length).toBeGreaterThan(0);
+    expect(actions[0]).toEqual({
+      type: "move",
+      unitHex: { q: 1, r: 0 },
+      targetHex: { q: 2, r: 0 },
+    });
+  });
+
+  it("a malformed trained policy falls back to the base AI without breaking", () => {
+    const state = standardSetup();
+    // A well-shaped object (so it typechecks as a policy) whose weights are the
+    // wrong length — the runtime validator rejects it, so the turn falls back
+    // to the rule-legal base AI, identical to the no-policy call.
+    const malformed = {
+      weights: [0, 0, 0],
+      bias: 0,
+      gamesSeen: 1,
+      decisionsSeen: 1,
+      source: TRAINED_AI_SOURCE,
+      version: TRAINED_AI_VERSION,
+    };
+    expect(aiTurnActions(state, 42, {}, undefined, 0, malformed)).toEqual(
+      aiTurnActions(state, 42),
+    );
+  });
 });
 
 describe("runAiTurn", () => {
@@ -403,6 +468,29 @@ describe("runAiTurn", () => {
     if (actions.length > 0) {
       expect(actions[0].type).toBe("recruit");
     }
+  });
+
+  it("runs a full turn with a trained policy without breaking the game", () => {
+    const state = standardSetup();
+    const policy = {
+      weights: [0, 0, 100, 0, 0, 0],
+      bias: 0,
+      gamesSeen: 1,
+      decisionsSeen: 1,
+      source: TRAINED_AI_SOURCE,
+      version: TRAINED_AI_VERSION,
+    };
+    // A trained run must not throw and must land on a valid player.
+    const next = runAiTurn(state, 3, {}, undefined, 0, policy);
+    expect(next.players[next.currentPlayer]).toBeDefined();
+    expect(next.winner).toBeNull();
+  });
+
+  it("runAiTurn with a null policy is backward-compatible (fallback)", () => {
+    const state = standardSetup();
+    const base = runAiTurn(state, 3);
+    const fallback = runAiTurn(state, 3, {}, undefined, 0, null);
+    expect(base).toEqual(fallback);
   });
 });
 

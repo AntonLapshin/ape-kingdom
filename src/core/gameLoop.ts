@@ -33,10 +33,11 @@ import {
 } from "./game";
 import {
   legalActions,
-  chooseFromActions,
   type GameAction,
   type AiOptions,
 } from "./ai";
+import { chooseAiAction } from "./trainedOpponent";
+import type { TrainedAiPolicy } from "./training";
 import type { DecisionRecorder, TrainingDecision } from "./trainingDataset";
 
 /**
@@ -209,9 +210,12 @@ export function applyHumanMoves(
  * Income (step A) is collected separately by the caller; the returned actions
  * cover steps B (recruit) and C (move/fight). The AI repeatedly selects from
  * the current legal set (excluding the already-collected `collectIncome`)
- * via `chooseFromActions`, applying each selection to advance the state, until
- * no meaningful action remains (all affordable recruits spent and all
- * controllable units acted). Every returned action is rule-legal.
+ * via `chooseAiAction` — which, when a `trainedPolicy` is supplied (M28-T3),
+ * selects at higher precedence than the base AI and falls back to the
+ * rule-legal base AI when the policy is absent or invalid — applying each
+ * selection to advance the state, until no meaningful action remains (all
+ * affordable recruits spent and all controllable units acted). Every returned
+ * action is rule-legal.
  */
 export function aiTurnActions(
   state: GameState,
@@ -219,6 +223,7 @@ export function aiTurnActions(
   options: AiOptions = {},
   record?: DecisionRecorder,
   turn = 0,
+  trainedPolicy?: TrainedAiPolicy | null,
 ): GameAction[] {
   const actions: GameAction[] = [];
   let s = state;
@@ -233,7 +238,17 @@ export function aiTurnActions(
       return true;
     });
     if (meaningful.length === 0) break;
-    const action = chooseFromActions(meaningful, s, seed + guard, options);
+    // M28-T3: when a trained policy is available it selects the action at
+    // higher precedence than the base AI; otherwise `chooseAiAction` falls back
+    // to the rule-legal base AI so the game is never broken by a missing or
+    // malformed trained file.
+    const action = chooseAiAction(
+      trainedPolicy,
+      meaningful,
+      s,
+      seed + guard,
+      options,
+    );
     // Observational recording: expose the state at decision time, the legal
     // set considered, and the chosen action. The recorder never mutates `s`
     // or affects which action is chosen, so it cannot change the outcome.
@@ -269,12 +284,20 @@ export function runAiTurn(
   options: AiOptions = {},
   record?: DecisionRecorder,
   turn = 0,
+  trainedPolicy?: TrainedAiPolicy | null,
 ): GameState {
   // Reset the AI's units so they may act this turn, then collect income
   // (step A) and apply the generated recruit / move / fight actions.
   let s = resetUnitsForTurn(state, state.currentPlayer);
   s = collectIncome(s);
-  for (const action of aiTurnActions(s, seed, options, record, turn)) {
+  for (const action of aiTurnActions(
+    s,
+    seed,
+    options,
+    record,
+    turn,
+    trainedPolicy,
+  )) {
     s = applyAction(s, action);
   }
   return s;
@@ -309,6 +332,7 @@ export function playTurn(
   aiOptions: AiOptions = {},
   record?: DecisionRecorder,
   turn = 0,
+  trainedPolicy?: TrainedAiPolicy | null,
 ): GameState {
   // Human's turn: reset the human's units so they may act, collect income
   // (step A), then apply steps B + C (recruit / move / fight).
@@ -319,9 +343,11 @@ export function playTurn(
   s = resolveVictory(s);
   if (s.winner) return s;
 
-  // AI's turn: advance to the AI, run its turn, then resolve.
+  // AI's turn: advance to the AI, run its turn, then resolve. When a trained
+  // opponent policy is provided, the AI's replies use it (M28-T3); when it is
+  // absent the same turn falls back to the rule-legal base AI.
   s = advanceTurn(s);
-  s = runAiTurn(s, aiSeed, aiOptions, record, turn);
+  s = runAiTurn(s, aiSeed, aiOptions, record, turn, trainedPolicy);
   s = eliminatePlayers(s);
   s = resolveVictory(s);
   if (s.winner) return s;

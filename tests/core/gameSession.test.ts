@@ -14,6 +14,7 @@ import {
   chooseHomeHexes,
   GameSessionError,
 } from "../../src/core/gameSession";
+import { TRAINED_AI_SOURCE, TRAINED_AI_VERSION } from "../../src/core/training";
 
 /**
  * A small 7×7 map config used by full-game simulation tests. On maps this
@@ -223,6 +224,22 @@ describe("createGameSession", () => {
     expect(session.aiOptions).toEqual({ difficulty: 1, preferRecruit: true });
   });
 
+  it("carries an optional trained policy through to the session (M28-T3)", () => {
+    const policy = {
+      weights: [0, 0, 100, 0, 0, 0],
+      bias: 0,
+      gamesSeen: 1,
+      decisionsSeen: 1,
+      source: TRAINED_AI_SOURCE,
+      version: TRAINED_AI_VERSION,
+    };
+    const withPolicy = createGameSession(0, {}, undefined, policy);
+    expect(withPolicy.trainedPolicy).toEqual(policy);
+    // Without a policy the field is left undefined so the session falls back
+    // to the rule-legal base AI for its replies.
+    expect(createGameSession().trainedPolicy).toBeUndefined();
+  });
+
   it("passes a mapConfig through to the generated board", () => {
     const session = createGameSession(0, {}, { width: 9, height: 7, seed: 4 });
     const state = session.baseState;
@@ -425,6 +442,37 @@ describe("submitTurn", () => {
     const a = build();
     const b = build();
     expect(a.state).toEqual(b.state);
+  });
+
+  it("uses a trained policy for the AI reply when present (M28-T3)", () => {
+    const policy = {
+      weights: [0, 0, 100, 0, 0, 0], // strongly prefer captures
+      bias: 0,
+      gamesSeen: 1,
+      decisionsSeen: 1,
+      source: TRAINED_AI_SOURCE,
+      version: TRAINED_AI_VERSION,
+    };
+    const base = submitTurn(createGameSession(0, {}, SIM_MAP));
+    const trained = submitTurn({
+      ...createGameSession(0, {}, SIM_MAP),
+      trainedPolicy: policy,
+    });
+    // The trained opponent steers the AI reply (capture-heavy selection), so
+    // submitting the same start-of-game turn with the policy produces a
+    // different outcome than the rule-legal base AI.
+    expect(trained.state).not.toEqual(base.state);
+    // Both outcomes land on a valid next player (nothing breaks).
+    expect(trained.state.players[trained.state.currentPlayer]).toBeDefined();
+  });
+
+  it("a null trained policy falls back exactly to the rule-legal AI (M28-T3)", () => {
+    const base = submitTurn(createGameSession(7, {}, SIM_MAP));
+    const fallback = submitTurn({
+      ...createGameSession(7, {}, SIM_MAP),
+      trainedPolicy: null,
+    });
+    expect(fallback.state).toEqual(base.state);
   });
 
   it("applies the human's selected moves before the AI reply", () => {

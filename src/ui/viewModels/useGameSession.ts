@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   GameState,
   Hex,
@@ -24,6 +24,8 @@ import {
   submitTurn,
   resetTurn,
 } from "../../core/gameSession";
+import { isValidTrainedPolicy } from "../../core/trainedOpponent";
+import type { TrainedAiPolicy } from "../../core/training";
 
 /**
  * Thin view model for the playable board (M4-T2).
@@ -315,6 +317,32 @@ export function enemyTargetHexes(movement: MovementInfo): Hex[] {
 }
 
 /**
+ * Thin adapter: load the serialized trained-AI opponent file for the deployed
+ * UI (M28-T3, #204).
+ *
+ * `public/trained-ai.json` (produced by the M28-T2b harness, `npm run train`)
+ * is fetched from the app's base URL, parsed, and validated against the pure
+ * core `isValidTrainedPolicy`. Loading is **graceful**: a missing or
+ * unparseable file, a malformed policy, or any network/runtime error resolves
+ * to `null`, which makes the game fall back to the rule-legal AI rather than
+ * break. This adapter holds no business logic — validity is decided by the
+ * pure core validator and the returned value is threaded straight into
+ * `createGameSession`.
+ */
+export async function loadTrainedPolicy(
+  baseUrl: string = import.meta.env.BASE_URL,
+): Promise<TrainedAiPolicy | null> {
+  try {
+    const response = await fetch(`${baseUrl}trained-ai.json`);
+    if (!response.ok) return null;
+    const parsed: unknown = await response.json();
+    return isValidTrainedPolicy(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The `useGameSession` view model.
  *
  * Holds a core `GameSession` and the currently selected hex in React state and
@@ -345,10 +373,35 @@ export function useGameSession(aiSeed = 0, mapConfig?: MapConfig): {
   clearActions: () => void;
   submitTurn: () => void;
 } {
+  // The session starts immediately with the rule-legal AI opponent (no trained
+  // policy), so the board renders and plays without waiting. The trained-AI
+  // opponent is then loaded once, gracefully: a missing or unparseable file
+  // leaves `trainedPolicy` null and the session keeps its rule-legal fallback;
+  // a valid policy upgrades the session's opponent in place so subsequent
+  // `submitTurn` replies use it (M28-T3). Progress is never reset by the load.
   const [session, setSession] = useState(() =>
     createGameSession(aiSeed, {}, mapConfig),
   );
   const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadTrainedPolicy()
+      .then((policy) => {
+        if (cancelled || !policy) return;
+        setSession((current) =>
+          current.trainedPolicy === policy
+            ? current
+            : { ...current, trainedPolicy: policy },
+        );
+      })
+      .catch(() => {
+        /* graceful: keep the rule-legal AI fallback */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const view = useMemo(() => toGameSessionView(session), [session]);
 
