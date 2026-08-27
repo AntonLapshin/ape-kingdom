@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Implement the Protection / Safety Zones rule (M23-T2-G4, #195). A unit
+  protects its surrounding (adjacent) cells from opposing units of the same
+  rank, and a Home Tree protects its surrounding cells from opposing Monkeys
+  (rank 1). `legalActions` / AI enumeration now exclude move and attack
+  targets protected against the mover/attacker, and `moveUnit` / `attackUnit`
+  reject such targets with a new typed `"protected"` `MoveError` /
+  `AttackError` kind (matching the existing typed-error pattern). The new pure
+  `isCellProtected(state, targetHex, mover)` helper in `src/core` implements
+  the rule; higher- and lower-ranked enemy units may still enter protected
+  cells per the rules, and protection never blocks an ally. Self-play/docs on
+  the naive-AI pacing note that the new defensive standoffs intentionally slow
+  the rush-to-capture, so some simulated games now hit the max-turns guard
+  without a decisive winner (bounded, never an illegal move). Core logic is
+  pure and 100% covered by tests across `game.test.ts`, `ai.test.ts`,
+  `gameLoop.test.ts`, `gameSession.test.ts`, `selfPlay.test.ts`, and
+  `useGameSession.test.ts`.
+
+### Added
+
 - Add an enjoyment-gap analysis of the rules and build (M23-T2, #192). The new
   `docs/analysis.md` reviews the core game loop, economy, combat, and win
   conditions against `guidelines/ape-kingdom-rules.md` for enjoyment gaps

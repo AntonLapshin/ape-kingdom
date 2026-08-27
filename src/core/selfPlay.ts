@@ -46,13 +46,13 @@ import { aiTurnActions, playTurn } from "./gameLoop";
  * The default `MapConfig` passed to `standardSetup` for a headless self-play
  * run.
  *
- * A small (8×8) full-land board is used so each simulated game is fast (a
- * decisive capture resolves in well under a second) while still being the
- * standard two-player setup (two Home Trees on opposite sides, neutral
- * Groves/Nests between, standard starting forces). On a board this size the
- * AI layer's naive AI reliably terminates with a winner; on larger boards the
- * naive AI tends to wander (see `playAiGame` docs). Callers may pass their
- * own `mapConfig` to scale the board.
+ * A small (8×8) full-land board is used so each simulated game is fast while
+ * still being the standard two-player setup (two Home Trees on opposite
+ * sides, neutral Groves/Nests between, standard starting forces). On this
+ * board many seeds resolve decisively in well under a second; however, the
+ * Protection / Safety Zones rule (#195) intentionally adds defensive standoffs,
+ * so some naive-AI runs stall and are bounded by `DEFAULT_MAX_TURNS` (the
+ * guard returns `winner: null`). See the `playAiGame` docs.
  */
 export const DEFAULT_SELFPLAY_MAP: MapConfig = {
   width: 8,
@@ -65,11 +65,12 @@ export const DEFAULT_SELFPLAY_MAP: MapConfig = {
 
 /**
  * The default maximum number of full turns a `playAiGame` run will play
- * before giving up. A naive-AI game on the default small map resolves well
- * before this (observed ≤ ~210 turns); the cap only guards against an
- * (unexpected) infinite / non-terminating game, e.g. when a caller overrides
- * `mapConfig` with a larger board where the naive AI can wander without ever
- * reaching a decisive winner.
+ * before giving up. A naive-AI game on the default small map resolves in well
+ * under this cap (observed ≤ ~210 turns) for many seeds, but the Protection /
+ * Safety Zones rule (#195) deliberately creates defensive standoffs that can
+ * slow a naive-AI game past the cap; the guard then bounds the run and
+ * returns `winner: null` rather than looping forever. Callers may override it
+ * to trade speed against a larger board or stronger AI.
  */
 export const DEFAULT_MAX_TURNS = 300;
 

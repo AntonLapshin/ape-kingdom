@@ -13,7 +13,7 @@
  */
 
 import type { GameState, Hex, ApeKind, ApeUnit } from "./game";
-import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable, canJoinUnits } from "./game";
+import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable, canJoinUnits, isCellProtected } from "./game";
 import { isWater, isMountain, type GameMap } from "./mapGenerator";
 
 /* ------------------------------------------------------------------ */
@@ -185,6 +185,11 @@ export function legalActions(state: GameState): GameAction[] {
       state.map,
       (hex) => isOwnedBy(state, hex, me),
     )) {
+      // Protection / Safety Zones (M23-T2-G4, #195): an empty cell protected
+      // by an opposing unit of the same rank (or, for a rank-1 mover, an
+      // opposing Home Tree) may not be entered, so it is not a legal move
+      // target here.
+      if (isCellProtected(state, targetHex, unit)) continue;
       actions.push({ type: "move", unitHex: unit.hex, targetHex });
     }
     // A join target is an adjacent same-kingdom unit (standard 1-hex move); a
@@ -203,6 +208,11 @@ export function legalActions(state: GameState): GameAction[] {
     for (const targetHex of adjacentHexes(unit.hex)) {
       const defender = state.units.find((u) => sameHex(u.hex, targetHex));
       if (defender && defender.owner !== me) {
+        // Protection / Safety Zones (M23-T2-G4, #195): a cell protected by an
+        // opposing unit of the same rank (or, for a rank-1 attacker, an
+        // opposing Home Tree) may not be attacked into, so it is not a legal
+        // attack target here.
+        if (isCellProtected(state, targetHex, unit)) continue;
         actions.push({ type: "attack", attackerHex: unit.hex, targetHex });
       }
     }

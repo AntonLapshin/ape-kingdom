@@ -632,10 +632,13 @@ describe("useGameSession", () => {
     const { result } = renderHook(() =>
       useGameSession(0, { width: 7, height: 7, seed: 12 }),
     );
-    // The 7x7 seed-12 board places a p1 Monkey at (3,1) directly adjacent to a
-    // p2 Monkey at (3,2), so the p1 unit can legally attack from the start of
-    // the turn (it has not acted yet) and an equal-rank clash destroys both.
-    const unitHex = { q: 3, r: 1 };
+    // On the 7x7 seed-12 board, the p1 Gibbon at (2,2) sits directly adjacent
+    // to the p2 Monkey at (3,2). The Gibbon (rank 2) can legally attack that
+    // Monkey from the start of the turn (it has not acted yet): the cell is not
+    // protected against it (no same-rank enemy guards (3,2); the p1 Monkey at
+    // (3,1) is barred instead, because a p2 Monkey guards that approach). An
+    // equal-rank clash would destroy both, but here the higher-rank Gibbon wins.
+    const unitHex = { q: 2, r: 2 };
     const enemyHex = { q: 3, r: 2 };
     act(() => {
       result.current.selectCell(unitHex);
@@ -647,14 +650,16 @@ describe("useGameSession", () => {
       result.current.selectCell(enemyHex);
     });
     // Clicking the red target issues an attack: the selection clears (no
-    // highlight) and the p2 unit on that hex is captured (removed from the
-    // board), rather than the p1 unit moving onto it.
+    // highlight) and the p2 Monkey on that hex is captured — the p1 Gibbon
+    // (higher rank) destroys it and advances onto (3,2).
     expect(result.current.selectedHex).toBeNull();
     const captured = result.current.view.board.find(
       (c) => c.hex.q === enemyHex.q && c.hex.r === enemyHex.r,
     );
     expect(captured).toBeDefined();
-    expect(captured!.unit).toBeNull();
+    // The p2 unit is gone; the p1 Gibbon now occupies the captured hex.
+    expect(captured!.unit?.owner).toBe("p1");
+    expect(captured!.unit?.kind).toBe("Gibbon");
   });
 
   it("clicking a non-reachable cell does not issue a move (no illegal move)", () => {

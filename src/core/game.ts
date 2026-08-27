@@ -550,6 +550,12 @@ export type MoveErrorKind =
   /** The target hex is occupied by another unit. */
   | "occupied"
   /**
+   * The target hex is inside an opposing unit's / Home Tree's protection
+   * zone (Protection / Safety Zones rule) for this mover, so it may not
+   * enter it.
+   */
+  | "protected"
+  /**
    * The target hex holds a same-kingdom unit that cannot be joined: the
    * summed level exceeds the maximum rank (e.g. 2+3), or one of the units has
    * already acted this turn. Joining adds levels (1+1=2, 2+1=3, 2+2=4, 3+1=4)
@@ -749,6 +755,60 @@ export function reachableForUnit(
 }
 
 /**
+ * Whether a cell is a protected / safety zone against `mover` entering it,
+ * per the Protection / Safety Zones rule in `ape-kingdom-rules.md`.
+ *
+ * A unit protects its surrounding (adjacent) cells from opposing units of the
+ * same rank — a Monkey protects its adjacent cells from opposing Monkeys, a
+ * Gibbon from opposing Gibbons, a Chimpanzee from opposing Chimpanzees, and a
+ * Gorilla from opposing Gorillas. A Home Tree protects the cells surrounding
+ * it from opposing Monkeys (rank 1). Protection only restricts entry by the
+ * opposing units listed; it does not prevent higher- or lower-ranked enemy
+ * units from entering protected cells, and it does not restrict the
+ * protecting unit's own movement or attacks (an ally of the protector is
+ * never blocked). Protection does not change site ownership and does not
+ * prevent a protected cell from being captured by a unit that is allowed to
+ * enter it.
+ *
+ * `mover` is the unit that would move or attack into `targetHex`. The cell is
+ * protected (and the move/attack into it refused) when there is an opposing
+ * unit of the same rank adjacent to the target, or — for a rank-1 mover — an
+ * opposing Home Tree adjacent to the target.
+ */
+export function isCellProtected(
+  state: GameState,
+  targetHex: Hex,
+  mover: ApeUnit,
+): boolean {
+  const moverRank = rankOf(mover.kind);
+  // An opposing unit of the same rank protects each cell adjacent to it.
+  for (const other of state.units) {
+    if (
+      other.owner !== mover.owner &&
+      rankOf(other.kind) === moverRank &&
+      areAdjacent(other.hex, targetHex)
+    ) {
+      return true;
+    }
+  }
+  // A Home Tree the mover's kingdom does not own protects its adjacent cells
+  // from opposing Monkeys (rank 1). Neutral Home Trees protect no one.
+  if (moverRank === 1) {
+    for (const site of state.sites) {
+      if (
+        site.kind === "HomeTree" &&
+        site.owner !== null &&
+        site.owner !== mover.owner &&
+        areAdjacent(site.hex, targetHex)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Turn-sequence step C (movement part): Move and Capture.
  *
  * Moves a unit toward `targetHex`. The unit must be owned by the current
@@ -910,6 +970,19 @@ export function moveUnit(state: GameState, unit: ApeUnit, targetHex: Hex): GameS
     );
   }
 
+  // Protection / Safety Zones (M23-T2-G4, #195): an empty cell protected by
+  // an opposing unit of the same rank (or, for a rank-1 mover, an opposing
+  // Home Tree) may not be entered. This check sits after the occupied/join
+  // handling because join targets are friendly cells (never protected against
+  // the mover) and enemy-occupied cells are resolved by combat instead of by
+  // moving onto them.
+  if (isCellProtected(state, targetHex, existing)) {
+    throw new MoveError(
+      "protected",
+      `Cannot move to (${targetHex.q},${targetHex.r}): the cell is protected`,
+    );
+  }
+
   // Update the unit's hex and mark it as acted this turn.
   const units = state.units.map((u) =>
     u === existing ? { ...u, hex: targetHex, hasActed: true } : u,
@@ -987,7 +1060,13 @@ export type AttackErrorKind =
   /** The target hex is not adjacent to the attacker. */
   | "not-adjacent"
   /** There is no unit (enemy or otherwise) at the target hex. */
-  | "no-enemy";
+  | "no-enemy"
+  /**
+   * The target hex is inside an opposing unit's / Home Tree's protection
+   * zone (Protection / Safety Zones rule) for this attacker, so it may not
+   * attack into it.
+   */
+  | "protected";
 
 /** A typed error describing why an attack was rejected. */
 export class AttackError extends Error {
@@ -1071,6 +1150,19 @@ export function attackUnit(
     throw new AttackError(
       "no-enemy",
       `Cannot attack (${targetHex.q},${targetHex.r}): the unit there is friendly`,
+    );
+  }
+
+  // Protection / Safety Zones (M23-T2-G4, #195): a cell protected by an
+  // opposing unit of the same rank (or, for a rank-1 attacker, an opposing
+  // Home Tree) may not be attacked into — this creates the defensive standoffs
+  // the rules intend. Attacking a defender whose cell is guarded by a
+  // same-rank enemy of the attacker (or, for a Monkey attacker, an opposing
+  // Home Tree) is refused with a typed error.
+  if (isCellProtected(state, targetHex, existing)) {
+    throw new AttackError(
+      "protected",
+      `Cannot attack (${targetHex.q},${targetHex.r}): the cell is protected`,
     );
   }
 
