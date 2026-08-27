@@ -37,6 +37,7 @@ import {
   type GameAction,
   type AiOptions,
 } from "./ai";
+import type { DecisionRecorder, TrainingDecision } from "./trainingDataset";
 
 /**
  * A hard safety cap on the number of actions applied during a single AI turn.
@@ -216,6 +217,8 @@ export function aiTurnActions(
   state: GameState,
   seed: number,
   options: AiOptions = {},
+  record?: DecisionRecorder,
+  turn = 0,
 ): GameAction[] {
   const actions: GameAction[] = [];
   let s = state;
@@ -231,6 +234,19 @@ export function aiTurnActions(
     });
     if (meaningful.length === 0) break;
     const action = chooseFromActions(meaningful, s, seed + guard, options);
+    // Observational recording: expose the state at decision time, the legal
+    // set considered, and the chosen action. The recorder never mutates `s`
+    // or affects which action is chosen, so it cannot change the outcome.
+    if (record) {
+      const decision: TrainingDecision = {
+        turn,
+        player: s.currentPlayer,
+        state: s,
+        legalActions: meaningful,
+        chosenAction: action,
+      };
+      record(decision);
+    }
     s = applyAction(s, action);
     actions.push(action);
     if (action.type === "move" || action.type === "attack") fought = true;
@@ -251,12 +267,14 @@ export function runAiTurn(
   state: GameState,
   seed: number,
   options: AiOptions = {},
+  record?: DecisionRecorder,
+  turn = 0,
 ): GameState {
   // Reset the AI's units so they may act this turn, then collect income
   // (step A) and apply the generated recruit / move / fight actions.
   let s = resetUnitsForTurn(state, state.currentPlayer);
   s = collectIncome(s);
-  for (const action of aiTurnActions(s, seed, options)) {
+  for (const action of aiTurnActions(s, seed, options, record, turn)) {
     s = applyAction(s, action);
   }
   return s;
@@ -289,6 +307,8 @@ export function playTurn(
   humanMoves: GameAction[],
   aiSeed: number,
   aiOptions: AiOptions = {},
+  record?: DecisionRecorder,
+  turn = 0,
 ): GameState {
   // Human's turn: reset the human's units so they may act, collect income
   // (step A), then apply steps B + C (recruit / move / fight).
@@ -301,7 +321,7 @@ export function playTurn(
 
   // AI's turn: advance to the AI, run its turn, then resolve.
   s = advanceTurn(s);
-  s = runAiTurn(s, aiSeed, aiOptions);
+  s = runAiTurn(s, aiSeed, aiOptions, record, turn);
   s = eliminatePlayers(s);
   s = resolveVictory(s);
   if (s.winner) return s;
