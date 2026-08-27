@@ -12,6 +12,7 @@ import {
   isMoveTarget,
   reachableTargetHexes,
   enemyTargetHexes,
+  loadTrainedPolicy,
   type GameSessionView,
 } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup, createGameSession } from "../../src/core/gameSession";
@@ -466,6 +467,68 @@ describe("selectedMovement / isMoveTarget", () => {
     }
     // Plain move targets are never enemy targets.
     expect(enemy.some((x) => sameHex(x, { q: 1, r: 0 }))).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* loadTrainedPolicy (M28-T3 graceful loading)                         */
+/* ------------------------------------------------------------------ */
+
+describe("loadTrainedPolicy", () => {
+  const okResponse = (body: unknown, ok = true): Response =>
+    ({
+      ok,
+      json: async () => body,
+    }) as unknown as Response;
+
+  const VALID_POLICY = {
+    weights: [0, 0, 100, 0, 0, 0],
+    bias: 0,
+    gamesSeen: 1,
+    decisionsSeen: 1,
+    source: "win-weighted-centroid",
+    version: 1,
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns a parsed valid policy when the file loads", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(VALID_POLICY)));
+    expect(await loadTrainedPolicy("/base/")).toEqual(VALID_POLICY);
+    expect(fetch).toHaveBeenCalledWith("/base/trained-ai.json");
+  });
+
+  it("returns null for a non-OK (missing) response", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(null, false)));
+    expect(await loadTrainedPolicy()).toBeNull();
+  });
+
+  it("returns null when the file is unparseable (invalid JSON)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => {
+          throw new Error("bad json");
+        },
+      })),
+    );
+    expect(await loadTrainedPolicy()).toBeNull();
+  });
+
+  it("returns null when the JSON is structurally malformed", async () => {
+    const malformed = { weights: [0, 0, 0], bias: 0 };
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(malformed)));
+    expect(await loadTrainedPolicy()).toBeNull();
+  });
+
+  it("returns null when the fetch itself rejects (network error)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("network down");
+    }));
+    expect(await loadTrainedPolicy()).toBeNull();
   });
 });
 

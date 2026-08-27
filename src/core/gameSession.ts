@@ -51,6 +51,7 @@ import {
 } from "./mapGenerator";
 import { legalActions, type GameAction, type AiOptions } from "./ai";
 import { applyHumanMoves, playTurn } from "./gameLoop";
+import type { TrainedAiPolicy } from "./training";
 
 /* ------------------------------------------------------------------ */
 /* Turn steps                                                          */
@@ -116,6 +117,13 @@ export interface GameSession {
   aiSeed: number;
   /** The AI options used to run the AI's reply on submit. */
   aiOptions: AiOptions;
+  /**
+   * The optional trained-AI opponent policy (M28-T3, #204) used for the AI's
+   * replies on submit. When present and valid it selects the opponent's moves
+   * at higher precedence than the base AI; when absent or invalid the session
+   * falls back to the rule-legal base AI (see `src/core/trainedOpponent.ts`).
+   */
+  trainedPolicy?: TrainedAiPolicy | null;
   /** The winner, or null while the game is in progress. */
   winner: PlayerId | null;
 }
@@ -373,12 +381,15 @@ function sameAction(a: GameAction, b: GameAction): boolean {
  * The AI's reply is driven by `aiSeed` (deterministic for a given seed) and
  * `aiOptions` (behavior knobs), both of which are carried through to
  * `submitTurn`. An optional `mapConfig` is passed to `standardSetup` to
- * reproduce a specific generated board deterministically (default 20×20).
+ * reproduce a specific generated board deterministically (default 20×20). An
+ * optional `trainedPolicy` (M28-T3) supplies the trained-AI opponent; when
+ * absent the session falls back to the rule-legal AI for its replies.
  */
 export function createGameSession(
   aiSeed = 0,
   aiOptions: AiOptions = {},
   mapConfig?: MapConfig,
+  trainedPolicy?: TrainedAiPolicy | null,
 ): GameSession {
   const baseState = standardSetup(mapConfig);
   const state = projectState(baseState, []);
@@ -390,6 +401,7 @@ export function createGameSession(
     legalMoves: legalMovesFor(state, "recruit"),
     aiSeed,
     aiOptions,
+    trainedPolicy,
     winner: null,
   };
 }
@@ -471,6 +483,9 @@ export function submitTurn(session: GameSession): GameSession {
     session.moves,
     session.aiSeed,
     session.aiOptions,
+    undefined,
+    0,
+    session.trainedPolicy,
   );
 
   if (result.winner) {
