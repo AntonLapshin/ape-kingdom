@@ -42,6 +42,7 @@ import {
   kindForRank,
   canJoinUnits,
   MAX_RANK,
+  isCellProtected,
   Grave,
   createGrave,
   gravesFor,
@@ -2121,6 +2122,212 @@ describe("attackUnit", () => {
     expect(state.units).toHaveLength(2);
     expect(state.units[0].hex).toEqual({ q: 1, r: 0 });
     expect(state.units[0].hasActed).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Protection / Safety Zones (M23-T2-G4, #195)                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * All protection tests use central map cells that are passable land on the
+ * `generateMap({ width: 7, height: 7, seed: 0 })` board: (2,2), (3,2), (3,3),
+ * (2,3), (1,3) are all land, and the adjacency used is (q+1) and (r+1)
+ * neighbours, so terrain / occupied errors never mask the protection checks.
+ */
+describe("isCellProtected (Protection / Safety Zones, M23-T2-G4)", () => {
+  it("a unit protects its surrounding cells from an opposing unit of the same rank", () => {
+    const state = gameState({
+      units: [createUnit("Monkey", "p1", { q: 2, r: 2 }, false)],
+    });
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 2 }, false);
+    // A p2 Monkey at (3,3) guards (3,2) — protected against a p1 Monkey.
+    const guarded = gameState({
+      units: [
+        createUnit("Monkey", "p1", { q: 2, r: 2 }, false),
+        createUnit("Monkey", "p2", { q: 3, r: 3 }),
+      ],
+    });
+    expect(isCellProtected(guarded, { q: 3, r: 2 }, mover)).toBe(true);
+    // The same cell is not protected when no same-rank enemy is adjacent.
+    expect(isCellProtected(state, { q: 3, r: 2 }, mover)).toBe(false);
+  });
+
+  it("does not protect against a lower- or higher-ranked enemy unit", () => {
+    // A p2 Monkey (rank 1) guards (3,2); it only blocks opposing Monkeys.
+    const guarded = gameState({
+      units: [createUnit("Monkey", "p2", { q: 3, r: 3 })],
+    });
+    // A p1 Gibbon (rank 2) and a p1 Gorilla (rank 4) may enter the protected cell.
+    expect(
+      isCellProtected(guarded, { q: 3, r: 2 }, createUnit("Gibbon", "p1", { q: 2, r: 2 })),
+    ).toBe(false);
+    expect(
+      isCellProtected(guarded, { q: 3, r: 2 }, createUnit("Gorilla", "p1", { q: 2, r: 2 })),
+    ).toBe(false);
+  });
+
+  it("a unit's own (same-kingdom) presence never blocks its allies", () => {
+    // A p1 Gibbon at (3,3) is adjacent to (3,2), but it is the mover's ally,
+    // so (3,2) is not protected for a p1 Gibbon mover.
+    const state = gameState({
+      units: [
+        createUnit("Gibbon", "p1", { q: 3, r: 3 }, false),
+        createUnit("Monkey", "p2", { q: 1, r: 2 }, false),
+      ],
+    });
+    const mover = createUnit("Gibbon", "p1", { q: 2, r: 2 }, false);
+    expect(isCellProtected(state, { q: 3, r: 2 }, mover)).toBe(false);
+  });
+
+  it("a Home Tree protects its surrounding cells from opposing Monkeys (rank 1)", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 3, 3, "p2")],
+    });
+    const monkey = createUnit("Monkey", "p1", { q: 2, r: 2 }, false);
+    // (3,2) is adjacent to the p2 Home Tree at (3,3) — protected from a p1 Monkey.
+    expect(isCellProtected(state, { q: 3, r: 2 }, monkey)).toBe(true);
+    // A p1 Gibbon (rank 2) is not blocked by a Home Tree.
+    expect(
+      isCellProtected(state, { q: 3, r: 2 }, createUnit("Gibbon", "p1", { q: 2, r: 2 })),
+    ).toBe(false);
+  });
+
+  it("a neutral Home Tree protects no one", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 3, 3)], // owner null
+    });
+    const monkey = createUnit("Monkey", "p1", { q: 2, r: 2 }, false);
+    expect(isCellProtected(state, { q: 3, r: 2 }, monkey)).toBe(false);
+  });
+
+  it("a Home Tree protects only the cells surrounding it, not the tree's own hex", () => {
+    const state = gameState({
+      sites: [createSite("HomeTree", 3, 3, "p2")],
+    });
+    const monkey = createUnit("Monkey", "p1", { q: 2, r: 2 }, false);
+    // (3,3) is the tree's own hex, not a surrounding cell — not protected.
+    expect(isCellProtected(state, { q: 3, r: 3 }, monkey)).toBe(false);
+  });
+
+  it("a unit protects only its surrounding cells, never its own hex", () => {
+    const state = gameState({
+      units: [createUnit("Gibbon", "p2", { q: 5, r: 2 })],
+    });
+    const mover = createUnit("Gibbon", "p1", { q: 4, r: 1 }, false);
+    // The p2 Gibbon's own hex (5,2) is not one of the cells it protects.
+    expect(isCellProtected(state, { q: 5, r: 2 }, mover)).toBe(false);
+  });
+});
+
+describe("moveUnit rejects protected cells (Protection / Safety Zones, #195)", () => {
+  function pState(units: ApeUnit[], sites: Site[] = []): GameState {
+    return gameState({
+      units,
+      sites,
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+  }
+
+  it("rejects moving into a cell protected by an opposing same-rank unit", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 2 }, false);
+    const guard = createUnit("Monkey", "p2", { q: 3, r: 3 });
+    const state = pState([mover, guard]);
+    // (3,2) is empty, in range, land, and adjacent to the p2 Monkey — protected.
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 3, r: 2 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("protected");
+  });
+
+  it("rejects moving a rank-1 unit into a cell protected by an opposing Home Tree", () => {
+    const mover = createUnit("Monkey", "p1", { q: 2, r: 2 }, false);
+    const state = pState([mover], [createSite("HomeTree", 3, 3, "p2")]);
+    let caught: unknown;
+    try {
+      moveUnit(state, mover, { q: 3, r: 2 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(MoveError);
+    expect((caught as MoveError).kind).toBe("protected");
+  });
+
+  it("allows a higher- or lower-ranked unit to enter the same protected cell", () => {
+    const guard = createUnit("Monkey", "p2", { q: 3, r: 3 });
+    // A p1 Gorilla (rank 4) may enter (3,2) even though a p2 Monkey guards it.
+    const gorilla = createUnit("Gorilla", "p1", { q: 2, r: 2 }, false);
+    const next = moveUnit(pState([gorilla, guard]), gorilla, { q: 3, r: 2 });
+    expect(next.units.find((u) => sameHex(u.hex, { q: 3, r: 2 }))?.kind).toBe("Gorilla");
+    // A p1 Gibbon (rank 2) may also enter (3,2).
+    const gibbon = createUnit("Gibbon", "p1", { q: 2, r: 2 }, false);
+    const next2 = moveUnit(pState([gibbon, guard]), gibbon, { q: 3, r: 2 });
+    expect(next2.units.find((u) => sameHex(u.hex, { q: 3, r: 2 }))?.kind).toBe("Gibbon");
+  });
+
+  it("allows moving into a cell that only a same-kingdom unit guards", () => {
+    // A p1 stationary Monkey guards (3,2); a p1 Gibbon may move onto it.
+    const mover = createUnit("Gibbon", "p1", { q: 2, r: 2 }, false);
+    const allyGuard = createUnit("Monkey", "p1", { q: 3, r: 3 }, false);
+    const state = pState([mover, allyGuard]);
+    const next = moveUnit(state, mover, { q: 3, r: 2 });
+    expect(next.units.find((u) => sameHex(u.hex, { q: 3, r: 2 }))?.kind).toBe("Gibbon");
+  });
+});
+
+describe("attackUnit rejects protected cells (Protection / Safety Zones, #195)", () => {
+  /** attacker p1 Gibbon (rank 2) at (1,3), defender p2 Monkey (rank 1) at (2,3). */
+  function aState(units: ApeUnit[]): GameState {
+    return gameState({
+      units,
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+  }
+
+  it("rejects attacking into a cell protected by an opposing same-rank unit", () => {
+    const attacker = createUnit("Gibbon", "p1", { q: 1, r: 3 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 3 });
+    // A p2 Gibbon (rank 2) at (3,3) guards the defender's cell (2,3).
+    const guard = createUnit("Gibbon", "p2", { q: 3, r: 3 });
+    const state = aState([attacker, defender, guard]);
+    let caught: unknown;
+    try {
+      attackUnit(state, attacker, { q: 2, r: 3 });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(AttackError);
+    expect((caught as AttackError).kind).toBe("protected");
+  });
+
+  it("allows attacking the same cell when no same-rank enemy guards it", () => {
+    const attacker = createUnit("Gibbon", "p1", { q: 1, r: 3 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 3 });
+    const state = aState([attacker, defender]);
+    const next = attackUnit(state, attacker, { q: 2, r: 3 });
+    // Gibbon beats Monkey — defender destroyed, attacker moves in.
+    expect(next.units).toHaveLength(1);
+    expect(next.units[0].owner).toBe("p1");
+  });
+
+  it("allows a higher-ranked attacker into the guarded cell (rank rule preserved)", () => {
+    const attacker = createUnit("Gorilla", "p1", { q: 1, r: 3 }, false);
+    const defender = createUnit("Monkey", "p2", { q: 2, r: 3 });
+    // The p2 Gibbon guard is a different rank than the Gorilla attacker.
+    const guard = createUnit("Gibbon", "p2", { q: 3, r: 3 });
+    const state = aState([attacker, defender, guard]);
+    const next = attackUnit(state, attacker, { q: 2, r: 3 });
+    // Gorilla beats Monkey — defender destroyed, attacker moves in; the
+    // untouched p2 Gibbon guard remains, so 2 units survive.
+    expect(next.units).toHaveLength(2);
+    expect(next.units.find((u) => u.kind === "Gorilla")?.owner).toBe("p1");
+    expect(next.units.find((u) => u.kind === "Gorilla")?.hex).toEqual({ q: 2, r: 3 });
   });
 });
 

@@ -617,6 +617,90 @@ describe("legalActions — attack", () => {
   });
 });
 
+describe("legalActions — Protection / Safety Zones (M23-T2-G4, #195)", () => {
+  it("excludes a move target protected by an opposing same-rank unit", () => {
+    // p1 Monkey at (2,2), guarded (3,2) by a p2 Monkey at (3,3).
+    const state = gameState({
+      sites: [],
+      units: [
+        createUnit("Monkey", "p1", { q: 2, r: 2 }, false),
+        createUnit("Monkey", "p2", { q: 3, r: 3 }),
+      ],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    // (3,2) is protected, so no move targets it.
+    expect(moves.some((a) => a.type === "move" && sameHex(a.targetHex, { q: 3, r: 2 }))).toBe(
+      false,
+    );
+  });
+
+  it("excludes a move into a Home-Tree-protected cell for a rank-1 mover", () => {
+    // p1 Monkey at (2,2); p2 Home Tree at (3,3) protects (3,2) from Monkeys.
+    const state = gameState({
+      sites: [createSite("HomeTree", 3, 3, "p2")],
+      units: [createUnit("Monkey", "p1", { q: 2, r: 2 }, false)],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    expect(moves.some((a) => a.type === "move" && sameHex(a.targetHex, { q: 3, r: 2 }))).toBe(
+      false,
+    );
+  });
+
+  it("keeps a higher-ranked unit's move into the protected cell legal", () => {
+    // p1 Gorilla may enter (3,2) even though a p2 Monkey guards it.
+    const state = gameState({
+      sites: [],
+      units: [
+        createUnit("Gorilla", "p1", { q: 2, r: 2 }, false),
+        createUnit("Monkey", "p2", { q: 3, r: 3 }),
+      ],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    const moves = legalActions(state).filter((a) => a.type === "move");
+    expect(moves.some((a) => a.type === "move" && sameHex(a.targetHex, { q: 3, r: 2 }))).toBe(
+      true,
+    );
+  });
+
+  it("excludes an attack target protected by an opposing same-rank unit", () => {
+    // p1 Gibbon at (1,3) vs p2 Monkey at (2,3), guarded by a p2 Gibbon at (3,3).
+    const state = gameState({
+      sites: [],
+      units: [
+        createUnit("Gibbon", "p1", { q: 1, r: 3 }, false),
+        createUnit("Monkey", "p2", { q: 2, r: 3 }),
+        createUnit("Gibbon", "p2", { q: 3, r: 3 }),
+      ],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    const attacks = legalActions(state).filter((a) => a.type === "attack");
+    expect(attacks).toHaveLength(0);
+  });
+
+  it("keeps the same attack legal when no same-rank enemy guards the cell", () => {
+    const state = gameState({
+      sites: [],
+      units: [
+        createUnit("Gibbon", "p1", { q: 1, r: 3 }, false),
+        createUnit("Monkey", "p2", { q: 2, r: 3 }),
+      ],
+      players: { p1: createPlayer("p1", 0), p2: createPlayer("p2", 0) },
+      currentPlayer: "p1",
+    });
+    const attacks = legalActions(state).filter((a) => a.type === "attack");
+    expect(attacks).toHaveLength(1);
+    if (attacks[0].type === "attack") {
+      expect(sameHex(attacks[0].targetHex, { q: 2, r: 3 })).toBe(true);
+    }
+  });
+});
+
 describe("legalActions — turn-step ordering", () => {
   it("returns income, then recruit, then move, then attack in order", () => {
     const state = gameState({
