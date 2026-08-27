@@ -8,6 +8,19 @@
 Every planned sub-issue is implemented, tested, and merged; CI + Pages green;
 861 tests pass; 100% coverage on `src/core/**`; build succeeds.
 
+New post-ship issue #208 ("Improve UI performance" — UI very slow when dragging
+the map, CPU spikes) is planned as milestone M29, split 2026-08-27 into three
+concise, testable slices, all `pi:ready`; parent #208 closed. Root cause (from
+repo reading): every `panBy`/`zoomBy` (React state in `usePan`/`useZoom`)
+re-renders `Board`, which recomputes the bounding box with an O(n) map + min/max
+over all ~400 cells and re-renders every `Cell` (each mounting an SVG `clipPath`)
+— none memoized, `onSelect` a fresh inline closure each render. Slices: M29-T1
+#209 (memoize board cells so pan/zoom don't re-render every hex, `priority:p1`),
+M29-T2 #211 (hoist the bounding-box computation into a memoized pure helper,
+`priority:p1`), M29-T3 #210 (coalesce pan/zoom updates to one per animation
+frame, `priority:p2`). All are UI-layer rendering/performance changes — no game
+rules touched, core coverage stays 100%.
+
 History: **M1–M19 COMPLETE and shipped; M20–M27 DONE; M28 (AI training) DONE.**
 M26 (highlighting target cells, #168) is DONE (M26-T1 #169, PR #170
 merged). New post-ship issue #171 ("Additional scope") was split into M27

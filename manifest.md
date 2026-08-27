@@ -3,7 +3,8 @@
 > Project charter / intent.
 
 **Status: done** — all milestones M1–M28 are COMPLETE and merged (completed_at:
-2026-08-27T22:58:00Z). Post-ship feedback is planned
+2026-08-27T22:58:00Z), plus post-ship M29 (UI performance, #208) planned
+2026-08-27 and being implemented. Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
 #146/#147/#148 `pi:ready`), M21 (#143 game rules + graves), M22 (#144 map
@@ -586,3 +587,22 @@ plays the game in the deployed UI. Large subproject — split per plan.md §16.3
     - [x] M28-T2a Record a self-play training dataset (state → chosen-action pairs) in the core (#202, PR #205)
     - [x] M28-T2b Headless training harness that trains a policy model and emits a serialized trained-AI file (#203, PR #206)
   - [x] M28-T3 (next slice) Trained AI file used by the deployed UI opponent (#204, PR #207)
+
+### M29 — Improve UI performance (#208)
+
+**Goal:** Address the post-ship performance issue #208 ("UI is very slow,
+especially when dragging the map, CPU spikes. Find a way to make it much
+faster"). Root cause observed in the UI: the full-screen `PlayableGame`
+re-renders on every `panBy`/`zoomBy` (React state in `usePan`/`useZoom`), which
+re-renders `Board`, which (a) recomputes the board bounding box by mapping over
+all ~400 cells plus `Math.min`/`Math.max` on every render, and (b) re-renders
+every one of the ~400 `Cell` components (each mounting an SVG `clipPath`) —
+none of which is memoized, and the cell `onSelect` is a fresh inline closure
+each render. Purely a UI-layer rendering/performance change — no game rules or
+core logic are touched, so core coverage stays 100% unchanged. Split per
+plan.md §16.3 — planned 2026-08-27.
+
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M29-T1 Memoize board cells so a pan/zoom transform change does not re-render every hex (#209, `priority:p1`)
+  - [ ] M29-T2 Hoist the board bounding-box computation into a memoized pure helper computed once per board-data change (#211, `priority:p1`)
+  - [ ] M29-T3 Coalesce pan/zoom state updates to one per animation frame (rAF-throttle pointer/wheel) (#210, `priority:p2`)
