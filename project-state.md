@@ -25,8 +25,20 @@ border on selected cell, `priority:p1`) — all merged (PRs #222/#223/#224).
 **Next `pi:ready` batch planned 2026-08-28:** M30-T2 #225 (place random neutral
 units during setup, `priority:p1`), M31-T2 #226 (smaller+clearly-circular
 default map, `priority:p1`), M32-T2 #227 (cell-info shows terrain,
-`priority:p1`). Remaining slices of M30/M31/M32 (M30-T3/T4/T5, M31-T3/T4,
-M32-T3/T4) are planned on later PM turns.
+`priority:p1`). M30-T2 #225 shipped via PR #228, its boundary tests #229 via PR
+#232, and M31-T2 #226 via PR #230 — all merged.
+
+M32-T2 **#227 (cell-info shows terrain)** is implemented and under review via
+PR #231 (awaiting approval): the bottom-left cell-info panel renders a clear
+terrain label for the selected hex (Mountain / Water / Land), driven purely by
+map terrain via a new pure `terrainLabel` + `TERRAIN_LABELS` presentation helper
+in `src/ui/presentation.ts` and a dedicated `cell-info-terrain` element in the
+dumb `CellInfoPanel` component. `src/core` untouched and still 100% covered.
+PR #231 was rebased onto `main` to resolve a CHANGELOG conflict; it is now
+MERGEABLE and CI green, awaiting review approval.
+
+Remaining slices of M30/M31/M32 (M30-T3/T4/T5, M31-T3/T4, M32-T3/T4) are planned
+on later PM turns.
 
 Prior post-ship work — new post-ship issue #208 ("Improve UI performance" — UI
 very slow when dragging the map, CPU spikes) was planned as milestone M29, split
