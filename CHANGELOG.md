@@ -20,6 +20,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Random map + random spawn on each load (M31-T1, #220). `standardSetup(config?)`
+  in `src/core/gameSession.ts` now draws a **fresh random seed** via the new pure
+  `randomSeed()` helper whenever no explicit `MapConfig.seed` is supplied, so every
+  fresh game starts on a **different generated map** instead of the fixed seed-0
+  board, while an explicit `seed` still reproduces a deterministic map exactly.
+  `chooseHomeHexes(map, seed)` now picks player spawn / Home-Tree hexes **at
+  random** from the island's left and right halves (split around the mid-column)
+  — driven by `mulberry32` (now exported from `src/core/mapGenerator.ts`) so the
+  pick is reproducible under a fixed seed and varied under fresh generation —
+  instead of always the leftmost/rightmost land cells. Legality is unchanged:
+  Home Trees sit on land with an all-land starting-force neighbourhood, p1 stays
+  strictly on the left half and p2 on the right half, and site placement logic is
+  untouched; a degenerate all-one-side map still falls back to the extreme
+  candidates. The deployed `PlayableGame` / `useGameSession` pass no map config,
+  so each new game starts on a random map with random spawns. Core stays pure and
+  100% covered; rendering tests pin a fixed map seed where they assert stable
+  topology/unit counts.
+
 - Core neutral-unit data model (M30-T1, #219). The `ApeUnit` type in
   `src/core/game.ts` now models a neutral unit — a unit that belongs to no
   kingdom — by widening `owner` from `PlayerId` to `PlayerId | null`, while

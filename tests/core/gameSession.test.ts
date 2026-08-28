@@ -12,6 +12,7 @@ import {
   resetTurn,
   standardSetup,
   chooseHomeHexes,
+  randomSeed,
   GameSessionError,
 } from "../../src/core/gameSession";
 import { TRAINED_AI_SOURCE, TRAINED_AI_VERSION } from "../../src/core/training";
@@ -104,6 +105,48 @@ describe("standardSetup", () => {
     );
   });
 
+  it("draws a fresh random map when no explicit seed is supplied (M31-T1)", () => {
+    // A handful of unseeded setups must produce more than one distinct board, so
+    // every fresh load starts on a new map rather than the fixed seed-0 one.
+    // (Checking >1 distinct map over several draws, rather than asserting two
+    // specific calls differ, keeps the test robust while still proving the
+    // regular map is no longer deterministic.)
+    const seen = new Set<string>();
+    for (let i = 0; i < 6; i++) {
+      const s = standardSetup();
+      // Fresh (random) seeds still yield valid 20×20 maps.
+      expect(s.map.width).toBe(20);
+      expect(s.map.height).toBe(20);
+      seen.add(JSON.stringify(s.map.cells));
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it("reproduces the same spawn for the same seed (M31-T1)", () => {
+    const a = standardSetup({ seed: 7 });
+    const b = standardSetup({ seed: 7 });
+    const homeOf = (state: ReturnType<typeof standardSetup>, id: string) =>
+      state.sites.find((s) => s.kind === "HomeTree" && s.owner === id)!.hex;
+    expect(homeOf(a, "p1")).toEqual(homeOf(b, "p1"));
+    expect(homeOf(a, "p2")).toEqual(homeOf(b, "p2"));
+  });
+
+  it("randomizes spawn locations across seeds (M31-T1)", () => {
+    const seen = new Set<string>();
+    let varied = 0;
+    for (let seed = 0; seed < 40; seed++) {
+      const state = standardSetup({ seed });
+      const homes = state.sites.filter((s) => s.kind === "HomeTree");
+      const p1 = homes.find((s) => s.owner === "p1")!.hex;
+      const p2 = homes.find((s) => s.owner === "p2")!.hex;
+      seen.add(`${p1.q},${p1.r}|${p2.q},${p2.r}`);
+      if (p1.q !== 0 && p2.q !== 0) varied = Math.max(varied, 1);
+    }
+    // Across 40 seeds the spawn spots are not pinned to one fixed pair.
+    expect(seen.size).toBeGreaterThan(1);
+    expect(varied).toBe(1);
+  });
+
   it("honours a custom map config (non-default dimensions)", () => {
     const state = standardSetup({ width: 9, height: 7, seed: 3 });
     expect(state.map.width).toBe(9);
@@ -112,17 +155,21 @@ describe("standardSetup", () => {
   });
 
   it("places the two Home Trees on opposite sides of the island", () => {
-    const state = standardSetup();
-    const homes = state.sites.filter((s) => s.kind === "HomeTree");
-    const p1Home = homes.find((s) => s.owner === "p1")!.hex;
-    const p2Home = homes.find((s) => s.owner === "p2")!.hex;
-    // Opposite sides: p1 leftmost, p2 rightmost, clearly separated.
-    expect(p1Home.q).toBeLessThan(p2Home.q);
-    const distance = Math.max(
-      Math.abs(p1Home.q - p2Home.q),
-      Math.abs(p1Home.r - p2Home.r),
-    );
-    expect(distance).toBeGreaterThan(5);
+    // Spawn spots are now randomized (M31-T1, #220), but the left-vs-right
+    // split guarantees p1 sits strictly on the left half of the island's q
+    // axis and p2 on the right half, so they remain on opposite-ish sides. The
+    // distance varies seed-to-seed; the ordering and side separation hold
+    // across every seed (checked over a range so the random pick is exercised).
+    for (let seed = 0; seed < 40; seed++) {
+      const state = standardSetup({ seed });
+      const homes = state.sites.filter((s) => s.kind === "HomeTree");
+      const p1Home = homes.find((s) => s.owner === "p1")!.hex;
+      const p2Home = homes.find((s) => s.owner === "p2")!.hex;
+      // p1 strictly on the left half, p2 strictly on the right half.
+      expect(p1Home.q).toBeLessThan(state.map.width / 2);
+      expect(p2Home.q).toBeGreaterThanOrEqual(state.map.width / 2);
+      expect(p1Home.q).toBeLessThan(p2Home.q);
+    }
   });
 
   it("places every site on a land cell only", () => {
@@ -171,6 +218,78 @@ describe("chooseHomeHexes", () => {
     }
     expect(err).toBeInstanceOf(GameSessionError);
     expect((err as GameSessionError).kind).toBe("no-suitable-home");
+  });
+
+  it("is deterministic for a fixed seed (M31-T1)", () => {
+    const map = standardSetup({ seed: 3 }).map;
+    const a = chooseHomeHexes(map, 99);
+    const b = chooseHomeHexes(map, 99);
+    expect(a).toEqual(b);
+  });
+
+  it("varies the chosen spawns across seeds on the same map (M31-T1)", () => {
+    const map = standardSetup({ seed: 3 }).map;
+    const seen = new Set<string>();
+    for (let seed = 0; seed < 30; seed++) {
+      const { p1, p2 } = chooseHomeHexes(map, seed);
+      seen.add(`${p1.q},${p1.r}|${p2.q},${p2.r}`);
+    }
+    // The picker is genuinely random across seeds, not pinned to one pair.
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it("always places p1 on the left half and p2 on the right half", () => {
+    const map = standardSetup({ seed: 3 }).map; // complex island, many candidates
+    for (let seed = 0; seed < 20; seed++) {
+      const { p1, p2 } = chooseHomeHexes(map, seed);
+      expect(p1.q).toBeLessThan(map.width / 2);
+      expect(p2.q).toBeGreaterThanOrEqual(map.width / 2);
+    }
+  });
+
+  it("falls back to leftmost/rightmost when all candidates sit on one side (M31-T1)", () => {
+    // A map whose suitable land cells all lie on the left half (the right
+    // half is entirely water) has no right-half candidates, so the picker
+    // must fall back to the leftmost/rightmost candidates — still two
+    // separated Home Trees — rather than pick from an empty side or crash.
+    const base = generateMap({ width: 9, height: 9, seed: 0 });
+    const degenerate: GameMap = {
+      width: base.width,
+      height: base.height,
+      cells: base.cells.map((c) => ({
+        hex: c.hex,
+        terrain: c.hex.q <= 4 ? "land" : "water",
+      })),
+    };
+    const { p1, p2 } = chooseHomeHexes(degenerate, 1);
+    // Both spawns land on the only land (the left half) and are separated.
+    expect(p1.q).toBeLessThan(4.5);
+    expect(p2.q).toBeLessThan(4.5);
+    expect(sameHex(p1, p2)).toBe(false);
+    // The fallback picks the two extreme candidates (leftmost come before
+    // rightmost in sorted-by-q order).
+    expect(p1.q).toBeLessThanOrEqual(p2.q);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* randomSeed                                                          */
+/* ------------------------------------------------------------------ */
+
+describe("randomSeed", () => {
+  it("returns a non-negative integer", () => {
+    for (let i = 0; i < 50; i++) {
+      const s = randomSeed();
+      expect(typeof s).toBe("number");
+      expect(Number.isInteger(s)).toBe(true);
+      expect(s).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("produces varied seeds across calls (fresh spawns/maps each load)", () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 50; i++) seen.add(randomSeed());
+    expect(seen.size).toBeGreaterThan(1);
   });
 });
 
@@ -435,8 +554,10 @@ describe("submitTurn", () => {
   });
 
   it("produces a deterministic result for a given aiSeed", () => {
+    // Fix the map seed (which now randomizes by default) so the AI-seed
+    // determinism is measured against the same starting board.
     const build = () => {
-      const session = createGameSession(7);
+      const session = createGameSession(7, {}, SIM_MAP);
       return submitTurn(session);
     };
     const a = build();
@@ -654,8 +775,11 @@ describe("full-game simulation via session", () => {
   });
 
   it("the session never produces an illegal move across many seeds", () => {
+    // Fix a deterministic map (the default is now randomized per load, M31-T1)
+    // so this iterates the AI across many AI seeds against one stable board —
+    // the map-vs-AI matrix is covered by the seeded MAP tests above.
     for (let seed = 0; seed < 20; seed++) {
-      const session = createGameSession(seed);
+      const session = createGameSession(seed, {}, SIM_MAP);
       const next = submitTurn(session);
       // The AI's reply via playTurn must not throw and must land on a valid player.
       expect(next.state.players[next.state.currentPlayer]).toBeDefined();
