@@ -16,6 +16,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Memoize board cells so pan/zoom don't re-render every hex (M29-T1).
+  Wrap the dumb `Cell` component in `React.memo` and stabilize the two
+  per-cell props that would otherwise bust the memo cache on every pan/zoom
+  re-render: the `onSelect` closure and the `children` element tree. `Board`
+  now builds per-hex `onSelect` closures and `children` once per
+  board/view-model-callback change (via `useMemo`, derived only from the
+  pan-agnostic `board` cells and the already-stable `useCallback`-supplied
+  `onSelectCell`) and reuses the same references across pan/zoom re-renders,
+  so only the board wrapper (which holds the pan/zoom CSS transform)
+  re-renders and the cells underneath are skipped. Clicking a cell still
+  selects it, and derived per-cell state (`isSelected`, `isMoveTarget`,
+  `isEnemyTarget`, fog, content) still updates when the underlying
+  game/session state changes. Core is untouched; a render-counter test double
+  asserts cells skip on a pan/zoom-only change and re-render on a data
+  change.
+
 - Use the trained-AI file for the deployed UI opponent, falling back
   gracefully to the rule-legal AI (M28-T3, #204). New pure
   `src/core/trainedOpponent.ts` bridges the M28-T2b fitted policy into the

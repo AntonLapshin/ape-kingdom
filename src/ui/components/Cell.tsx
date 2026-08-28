@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import type { PlayerId } from "../../core/game";
 import type { Terrain } from "../../core/mapGenerator";
 import { gameIcons } from "../../assets/icons";
@@ -80,7 +80,7 @@ const IS_MOUNTAIN: Record<Terrain, boolean> = {
  * attributes) with any content passed via the `children` slot. No hooks, no
  * context, no side effects, no business logic.
  */
-export function Cell({
+export const Cell = memo(function Cell({
   q,
   r,
   owner,
@@ -184,4 +184,4 @@ export function Cell({
       {!fogged && children}
     </div>
   );
-}
+});

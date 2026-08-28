@@ -1,4 +1,5 @@
 
+import { Fragment, useMemo, type ReactNode } from "react";
 import type { BoardCell } from "../viewModels/useGameSession";
 import { ownerBackground } from "../viewModels/useGameSession";
 import type { Hex, PlayerId } from "../../core/game";
@@ -9,6 +10,51 @@ import { Cell } from "./Cell";
 import { Content } from "./Content";
 import { Unit } from "./Unit";
 import { Grave } from "./Grave";
+
+/**
+ * Build two per-hex lookup maps that let the memoized `Cell` skip re-rendering
+ * when the board's wrapper pan/zoom transform changes (M29-T1).
+ *
+ * The two unstable props that would otherwise force every cell to re-render on
+ * a pan/zoom change are `onSelect` (a fresh inline closure per render) and
+ * `children` (freshly-built JSX per render). Both are derived only from the
+ * (memoized, pan-agnostic) `board` cells and the stable view-model
+ * `onSelectCell`, so we build them once per board/`onSelectCell` change and
+ * reuse the same references across pan/zoom re-renders. Thus `React.memo` on
+ * `Cell` sees identical props and skips the cells while the wrapper transform
+ * alone changes.
+ */
+function buildStableCellProps(board: BoardCell[], onSelectCell?: (hex: Hex) => void) {
+  const onSelectByHex = new Map<string, (() => void) | undefined>();
+  const childrenByHex = new Map<string, ReactNode>();
+  for (const cell of board) {
+    const key = `${cell.hex.q},${cell.hex.r}`;
+    onSelectByHex.set(
+      key,
+      onSelectCell
+        ? () => onSelectCell({ q: cell.hex.q, r: cell.hex.r })
+        : undefined,
+    );
+    childrenByHex.set(
+      key,
+      (
+        <Fragment>
+          {cell.site && <Content kind={cell.site.kind} />}
+          {cell.unit && (
+            <Unit
+              kind={cell.unit.kind}
+              rank={cell.unit.rank}
+              owner={cell.unit.owner}
+              hasActed={cell.unit.hasActed}
+            />
+          )}
+          {cell.grave && !cell.unit && <Grave owner={cell.grave.owner} />}
+        </Fragment>
+      ),
+    );
+  }
+  return { onSelectByHex, childrenByHex };
+}
 
 export interface BoardProps {
   /** The renderable board cells (hex + site/unit) from the view model. */
@@ -65,6 +111,14 @@ export interface BoardProps {
  * business logic, no hooks, no side effects.
  */
 export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableHexes, enemyTargetHexes, onSelectCell }: BoardProps) {
+  // Stable per-hex `onSelect` closures and `children` elements, built once per
+  // board/`onSelectCell` change so a pan/zoom re-render reuses the same Cell
+  // props and the memoized `Cell` skips re-rendering (M29-T1).
+  const { onSelectByHex, childrenByHex } = useMemo(
+    () => buildStableCellProps(board, onSelectCell),
+    [board, onSelectCell],
+  );
+
   // Compute the bounding box so the board is centred in its container.
   const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
   const minX = Math.min(...positions.map((p) => p.x));
@@ -120,21 +174,10 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
             y={y - minY + pad - HEX_SIZE}
             animationDelay={index * 40}
             onSelect={
-              onSelectCell
-                ? () => onSelectCell({ q: cell.hex.q, r: cell.hex.r })
-                : undefined
+              onSelectByHex.get(`${cell.hex.q},${cell.hex.r}`)
             }
           >
-            {cell.site && <Content kind={cell.site.kind} />}
-            {cell.unit && (
-              <Unit
-                kind={cell.unit.kind}
-                rank={cell.unit.rank}
-                owner={cell.unit.owner}
-                hasActed={cell.unit.hasActed}
-              />
-            )}
-            {cell.grave && !cell.unit && <Grave owner={cell.grave.owner} />}
+            {childrenByHex.get(`${cell.hex.q},${cell.hex.r}`)}
           </Cell>
         );
       })}

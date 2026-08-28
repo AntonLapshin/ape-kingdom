@@ -1,5 +1,33 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+
+// Render counter per board cell, used by the memoization spy below. Declared
+// with vi.hoisted so the (also-hoisted) module mock can read/write it.
+const { renderCounts } = vi.hoisted(() => ({
+  renderCounts: new Map<string, number>(),
+}));
+
+// Replace the real `Cell` with a memoized counting double that delegates to
+// the real render. Because the counting double is also `React.memo`-wrapped, a
+// pan/zoom-only re-render of `Board` must NOT bump any cell's counter (the
+// cells skip), while a change to a cell's actual data must bump just that cell
+// (M29-T1, #209).
+vi.mock("../../src/ui/components/Cell", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/ui/components/Cell")>();
+  const { memo, createElement } = await import("react");
+  const { Cell: RealCell } = actual;
+  const CountingCell = memo(function CountingCell(
+    props: import("../../src/ui/components/Cell").CellProps,
+  ) {
+    const key = `${props.q},${props.r}`;
+    renderCounts.set(key, (renderCounts.get(key) ?? 0) + 1);
+    // Render the real Cell through JSX/createElement (never call a memo
+    // component directly).
+    return createElement(RealCell, props);
+  });
+  return { ...actual, Cell: CountingCell };
+});
+
 import { Board } from "../../src/ui/components/Board";
 import { hexToPixel, SITE_LABELS } from "../../src/ui/presentation";
 import { gameIcons } from "../../src/assets/icons";
@@ -13,6 +41,95 @@ import {
   sameHex,
   type Hex,
 } from "../../src/core/game";
+
+/* ------------------------------------------------------------------ */
+/* Pan/zoom cell memoization (M29-T1, #209)                            */
+/* ------------------------------------------------------------------ */
+
+describe("Board pan/zoom cell memoization (M29-T1/#209)", () => {
+  beforeEach(() => {
+    renderCounts.clear();
+  });
+
+  // A tiny 2-cell board so the counter assertions stay readable.
+  const smallBoard: import("../../src/ui/viewModels/useGameSession").BoardCell[] = [
+    {
+      hex: { q: 0, r: 0 },
+      terrain: "land",
+      site: null,
+      unit: null,
+      grave: null,
+      owner: null,
+      fogged: false,
+    },
+    {
+      hex: { q: 1, r: 0 },
+      terrain: "land",
+      site: null,
+      unit: null,
+      grave: null,
+      owner: null,
+      fogged: false,
+    },
+  ];
+
+  it("does not re-render any cell when only the pan offset changes", () => {
+    const onSelectCell = vi.fn();
+    const { rerender } = render(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 0, y: 0 }} onSelectCell={onSelectCell} />,
+    );
+    const initial0 = renderCounts.get("0,0") ?? 0;
+    const initial1 = renderCounts.get("1,0") ?? 0;
+    expect(initial0).toBe(1);
+    expect(initial1).toBe(1);
+
+    // Pan changes only the wrapper transform — the cells must skip.
+    rerender(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 40, y: -25 }} onSelectCell={onSelectCell} />,
+    );
+    expect(renderCounts.get("0,0") ?? 0).toBe(initial0);
+    expect(renderCounts.get("1,0") ?? 0).toBe(initial1);
+  });
+
+  it("does not re-render any cell when only the zoom changes", () => {
+    const onSelectCell = vi.fn();
+    const { rerender } = render(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 0, y: 0 }} zoom={1} onSelectCell={onSelectCell} />,
+    );
+    rerender(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 0, y: 0 }} zoom={1.5} onSelectCell={onSelectCell} />,
+    );
+    expect(renderCounts.get("0,0")).toBe(1);
+    expect(renderCounts.get("1,0")).toBe(1);
+  });
+
+  it("re-renders a cell when its actual data (selection) changes", () => {
+    const onSelectCell = vi.fn();
+    const { rerender } = render(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 0, y: 0 }} onSelectCell={onSelectCell} />,
+    );
+    expect(renderCounts.get("0,0")).toBe(1);
+    expect(renderCounts.get("1,0")).toBe(1);
+
+    // Select hex (0,0): only that cell's selection prop changes -> only it re-renders.
+    rerender(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 0, y: 0 }} selectedHex={{ q: 0, r: 0 }} onSelectCell={onSelectCell} />,
+    );
+    expect(renderCounts.get("0,0")).toBe(2);
+    expect(renderCounts.get("1,0")).toBe(1);
+  });
+
+  it("keeps clicking a cell selecting it (onSelect still fires with the hex)", () => {
+    const onSelectCell = vi.fn();
+    render(
+      <Board board={smallBoard} currentPlayer="p1" pan={{ x: 10, y: 10 }} onSelectCell={onSelectCell} />,
+    );
+    const cell = screen.getAllByTestId("board-cell").find((c) => c.dataset.hex === "0,0")!;
+    fireEvent.click(cell);
+    expect(onSelectCell).toHaveBeenCalledTimes(1);
+    expect(onSelectCell).toHaveBeenCalledWith({ q: 0, r: 0 });
+  });
+});
 
 /* ------------------------------------------------------------------ */
 /* hexToPixel (pure geometry helper)                                   */
