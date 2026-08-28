@@ -134,8 +134,12 @@ export class MapError extends Error {
  * A tiny deterministic 32-bit PRNG (mulberry32). Given the same integer seed
  * it always produces the same sequence in `[0, 1)`, which is what makes
  * `generateMap` reproducible for a fixed seed.
+ *
+ * Exported so the game-session layer can drive other seeded-random decisions
+ * (e.g. `chooseHomeHexes` placing random spawns) with the same reproducible
+ * RNG, keeping a given `seed` fully deterministic end-to-end.
  */
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;

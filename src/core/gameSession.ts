@@ -46,6 +46,7 @@ import {
   generateMap,
   terrainAt,
   isLandSurface,
+  mulberry32,
   type GameMap,
   type MapConfig,
 } from "./mapGenerator";
@@ -156,20 +157,44 @@ function isLandAt(map: GameMap, hex: Hex): boolean {
 }
 
 /**
+ * A tiny deterministic PRNG-driven index picker for the spawn randomness.
+ * `next(n)` returns a random integer in `[0, n)` from the seeded RNG, so the
+ * same `seed` always yields the same choice (fully reproducible setup).
+ */
+function seededRandomInt(seed: number): (n: number) => number {
+  const rng = mulberry32(seed);
+  return (n: number) => Math.floor(rng() * n);
+}
+
+/**
  * Choose one Home Tree hex per player on opposite sides of the generated
- * island.
+ * island, picking a **random** spawn spot on each side (rather than the fixed
+ * leftmost/rightmost of the map).
  *
  * A candidate hex must be plain `land` (not mountain) and its starting-force
  * neighbourhood (the home plus the three neighbouring hexes the rules'
  * starting force occupies) must be entirely land surface, so the Home Tree
  * sits on land and no starting unit is placed in the sea or outside the map.
- * Among those candidates, `p1` takes the leftmost (smallest `q`) and `p2`
- * the rightmost (largest `q`), placing them on opposite sides of the island.
+ *
+ * The candidates are then split by the island's `q` axis into a left half and
+ * a right half (around the map's mid-column). `p1` is picked at random from
+ * the left half and `p2` at random from the right half, so the two Home Trees
+ * sit on opposite-ish sides of the island while the exact hex varies per
+ * generation. The pick is driven by the seeded RNG, so a fixed `seed`
+ * reproduces the same spawn deterministically; a fresh `seed` (from a fresh
+ * game) picks different spots.
+ *
+ * When a side has no suitable candidates (degenerate maps), the pick falls
+ * back to the leftmost/rightmost over the whole candidate set so the legality
+ * and separation guarantees still hold.
  *
  * Throws a typed `GameSessionError` (`no-suitable-home`) when the map is too
  * small / degenerate to fit two such Home Trees.
  */
-export function chooseHomeHexes(map: GameMap): { p1: Hex; p2: Hex } {
+export function chooseHomeHexes(
+  map: GameMap,
+  seed = 0,
+): { p1: Hex; p2: Hex } {
   const candidates = map.cells
     .filter((cell) => cell.terrain === "land")
     .map((cell) => cell.hex)
@@ -183,8 +208,25 @@ export function chooseHomeHexes(map: GameMap): { p1: Hex; p2: Hex } {
     );
   }
 
+  const nextInt = seededRandomInt(seed);
+  const midQ = map.width / 2;
+  const leftHalf = candidates.filter((h) => h.q < midQ);
+  const rightHalf = candidates.filter((h) => h.q >= midQ);
+
   const byQ = [...candidates].sort((a, b) => a.q - b.q || a.r - b.r);
-  return { p1: byQ[0], p2: byQ[byQ.length - 1] };
+  let p1: Hex;
+  let p2: Hex;
+  if (leftHalf.length > 0 && rightHalf.length > 0) {
+    p1 = leftHalf[nextInt(leftHalf.length)];
+    p2 = rightHalf[nextInt(rightHalf.length)];
+  } else {
+    // Degenerate distribution: fall back to the opposite extremes so both
+    // Home Trees still land on clearly separated sides.
+    p1 = byQ[0];
+    p2 = byQ[byQ.length - 1];
+  }
+
+  return { p1, p2 };
 }
 
 /**
@@ -221,13 +263,33 @@ function placeNeutralSites(map: GameMap, p1Home: Hex, p2Home: Hex): Site[] {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Produce a fresh random non-negative integer seed.
+ *
+ * Used when a game is created **without** an explicit `MapConfig.seed`, so
+ * every fresh load starts on a different map with different spawn locations
+ * (issue #215 items 2 and 3). Not a browser API — this is plain JS — and only
+ * the *source* of the seed is random; the map generator and spawn picker are
+ * still fully deterministic given a seed, so an explicit seed reproduces a
+ * setup exactly.
+ */
+export function randomSeed(): number {
+  // Combine time and a random sample so back-to-back setups (both may share
+  // the same ms) still very likely choose different seeds.
+  return (Date.now() & 0x3fffffff) ^ Math.floor(Math.random() * 0x7fffffff);
+}
+
+/**
  * Build the standard two-player setup from the rules on a freshly generated
  * map.
  *
  * A new playable map is generated via `generateMap` (M9-T1) each time setup
  * runs — by default 20×20 with the default generation props — so every game
- * starts on a fresh board instead of a fixed small one. Pass an optional
- * `MapConfig` (e.g. a `seed`) to reproduce a specific map deterministically.
+ * starts on a fresh board instead of a fixed small one. When no explicit
+ * `MapConfig.seed` is supplied a fresh random seed is drawn (see
+ * `randomSeed`), so two `standardSetup()` calls produce **different** maps and
+ * **different** spawn locations (issue #215 items 2 and 3). Pass an optional
+ * `MapConfig` with an explicit `seed` to reproduce a specific map **and** its
+ * spawn placement deterministically.
  *
  * Per the rules each player places one Home Tree on opposite sides of the
  * island, with 6 neutral Groves and 4 Nests between them, and starts with the
@@ -240,8 +302,15 @@ function placeNeutralSites(map: GameMap, p1Home: Hex, p2Home: Hex): Site[] {
  * place both Home Trees on land.
  */
 export function standardSetup(config?: MapConfig): GameState {
-  const map = generateMap(config);
-  const { p1: p1Home, p2: p2Home } = chooseHomeHexes(map);
+  // The effective seed drives BOTH the map and the spawn pick, so an explicit
+  // seed is fully deterministic end-to-end while a fresh load (no seed) draws
+  // a fresh random seed. `chooseHomeHexes` must see exactly the seed used to
+  // build `map`, or reproduction under a fixed seed would not match.
+  const explicitSeed = config !== undefined && config.seed !== undefined;
+  const seed = explicitSeed ? (config as MapConfig).seed as number : randomSeed();
+  const mapConfig: MapConfig = explicitSeed ? config as MapConfig : { ...config, seed };
+  const map = generateMap(mapConfig);
+  const { p1: p1Home, p2: p2Home } = chooseHomeHexes(map, seed);
 
   const p1 = startingForce("p1", p1Home);
   const p2 = startingForce("p2", p2Home);

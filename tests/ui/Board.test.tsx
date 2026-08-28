@@ -168,7 +168,10 @@ describe("SITE_LABELS", () => {
 /* ------------------------------------------------------------------ */
 
 describe("Board", () => {
-  const state = standardSetup();
+  // A fixed map seed keeps the rendering assertions deterministic: the board
+  // topology, terrain mix, and unit-badge counts must be stable across runs,
+  // not re-randomized by the fresh-seed default of `standardSetup()` (M31-T1).
+  const state = standardSetup({ seed: 0 });
   const board = boardCells(state);
   // p1's Home Tree hex on the generated board (map-agnostic).
   const p1Home = state.sites.find(
@@ -529,9 +532,14 @@ describe("Board", () => {
  * presented `data-owner` / owner-tint token matches the persisted owner.
  */
 describe("Board territory-ownership display (M19-T1/#130)", () => {
-  /** A standard setup with all p1 units reset so they can act this turn. */
+  /**
+   * A standard setup with all p1 units reset so they can act this turn.
+   * A fixed map seed keeps the terrain/spawn topology deterministic so these
+   * rendering assertions (which rely on a Nest having a reachable empty-land
+   * neighbour) are stable rather than random (M31-T1 randomizes unseeded maps).
+   */
   function playable() {
-    const base = standardSetup();
+    const base = standardSetup({ seed: 0 });
     return {
       ...base,
       units: base.units.map((u) =>

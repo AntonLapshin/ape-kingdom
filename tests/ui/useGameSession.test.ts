@@ -425,15 +425,18 @@ describe("selectedMovement / isMoveTarget", () => {
 
   it("selectedMovement forwards the core derivation", () => {
     const state = standardSetup();
-    const home = state.sites.find(
-      (s) => s.kind === "HomeTree" && s.owner === "p1",
-    )!.hex;
     const noSel = selectedMovement(state, null);
     expect(noSel.movable).toBe(false);
     expect(noSel.reachable).toEqual([]);
-    // A fresh session (units reset to act) makes the p1 unit movable.
+    // A fresh session (units reset to act) makes the p1 unit movable. Derive
+    // the home hex from the session's OWN board, since the map (and spawn) is
+    // randomized per fresh setup — the selected hex must be on that session's
+    // map for the unit lookup to resolve.
     const session = createGameSession();
-    const info = selectedMovement(session.state, home);
+    const sessionHome = session.state.sites.find(
+      (s) => s.kind === "HomeTree" && s.owner === "p1",
+    )!.hex;
+    const info = selectedMovement(session.state, sessionHome);
     expect(info.unit).not.toBeNull();
     expect(info.movable).toBe(true);
     expect(info.reachable.length).toBeGreaterThan(0);
@@ -693,16 +696,15 @@ describe("useGameSession", () => {
 
   it("clicking an enemy-held (red) target issues an attack and captures the enemy (M26-T1/#169)", () => {
     const { result } = renderHook(() =>
-      useGameSession(0, { width: 7, height: 7, seed: 12 }),
+      useGameSession(0, { width: 7, height: 7, seed: 0 }),
     );
-    // On the 7x7 seed-12 board, the p1 Gibbon at (2,2) sits directly adjacent
-    // to the p2 Monkey at (3,2). The Gibbon (rank 2) can legally attack that
-    // Monkey from the start of the turn (it has not acted yet): the cell is not
-    // protected against it (no same-rank enemy guards (3,2); the p1 Monkey at
-    // (3,1) is barred instead, because a p2 Monkey guards that approach). An
-    // equal-rank clash would destroy both, but here the higher-rank Gibbon wins.
-    const unitHex = { q: 2, r: 2 };
-    const enemyHex = { q: 3, r: 2 };
+    // On the 7×7 seed-0 board the p1 Gibbon at (2,4) sits directly adjacent
+    // to the p2 Monkey at (3,4). The Gibbon (rank 2) can legally attack that
+    // Monkey from the start of the turn (it has not acted yet): the higher-
+    // rank Gibbon wins the clash, destroying the p2 Monkey and advancing onto
+    // (3,4).
+    const unitHex = { q: 2, r: 4 };
+    const enemyHex = { q: 3, r: 4 };
     act(() => {
       result.current.selectCell(unitHex);
     });
@@ -714,7 +716,7 @@ describe("useGameSession", () => {
     });
     // Clicking the red target issues an attack: the selection clears (no
     // highlight) and the p2 Monkey on that hex is captured — the p1 Gibbon
-    // (higher rank) destroys it and advances onto (3,2).
+    // (higher rank) destroys it and advances onto (3,4).
     expect(result.current.selectedHex).toBeNull();
     const captured = result.current.view.board.find(
       (c) => c.hex.q === enemyHex.q && c.hex.r === enemyHex.r,
