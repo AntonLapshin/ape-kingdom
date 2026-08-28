@@ -1,12 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { PlayableGame } from "../../src/ui/components/PlayableGame";
+import { installFakeRaf } from "./testRaf";
 
 /* ------------------------------------------------------------------ */
 /* PlayableGame (composition wired to the useGameSession view model)   */
 /* ------------------------------------------------------------------ */
 
 describe("PlayableGame", () => {
+  // M29-T3 (#210): pan/zoom deltas are coalesced and committed once per
+  // animation frame. jsdom's requestAnimationFrame never fires, so these tests
+  // drive frame boundaries explicitly with a fake rAF: fire the pointer/wheel
+  // events (which only accumulate deltas), then `flush()` a frame to commit
+  // them into a single React state update.
+  const raf = installFakeRaf();
   it("renders the board, status panel, and action controls", () => {
     render(<PlayableGame />);
     expect(screen.getByTestId("playable-game")).toBeInTheDocument();
@@ -132,6 +139,9 @@ describe("PlayableGame", () => {
     act(() => {
       pointer("pointerup");
     });
+    // Commit the accumulated drag deltas once, on the next animation frame
+    // (M29-T3): the two moves (30,45)+(20,20) coalesce into a single commit.
+    raf.flush();
 
     const panStyle = board.getAttribute("style")!;
     // The board transform reflects the accumulated drag deltas: (30, 45) then
@@ -149,6 +159,7 @@ describe("PlayableGame", () => {
     act(() => {
       pointer("pointerup");
     });
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("translate(40px, 65px)");
   });
 
@@ -185,10 +196,12 @@ describe("PlayableGame", () => {
 
     // Scroll up (negative deltaY) zooms in: default 1 -> scale(1.1).
     wheel(-100);
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
 
     // Scroll down (positive deltaY) zooms back out to 1.
     wheel(100);
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("scale(1)");
   });
 
@@ -217,12 +230,15 @@ describe("PlayableGame", () => {
         ),
       );
 
-    // Zoom out many times: the board never goes below the min scale.
+    // Zoom out many times: the board never goes below the min scale. All 40
+    // wheel deltas within one frame coalesce into a single commit (M29-T3).
     for (let i = 0; i < 40; i++) wheel(100);
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("scale(0.5)");
 
     // Zoom in many times: never above the max scale.
     for (let i = 0; i < 40; i++) wheel(-100);
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("scale(2.5)");
   });
 
@@ -248,9 +264,135 @@ describe("PlayableGame", () => {
     drag("pointerdown", 0, 0);
     drag("pointermove", 30, 20);
     drag("pointerup", 30, 20);
+    // Commit the coalesced zoom+pan deltas on the next frame (M29-T3).
+    raf.flush();
 
     expect(board.getAttribute("style")!).toContain("translate(30px, 20px)");
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
+  });
+
+  it("coalesces many wheel zoom deltas within a frame into a single committed state update (M29-T3 / #210)", async () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+
+    // Count DOM style changes on the board, i.e. committed pan/zoom renders.
+    let styleChanges = 0;
+    const obs = new MutationObserver((records) => {
+      styleChanges += records.length;
+    });
+    obs.observe(board, { attributes: true, attributeFilter: ["style"] });
+
+    // Fire 5 wheel-in notches within one frame (each is ZOOM_STEP = 0.1).
+    for (let i = 0; i < 5; i++) {
+      act(() =>
+        game.dispatchEvent(
+          new WheelEvent("wheel", {
+            bubbles: true,
+            cancelable: true,
+            deltaY: -100,
+          }),
+        ),
+      );
+    }
+
+    // No animation frame has been flushed yet: the deltas are only queued, so
+    // the board has NOT committed anything (still at the default scale).
+    expect(board.getAttribute("style")!).toContain("scale(1)");
+    expect(styleChanges).toBe(0);
+
+    // A single frame flush commits all 5 accumulated deltas at once: the board
+    // jumps straight to the total (1 + 5*0.1 = 1.5) via exactly one state
+    // update / re-render — no intermediate scale was ever rendered.
+    raf.flush();
+    expect(board.getAttribute("style")!).toContain("scale(1.5)");
+    // Let the (asynchronous) mutation observer deliver its records.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(styleChanges).toBe(1);
+    obs.disconnect();
+  });
+
+  it("coalesces many drag pan deltas within a frame into a single committed state update (M29-T3 / #210)", async () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+
+    let styleChanges = 0;
+    const obs = new MutationObserver((records) => {
+      styleChanges += records.length;
+    });
+    obs.observe(board, { attributes: true, attributeFilter: ["style"] });
+
+    const pointer = (type: string, coords?: { x: number; y: number }) => {
+      const init: Record<string, unknown> = { bubbles: true, cancelable: true };
+      if (coords) {
+        init.clientX = coords.x;
+        init.clientY = coords.y;
+      }
+      act(() => game.dispatchEvent(new MouseEvent(type, init)));
+    };
+
+    // A genuine drag with many moves all inside one frame (no flush in between).
+    pointer("pointerdown", { x: 0, y: 0 });
+    pointer("pointermove", { x: 30, y: 40 });
+    pointer("pointermove", { x: 60, y: 80 });
+    pointer("pointerup", { x: 60, y: 80 });
+
+    // Nothing is committed until the next frame: still zero pan.
+    expect(board.getAttribute("style")!).toContain("translate(0px, 0px)");
+    expect(styleChanges).toBe(0);
+
+    // One flush commits the two accumulated deltas (30,40)+(30,40) in a single
+    // commit: the board jumps straight to translate(60px, 80px), not through
+    // the intermediate translate(30px, 40px).
+    raf.flush();
+    expect(board.getAttribute("style")!).toContain("translate(60px, 80px)");
+    // Let the (asynchronous) mutation observer deliver its records.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(styleChanges).toBe(1);
+    obs.disconnect();
+  });
+
+  it("still accumulates deltas across many frames, so no event is lost (M29-T3 / #210)", () => {
+    render(<PlayableGame />);
+    const game = screen.getByTestId("playable-game") as HTMLElement;
+    const board = screen.getByTestId("board");
+
+    const wheel = (deltaY: number) =>
+      act(() =>
+        game.dispatchEvent(
+          new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY }),
+        ),
+      );
+
+    // Zoom in by 2 (per frame), flush, then zoom in by 3 more (per frame), so
+    // no delta across frames is lost: 1 + 2*0.1 + 3*0.1 = 1.5.
+    wheel(-100);
+    wheel(-100);
+    raf.flush();
+    expect(board.getAttribute("style")!).toContain("scale(1.2)");
+    wheel(-100);
+    wheel(-100);
+    wheel(-100);
+    raf.flush();
+    expect(board.getAttribute("style")!).toContain("scale(1.5)");
+  });
+
+  it("cancels the rAF loop on dispose, so no further frames are scheduled after unmount (M29-T3 / #210, AC #2)", () => {
+    const { unmount } = render(<PlayableGame />);
+
+    // The initial render scheduled one frame callback (the loop's first tick).
+    expect(raf.scheduledCount()).toBe(1);
+
+    // Flushing that frame runs the tick, which reschedules the next frame — so
+    // the loop is alive and keeps scheduling exactly one callback per frame.
+    raf.flush();
+    expect(raf.scheduledCount()).toBe(1);
+
+    // Disposing the component must cancel the pending frame (cancelAnimationFrame)
+    // so the loop stops; no further callbacks may be scheduled afterwards.
+    unmount();
+    expect(raf.scheduledCount()).toBe(0);
   });
 
   it("renders the cell info panel showing an empty prompt initially", () => {
@@ -428,6 +570,7 @@ describe("PlayableGame", () => {
     act(() => pointer("pointerdown", { x: 0, y: 0 }));
     act(() => pointer("pointermove", { x: 20, y: 10 }));
     act(() => pointer("pointerup"));
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("translate(20px, 10px)");
 
     // Zooming still works too.
@@ -440,6 +583,7 @@ describe("PlayableGame", () => {
         }),
       ),
     );
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
   });
 
@@ -572,6 +716,8 @@ describe("PlayableGame", () => {
         }),
       ),
     );
+    // Commit the coalesced zoom delta on the next frame (M29-T3 #210).
+    raf.flush();
     expect(board.getAttribute("style")!).toContain("scale(1.1)");
   });
 
@@ -688,11 +834,13 @@ describe("PlayableGame", () => {
     const startStyle = board.getAttribute("style");
 
     // A genuine drag: pointer-down then a pointer-move well beyond the 5px
-    // threshold, then pointer-up. The board pans.
+    // threshold, then pointer-up. The board pans (coalesced + committed on the
+    // next animation frame, M29-T3).
     const cell = screen.getAllByTestId("board-cell")[0];
     pointerEvent(game, "pointerdown", { x: 0, y: 0 });
     pointerEvent(game, "pointermove", { x: 60, y: 75 });
     pointerEvent(game, "pointerup", { x: 60, y: 75 });
+    raf.flush();
 
     // The board translated by the accumulated drag delta.
     expect(board.getAttribute("style")).not.toBe(startStyle);
@@ -843,6 +991,8 @@ describe("PlayableGame", () => {
     pointerEvent(game, "pointermove", { x: 40, y: 30 });
     pointerEvent(game, "pointermove", { x: 80, y: 60 });
     pointerEvent(game, "pointerup", { x: 80, y: 60 });
+    // Commit the two coalesced drag deltas (40,30)+(40,30) on the next frame.
+    raf.flush();
 
     // The board panned by the accumulated drag deltas (40,30) then (40,30).
     expect(board.getAttribute("style")).not.toBe(startStyle);

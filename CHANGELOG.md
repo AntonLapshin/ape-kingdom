@@ -16,6 +16,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Coalesce pan/zoom updates to one per animation frame (M29-T3, #210).
+  Dragging the map and scrolling the wheel no longer fire one React state
+  update (full board re-render) per pointer/wheel event. New pure,
+  unit-testable rAF-coalescing accumulators — `createCoalescer` (with
+  `sumNumbers` / `sumPanDeltas` merge helpers) in
+  `src/ui/viewModels/coalesce.ts` — fold every pointer-move / wheel delta from
+  the `usePan` / `useZoom` view models into a pending frame total with no
+  commit, and a `requestAnimationFrame` loop in `PlayableGame` drains each
+  accumulator once per frame and commits the frame's total as a single state
+  update (`cancelAnimationFrame` on dispose). No events are lost: within a
+  frame all deltas sum together and the final pan/zoom offset reflects the
+  full accumulated total, so drag thresholds, click-vs-drag selection and zoom
+  clamping behave exactly as before. The accumulators are pure (no browser
+  APIs) and unit-tested; `PlayableGame` render tests drive a fake
+  `requestAnimationFrame` frame-by-frame and assert that many wheel/drag
+  deltas within one frame commit in a single state update equal to the sum of
+  all the deltas, and that unmounting `PlayableGame` cancels the rAF loop
+  (no further frames scheduled). No core changes; the view-model and
+  component layers only.
+
 - Hoist the board bounding-box computation into a memoized pure helper
   (M29-T2, #211). The O(n) `board.map` + `Math.min`/`Math.max` pass over all
   ~400 cells (plus padding) that the board wrapper needed to size and centre
