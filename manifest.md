@@ -8,7 +8,11 @@ COMPLETE and merged (completed_at: 2026-08-27T22:58:00Z), plus post-ship M29
 merged). After M1–M29 completed, three new post-ship feedback issues arrived and
 were planned as M30 (#216 Random neutral units), M31 (#215 Enhance map
 generator) and M32 (#214 UI adjustments) on 2026-08-28 — parents closed; first
-slices M30-T1 #219, M31-T1 #220, M32-T1 #221 are `pi:ready`. Post-ship feedback is planned
+slices M30-T1 #219, M31-T1 #220, M32-T1 #221 were `pi:ready` and are DONE (PRs
+#222/#223/#224), M30-T2 #225 (PRs #228/#232), M31-T2 #226 (PR #230) and M32-T2
+#227 (PR #231) are DONE. Remaining M30 slices (M30-T3 #235, M30-T4 #233,
+M30-T5 #234) are `pi:ready`; M31-T3/T4 and M32-T3/T4 are planned next.
+Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
 #146/#147/#148 `pi:ready`), M21 (#143 game rules + graves), M22 (#144 map
@@ -624,11 +628,11 @@ to respect the existing rules (no regression to existing mechanics) and be 100%
 covered in `src/core`. Planned 2026-08-28.
 
 **Sub-issues (first slice) — `pi:ready`:**
-  - [ ] M30-T1 Core neutral-unit data model — a unit type that can belong to no kingdom, plus a neutral check helper (#219, `priority:p1`)
-  - [ ] M30-T2 Place random neutral units on the map during setup (seeded random placement on land, clear of spawn/sites) (`priority:p1`)
-  - [ ] M30-T3 Neutral unit protection rule — a neutral unit protects its surrounding cells from player entry/attack (leveraging the existing Protection/Safety Zones rule) (`priority:p2`)
-  - [ ] M30-T4 Interaction with neutral units — attacking/defeating them, capturing their protected cells, and what neutral units do across turns (`priority:p2`)
-  - [ ] M30-T5 UI — render neutral units distinctly (ownership-neutral tint/label so they read apart from p1/p2 and neutral sites) (`priority:p3`)
+  - [x] M30-T1 Core neutral-unit data model — a unit type that can belong to no kingdom, plus a neutral check helper (#219, PR #222)
+  - [x] M30-T2 Place random neutral units on the map during setup (seeded random placement on land, clear of spawn/sites) (#225, PRs #228/#232)
+  - [ ] M30-T3 Neutral unit protection rule — a neutral unit protects its surrounding cells from player entry/attack (leveraging the existing Protection/Safety Zones rule) (#235, `pi:ready`, `priority:p2`)
+  - [ ] M30-T4 Interaction with neutral units — attacking/defeating them, capturing their protected cells, and what neutral units do across turns (#233, `pi:ready`, `priority:p2`)
+  - [ ] M30-T5 UI — render neutral units distinctly (ownership-neutral tint/label so they read apart from p1/p2 and neutral sites) (#234, `pi:ready`, `priority:p3`)
 
 ### M31 — Map generator enhancements (#215)
 
@@ -640,8 +644,8 @@ diamond-ish) made ~1.5 smaller, (2) generate a random map on each load, and
 plus UI sizing, fully tested in `src/core`, 100% covered. Planned 2026-08-28.
 
 **Sub-issues (first slice) — `pi:ready`:**
-  - [ ] M31-T1 Random map on each load + random player spawn hexes each game (#220, `priority:p1`)
-  - [ ] M31-T2 Default map smaller (~1.5×) and clearly circular — tune/verify the island shape so it reads round, not diamond (`priority:p1`)
+  - [x] M31-T1 Random map on each load + random player spawn hexes each game (#220, PR #223)
+  - [x] M31-T2 Default map smaller (~1.5×) and clearly circular — tune/verify the island shape so it reads round, not diamond (#226, PR #230)
   - [ ] M31-T3 Verify randomized spawns stay legal & on opposite-ish sides; adjust any site/territory placement that assumed fixed leftmost/rightmost spawns (`priority:p2`)
   - [ ] M31-T4 UI — board sizing/centring and demo/showcase adjust for the smaller-map default and random layout (`priority:p3`)
 
@@ -656,7 +660,7 @@ neutral gray. Pure presentational changes — no core rule changes. Planned
 2026-08-28.
 
 **Sub-issues (first slice) — `pi:ready`:**
-  - [ ] M32-T1 Blue inner border on the selected cell (#221, `priority:p1`)
-  - [ ] M32-T2 Cell-info/bottom panel shows the terrain (mountain or tree) when a cell is selected (`priority:p1`)
+  - [x] M32-T1 Blue inner border on the selected cell (#221, PR #224)
+  - [x] M32-T2 Cell-info/bottom panel shows the terrain (mountain or tree) when a cell is selected (#227, PR #231)
   - [ ] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (`priority:p2`)
   - [ ] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (`priority:p2`)

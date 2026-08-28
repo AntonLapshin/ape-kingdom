@@ -28,17 +28,19 @@ default map, `priority:p1`), M32-T2 #227 (cell-info shows terrain,
 `priority:p1`). M30-T2 #225 shipped via PR #228, its boundary tests #229 via PR
 #232, and M31-T2 #226 via PR #230 — all merged.
 
-M32-T2 **#227 (cell-info shows terrain)** is implemented and under review via
-PR #231 (awaiting approval): the bottom-left cell-info panel renders a clear
-terrain label for the selected hex (Mountain / Water / Land), driven purely by
-map terrain via a new pure `terrainLabel` + `TERRAIN_LABELS` presentation helper
-in `src/ui/presentation.ts` and a dedicated `cell-info-terrain` element in the
-dumb `CellInfoPanel` component. `src/core` untouched and still 100% covered.
-PR #231 was rebased onto `main` to resolve a CHANGELOG conflict; it is now
-MERGEABLE and CI green, awaiting review approval.
+**M32-T2 #227 (cell-info shows terrain) is now MERGED (PR #231).** The
+bottom-left cell-info panel renders a clear terrain label for the selected hex
+(Mountain / Water / Land), driven purely by map terrain via a new pure
+`terrainLabel` + `TERRAIN_LABELS` presentation helper in `src/ui/presentation.ts`
+and a dedicated `cell-info-terrain` element in the dumb `CellInfoPanel`
+component. `src/core` untouched and still 100% covered.
 
-Remaining slices of M30/M31/M32 (M30-T3/T4/T5, M31-T3/T4, M32-T3/T4) are planned
-on later PM turns.
+**Next `pi:ready` batch planned 2026-08-28 — M30 remaining scope:** M30-T3 #235
+(neutral unit protection rule, `priority:p2`), M30-T4 #233 (interaction with
+neutral units — attack/defeat, capture, cross-turn behaviour, `priority:p2`) and
+M30-T5 #234 (UI — render neutral units distinctly, `priority:p3`). This fully
+covers the remaining M30 sub-issues. Remaining slices of M31 (M31-T3/T4) and
+M32 (M32-T3/T4) are planned on later PM turns.
 
 Prior post-ship work — new post-ship issue #208 ("Improve UI performance" — UI
 very slow when dragging the map, CPU spikes) was planned as milestone M29, split

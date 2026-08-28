@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   #220, M32-T1 #221 (merged via PRs #222/#223/#224). Next batch `pi:ready`:
   M30-T2 #225 (random neutral unit placement) — merged; M31-T2 #226 (smaller
   circular default map) — merged; M32-T2 #227 (cell-info shows terrain) — merged.
+- **Remaining M30 scope planned `pi:ready` (2026-08-28):** M30-T3 #235 (neutral
+  unit protection rule, `priority:p2`), M30-T4 #233 (interaction with neutral
+  units — attack/defeat, capture, cross-turn behaviour, `priority:p2`) and
+  M30-T5 #234 (UI — render neutral units distinctly, `priority:p3`). This fully
+  covers the remaining M30 sub-issues; M31-T3/T4 and M32-T3/T4 remain to plan
+  on later PM turns.
 
 ### Added
 
