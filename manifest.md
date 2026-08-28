@@ -10,8 +10,11 @@ were planned as M30 (#216 Random neutral units), M31 (#215 Enhance map
 generator) and M32 (#214 UI adjustments) on 2026-08-28 — parents closed; first
 slices M30-T1 #219, M31-T1 #220, M32-T1 #221 were `pi:ready` and are DONE (PRs
 #222/#223/#224), M30-T2 #225 (PRs #228/#232), M31-T2 #226 (PR #230) and M32-T2
-#227 (PR #231) are DONE. Remaining M30 slices (M30-T3 #235, M30-T4 #233,
-M30-T5 #234) are `pi:ready`; M31-T3/T4 and M32-T3/T4 are planned next.
+#227 (PR #231) are DONE. The remaining M30 slices (M30-T3 #235, M30-T4
+#233, M30-T5 #234) are DONE (PRs #237/#236/#238), so M30 is COMPLETE. M29
+T1/T2/T3 (PRs #212/#213/#217) ticked in-place. Remaining planned scope is now
+M31-T3/T4 and M32-T3/T4; the next `pi:ready` batch (2026-08-28) is M31-T3
+#239, M32-T3 #241 and M32-T4 #240; M31-T4 is planned on a later PM turn.
 Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
@@ -611,9 +614,9 @@ core logic are touched, so core coverage stays 100% unchanged. Split per
 plan.md §16.3 — planned 2026-08-27.
 
 **Sub-issues (first slice) — `pi:ready`:**
-  - [ ] M29-T1 Memoize board cells so a pan/zoom transform change does not re-render every hex (#209, `priority:p1`)
-  - [ ] M29-T2 Hoist the board bounding-box computation into a memoized pure helper computed once per board-data change (#211, `priority:p1`)
-  - [ ] M29-T3 Coalesce pan/zoom state updates to one per animation frame (rAF-throttle pointer/wheel) (#210, `priority:p2`)
+  - [x] M29-T1 Memoize board cells so a pan/zoom transform change does not re-render every hex (#209, PR #212)
+  - [x] M29-T2 Hoist the board bounding-box computation into a memoized pure helper computed once per board-data change (#211, PR #213)
+  - [x] M29-T3 Coalesce pan/zoom state updates to one per animation frame (rAF-throttle pointer/wheel) (#210, PR #217)
 
 ### M30 — Random neutral units (#216)
 
@@ -630,9 +633,9 @@ covered in `src/core`. Planned 2026-08-28.
 **Sub-issues (first slice) — `pi:ready`:**
   - [x] M30-T1 Core neutral-unit data model — a unit type that can belong to no kingdom, plus a neutral check helper (#219, PR #222)
   - [x] M30-T2 Place random neutral units on the map during setup (seeded random placement on land, clear of spawn/sites) (#225, PRs #228/#232)
-  - [ ] M30-T3 Neutral unit protection rule — a neutral unit protects its surrounding cells from player entry/attack (leveraging the existing Protection/Safety Zones rule) (#235, `pi:ready`, `priority:p2`)
-  - [ ] M30-T4 Interaction with neutral units — attacking/defeating them, capturing their protected cells, and what neutral units do across turns (#233, `pi:ready`, `priority:p2`)
-  - [ ] M30-T5 UI — render neutral units distinctly (ownership-neutral tint/label so they read apart from p1/p2 and neutral sites) (#234, `pi:ready`, `priority:p3`)
+  - [x] M30-T3 Neutral unit protection rule — a neutral unit protects its surrounding cells from player entry/attack (leveraging the existing Protection/Safety Zones rule) (#235, PR #237)
+  - [x] M30-T4 Interaction with neutral units — attacking/defeating them, capturing their protected cells, and what neutral units do across turns (#233, PR #236)
+  - [x] M30-T5 UI — render neutral units distinctly (ownership-neutral tint/label so they read apart from p1/p2 and neutral sites) (#234, PR #238)
 
 ### M31 — Map generator enhancements (#215)
 
@@ -646,7 +649,7 @@ plus UI sizing, fully tested in `src/core`, 100% covered. Planned 2026-08-28.
 **Sub-issues (first slice) — `pi:ready`:**
   - [x] M31-T1 Random map on each load + random player spawn hexes each game (#220, PR #223)
   - [x] M31-T2 Default map smaller (~1.5×) and clearly circular — tune/verify the island shape so it reads round, not diamond (#226, PR #230)
-  - [ ] M31-T3 Verify randomized spawns stay legal & on opposite-ish sides; adjust any site/territory placement that assumed fixed leftmost/rightmost spawns (`priority:p2`)
+  - [ ] M31-T3 Verify randomized spawns stay legal & on opposite-ish sides; adjust any site/territory placement that assumed fixed leftmost/rightmost spawns (#239, `pi:ready`, `priority:p2`)
   - [ ] M31-T4 UI — board sizing/centring and demo/showcase adjust for the smaller-map default and random layout (`priority:p3`)
 
 ### M32 — UI adjustments (#214)
@@ -662,5 +665,5 @@ neutral gray. Pure presentational changes — no core rule changes. Planned
 **Sub-issues (first slice) — `pi:ready`:**
   - [x] M32-T1 Blue inner border on the selected cell (#221, PR #224)
   - [x] M32-T2 Cell-info/bottom panel shows the terrain (mountain or tree) when a cell is selected (#227, PR #231)
-  - [ ] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (`priority:p2`)
-  - [ ] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (`priority:p2`)
+  - [ ] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (#241, `pi:ready`, `priority:p2`)
+  - [ ] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (#240, `pi:ready`, `priority:p2`)

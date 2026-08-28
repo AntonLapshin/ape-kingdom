@@ -9,6 +9,20 @@
 planned sub-issue is implemented, tested, and merged; CI + Pages green;
 861 tests pass; 100% coverage on `src/core/**`; build succeeds.
 
+**Post-ship M29, M30 fully complete (ticked 2026-08-28).** M29-T1/T2/T3 (PRs
+#212/#213/#217) and the remaining M30 slices M30-T3 #235 (neutral protection,
+PR #237), M30-T4 #233 (neutral interaction, PR #236) and M30-T5 #234 (UI,
+PR #238) are all merged — M30 is COMPLETE. The manifest boxes for these were
+ticked in-place this turn.
+
+**Next `pi:ready` batch planned 2026-08-28 (remaining M31/M32 scope):** M31-T3
+#239 (verify randomized spawns stay legal & opposite-sided; harden
+site/territory placement, `priority:p2`), M32-T3 #241 (brighten fog-of-war
+cells to a grayish/silver tone, `priority:p2`) and M32-T4 #240 (neutralize the
+brownish font color to neutral gray, `priority:p2`). M31-T4 (UI board
+sizing/centring + demo/showcase adjust, `priority:p3`) is planned on a later
+PM turn after M31-T3 lands.
+
 **Post-ship M29 (UI performance) COMPLETE:** M29-T1 #209, M29-T2 #211 and
 M29-T3 #210 merged via PRs #212/#213/#217 (2026-08-28). Board cells memoized,
 bounding-box hoisted into a memoized pure helper, pan/zoom coalesced to one
