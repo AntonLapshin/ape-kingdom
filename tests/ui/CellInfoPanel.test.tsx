@@ -94,7 +94,88 @@ describe("CellInfoPanel read-only", () => {
       />,
     );
     expect(screen.getByText(/Hex \(.*\)/)).toBeInTheDocument();
-    expect(screen.getByText("land")).toBeInTheDocument();
+    expect(screen.getByTestId("cell-info-terrain").textContent).toBe("Land");
+  });
+
+  describe("terrain display (M32-T2, #227)", () => {
+    /** The first cell of the given terrain on the generated map, so a
+     *  selected hex reliably exercises that terrain across seeds. */
+    function terrainHex(state: GameState, terrain: string): Hex {
+      const cell = state.map.cells.find((c) => c.terrain === terrain);
+      if (!cell) throw new Error(`expected a ${terrain} cell on the map`);
+      return cell.hex;
+    }
+
+    it("shows Mountain for a mountain cell", () => {
+      const state = standardSetup({ seed: 0 });
+      render(
+        <CellInfoPanel
+          info={cellInfo(state, terrainHex(state, "mountain"))}
+          legalActions={[]}
+          onSelectAction={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("cell-info-terrain").textContent).toBe("Mountain");
+    });
+
+    it("shows Water for a water cell", () => {
+      const state = standardSetup({ seed: 0 });
+      render(
+        <CellInfoPanel
+          info={cellInfo(state, terrainHex(state, "water"))}
+          legalActions={[]}
+          onSelectAction={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("cell-info-terrain").textContent).toBe("Water");
+    });
+
+    it("reads a plain (no-mountain) land cell as Land, not a fake terrain", () => {
+      const state = standardSetup({ seed: 0 });
+      render(
+        <CellInfoPanel
+          info={cellInfo(state, terrainHex(state, "land"))}
+          legalActions={[]}
+          onSelectAction={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("cell-info-terrain").textContent).toBe("Land");
+    });
+
+    it("shows the terrain consistently for an enemy/neutral cell", () => {
+      // The enemy p2 Home Tree is owned by the enemy; its terrain should still
+      // read plainly (the label is owner-agnostic).
+      const state = standardSetup({ seed: 0 });
+      const p2Home = state.sites.find(
+        (s) => s.kind === "HomeTree" && s.owner === "p2",
+      )!.hex;
+      render(
+        <CellInfoPanel
+          info={cellInfo(state, p2Home)}
+          legalActions={[]}
+          onSelectAction={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("cell-info-terrain").textContent).toBe("Land");
+    });
+
+    it("shows the terrain for the currently selected cell independently of a unit", () => {
+      // Select a neutral mountain cell that holds no site/unit: the terrain
+      // label is driven purely by the map cell terrain, not by ownership.
+      const state = standardSetup({ seed: 0 });
+      const hex = terrainHex(state, "mountain");
+      const info = cellInfo(state, hex);
+      expect(info.site).toBeNull();
+      expect(info.unit).toBeNull();
+      render(
+        <CellInfoPanel
+          info={info}
+          legalActions={[]}
+          onSelectAction={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("cell-info-terrain").textContent).toBe("Mountain");
+    });
   });
 
   it("shows a hexagonal preview of the exact selected hexagon with its owner colour (M17-T3/#116)", () => {

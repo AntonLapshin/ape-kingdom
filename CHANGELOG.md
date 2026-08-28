@@ -18,8 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adjustments) → M32. First `pi:ready` slices created: M30-T1 #219, M31-T1
   #220, M32-T1 #221 (merged via PRs #222/#223/#224). Next batch `pi:ready`:
   M30-T2 #225 (random neutral unit placement) — merged; M31-T2 #226 (smaller
-  circular default map) — merged; M32-T2 #227 (cell-info shows terrain) still
-  open.
+  circular default map) — merged; M32-T2 #227 (cell-info shows terrain) — merged.
 
 ### Added
 
@@ -62,7 +61,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   different spawn layout). No game rules changed; core coverage stays 100%.
 
 - Blue inner border on the selected cell (M32-T1, #221). When a hexagon is
-  selected, the hexagon's inner glass edge — the `.hex-glass-edge` SVG outline
+- Show the selected cell's terrain in the cell-info/bottom panel (M32-T2,
+  #227). The bottom-left cell-info panel now renders a clear, consistent
+  terrain label for whichever hex is selected: a mountain cell shows
+  "Mountain", a water cell "Water", and a plain (no-mountain) cell reads as
+  "Land" (no fake terrain). The label is owner-agnostic, so it stays
+  consistent for player vs enemy vs neutral/empty cells and is driven purely
+  by the map terrain (existing core `cellInfo.terrain`), independent of the
+  hex's site/unit/owner. Implemented as a new pure `terrainLabel` +
+  `TERRAIN_LABELS` presentation helper in `src/ui/presentation.ts` and a
+  dedicated `cell-info-terrain` element in the dumb `CellInfoPanel`
+  component (replacing the previous raw `capitalize`d terrain string).
+  `src/core` untouched and still 100% covered; new tests cover the terrain
+  label helper (mountain/water/plain + fallback) and the panel rendering for
+  mountain, water, plain, enemy/neutral and selected-no-unit cells.
+
+- Blue inner border on the selected cell (M32-T1, #221). When a hexagon is
   that surrounds the hexagon — now renders **blue** (`var(--color-selection)`)
   instead of the unselected white glass rim, so the selected hex reads clearly
   against the board. The rule is a descendant of the existing `hex-selected`
