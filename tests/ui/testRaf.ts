@@ -13,21 +13,34 @@ import { act } from "@testing-library/react";
  * callbacks currently queued (a single "frame"). Each flushed frame may re-schedule
  * the next one (the component's rAF loop does), which simply parks it for the
  * next explicit `flush()` — so the test fully controls frame boundaries.
+ *
+ * Unlike jsdom's stubs, `cancelAnimationFrame(id)` actually removes the pending
+ * callback with that id from the queue (mirroring the real API), so a component
+ * that cancels its loop on dispose stops scheduling further frames — and a test
+ * can assert `scheduledCount() === 0` after unmount to verify the
+ * cancelAnimationFrame-on-dispose path (M29-T3 / #210 acceptance criterion #2).
  */
 
 /** Install the fake rAF for the enclosing test suite and return its controls. */
 export function installFakeRaf() {
   const nativeRaf = window.requestAnimationFrame;
   const nativeCaf = window.cancelAnimationFrame;
-  const scheduled: FrameRequestCallback[] = [];
+  // Each scheduled callback is stored with the unique id `requestAnimationFrame`
+  // returned for it, so `cancelAnimationFrame` can remove the right one.
+  const scheduled = new Map<number, FrameRequestCallback>();
+  let nextId = 0;
 
   beforeEach(() => {
-    scheduled.length = 0;
+    scheduled.clear();
+    nextId = 0;
     window.requestAnimationFrame = ((cb: FrameRequestCallback) => {
-      scheduled.push(cb);
-      return scheduled.length;
+      const id = ++nextId;
+      scheduled.set(id, cb);
+      return id;
     }) as typeof window.requestAnimationFrame;
-    window.cancelAnimationFrame = (() => undefined) as typeof window.cancelAnimationFrame;
+    window.cancelAnimationFrame = ((id: number) => {
+      scheduled.delete(id);
+    }) as typeof window.cancelAnimationFrame;
   });
 
   afterEach(() => {
@@ -37,10 +50,11 @@ export function installFakeRaf() {
 
   return {
     /** How many frame callbacks are currently queued (not yet flushed). */
-    scheduledCount: () => scheduled.length,
+    scheduledCount: () => scheduled.size,
     /** Run every queued callback once — one animation frame. */
     flush: () => {
-      const callbacks = scheduled.splice(0, scheduled.length);
+      const callbacks = [...scheduled.values()];
+      scheduled.clear();
       act(() => {
         for (const cb of callbacks) cb(performance.now());
       });

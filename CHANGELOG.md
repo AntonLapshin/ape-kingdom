@@ -32,7 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   APIs) and unit-tested; `PlayableGame` render tests drive a fake
   `requestAnimationFrame` frame-by-frame and assert that many wheel/drag
   deltas within one frame commit in a single state update equal to the sum of
-  all the deltas. No core changes; the view-model and component layers only.
+  all the deltas, and that unmounting `PlayableGame` cancels the rAF loop
+  (no further frames scheduled). No core changes; the view-model and
+  component layers only.
 
 - Hoist the board bounding-box computation into a memoized pure helper
   (M29-T2, #211). The O(n) `board.map` + `Math.min`/`Math.max` pass over all

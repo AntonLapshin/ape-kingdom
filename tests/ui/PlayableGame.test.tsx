@@ -378,6 +378,23 @@ describe("PlayableGame", () => {
     expect(board.getAttribute("style")!).toContain("scale(1.5)");
   });
 
+  it("cancels the rAF loop on dispose, so no further frames are scheduled after unmount (M29-T3 / #210, AC #2)", () => {
+    const { unmount } = render(<PlayableGame />);
+
+    // The initial render scheduled one frame callback (the loop's first tick).
+    expect(raf.scheduledCount()).toBe(1);
+
+    // Flushing that frame runs the tick, which reschedules the next frame — so
+    // the loop is alive and keeps scheduling exactly one callback per frame.
+    raf.flush();
+    expect(raf.scheduledCount()).toBe(1);
+
+    // Disposing the component must cancel the pending frame (cancelAnimationFrame)
+    // so the loop stops; no further callbacks may be scheduled afterwards.
+    unmount();
+    expect(raf.scheduledCount()).toBe(0);
+  });
+
   it("renders the cell info panel showing an empty prompt initially", () => {
     render(<PlayableGame />);
     expect(screen.getByTestId("cell-info")).toBeInTheDocument();
