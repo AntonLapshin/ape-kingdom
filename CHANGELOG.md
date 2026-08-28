@@ -18,9 +18,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adjustments) → M32. First `pi:ready` slices created: M30-T1 #219, M31-T1
   #220, M32-T1 #221 (merged via PRs #222/#223/#224). Next batch `pi:ready`:
   M30-T2 #225 (random neutral unit placement) — merged; M31-T2 #226 (smaller
-  circular default map), M32-T2 #227 (cell-info shows terrain) still open.
+  circular default map) — merged; M32-T2 #227 (cell-info shows terrain) still
+  open.
 
 ### Added
+
+- Smaller and clearly-round default map (M31-T2, #226). The default `MapConfig`
+  is now a **17×17** grid (289 cells) instead of the old 20×20 (400 cells) —
+  roughly **1.5× smaller** in cells and usable land (the default island yields
+  ~192 land cells vs ~285 before), while still leaving ample room for a full
+  p1-vs-p2 game (spawns, Home Trees, Groves, Nests, resources and the random
+  neutral units — verified by the setup + simulation tests). 17 is the smallest
+  odd dimension that keeps the generated island **robustly** circular under the
+  coastal-waviness generator: unlike the parity-sensitive even 16×16 grid
+  (where some seeds clip the circle against the square corners and push the
+  sector-extent ratio past 1.5), a 17×17 board keeps the worst-case circularity
+  ≤ ~1.43 across seeds — reading clearly round, not diamond, and even rounder
+  than the old default's ~1.50. An explicit `MapConfig` (width/height/islandSize)
+  still overrides the default for tests and reproduction; determinism under a
+  fixed seed is unchanged. Core-only change (`src/core/mapGenerator.ts`
+  defaults + updated docs); no UI/sizing work in this slice (that is M31-T4).
+  `src/core/**` stays 100% covered.
+
+- Hardened the `PlayableGame` UI tests against the smaller default map
+  (review fix for #226). The smaller 17×17 board left the seed-dependent
+  `PlayableGame` game-state tests (recruit placement, move-to-target, End Turn
+  + AI reply) able to fail intermittently on random map seeds (~4 of 9 suite
+  runs) because a fresh random board sometimes buried the buildable/reachable
+  hex those tests assume. `PlayableGame` now forwards an optional `mapConfig`
+  prop through to `useGameSession` (which already accepted one), and the
+  whole test file renders each game against a fixed seed (`{ seed: 0 }`) so the
+  board is deterministically reproducible — plus two new tests asserting the
+  seed is genuinely forwarded (same seed → identical board; different seed →
+  different spawn layout). No game rules changed; core coverage stays 100%.
 
 - Blue inner border on the selected cell (M32-T1, #221). When a hexagon is
   selected, the hexagon's inner glass edge — the `.hex-glass-edge` SVG outline

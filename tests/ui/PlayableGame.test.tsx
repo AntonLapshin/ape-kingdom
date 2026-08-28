@@ -14,8 +14,14 @@ describe("PlayableGame", () => {
   // events (which only accumulate deltas), then `flush()` a frame to commit
   // them into a single React state update.
   const raf = installFakeRaf();
+  // Deterministic 17×17 default board (#226): the smaller default
+  // map left the game-state tests below seed-dependent on the board's
+  // random spawn/terrain. Pinning a fixed seed makes every rendered
+  // game deterministically reproducible (no intermittent failures),
+  // while pure-render/pan/zoom/panel tests are unaffected either way.
+  const GAME_MAP = { seed: 0 };
   it("renders the board, status panel, and action controls", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     expect(screen.getByTestId("playable-game")).toBeInTheDocument();
     expect(screen.getByTestId("board")).toBeInTheDocument();
     expect(screen.getByTestId("status")).toBeInTheDocument();
@@ -25,8 +31,45 @@ describe("PlayableGame", () => {
     expect(screen.getByTestId("cell-info")).toBeInTheDocument();
   });
 
+  it("forwards a fixed map seed so the rendered board is deterministically reproducible (#226)", () => {
+    // The `mapConfig` prop is threaded through to `useGameSession`, so two
+    // renders with the same seed produce identical boards (and spawns) instead
+    // of a fresh random 17×17 board each time. This is what makes the
+    // seed-fragile game-state tests below deterministic.
+    const renderBoard = (seed: number) => {
+      const r = render(<PlayableGame mapConfig={{ seed }} />);
+      const hexes = r
+        .getAllByTestId("board-cell")
+        .map((c) => c.dataset.hex!)
+        .sort()
+        .join("|");
+      r.unmount();
+      return hexes;
+    };
+    expect(renderBoard(3)).toBe(renderBoard(3));
+  });
+
+  it("a different fixed seed renders a different buried spawn layout (#226)", () => {
+    // The 17×17 grid always has the same board cells, but the generated layout
+    // beneath them (spawns/sites/terrain) is seeded: different seeds place the
+    // p1 Home Tree and the starting units on different hexes. Assert on the
+    // seeded unit placement so this genuinely needs the seed to vary.
+    const unitHexes = (seed: number) => {
+      const r = render(<PlayableGame mapConfig={{ seed }} />);
+      const hexes = r
+        .getAllByTestId("board-cell")
+        .filter((c) => c.querySelector("[data-testid='board-unit']"))
+        .map((c) => c.dataset.hex!)
+        .sort()
+        .join("|");
+      r.unmount();
+      return hexes;
+    };
+    expect(unitHexes(3)).not.toBe(unitHexes(42));
+  });
+
   it("ends the turn (income is collected automatically) and the AI replies", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Income is applied automatically at the start of the turn, so the human's
     // turn begins directly on recruit/move actions.
     act(() => {
@@ -38,7 +81,7 @@ describe("PlayableGame", () => {
   });
 
   it("does not render the redundant 'Your actions' move/attack list (M24-T3, #161)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Movement is interactive only (select a unit on the map, then click a
     // highlighted reachable hex). The bottom-left cell-info panel must no
     // longer render the old non-recruit move/attack action-button list or its
@@ -49,7 +92,7 @@ describe("PlayableGame", () => {
   });
 
   it("fills the viewport with a non-scrolling on-screen container", () => {
-    const { container } = render(<PlayableGame />);
+    const { container } = render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game");
     expect(game).toBeInTheDocument();
     // The full-viewport container is directly on the testid root.
@@ -60,7 +103,7 @@ describe("PlayableGame", () => {
   });
 
   it("forbids text selection on the map board layer/board so dragging never selects text (M17-T1/#114)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Both the wrapping board layer and the board root forbid user text
     // selection, so dragging/panning the map never produces a blue HTML
     // selection highlight.
@@ -71,7 +114,7 @@ describe("PlayableGame", () => {
   });
 
   it("renders the map canvas background dark behind the surrounding ocean (M17-T3/#116)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // The full-screen board layer behind the generated map uses the dark
     // `bg-board-dark` canvas so the space outside the surrounding ocean reads
     // as near-black and the glass hexagons pop.
@@ -80,7 +123,7 @@ describe("PlayableGame", () => {
   });
 
   it("lays out the board full-screen without a max-width grid or a wrapping glass panel (M11-T1)", () => {
-    const { container } = render(<PlayableGame />);
+    const { container } = render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game");
     const board = screen.getByTestId("board");
 
@@ -110,7 +153,7 @@ describe("PlayableGame", () => {
   });
 
   it("drags across the viewport to pan the board", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
     const startStyle = board.getAttribute("style");
@@ -164,7 +207,7 @@ describe("PlayableGame", () => {
   });
 
   it("does not pan when the pointer moves without a drag gesture", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const board = screen.getByTestId("board");
     const startStyle = board.getAttribute("style");
     // A pointer move with no preceding pointer down must not pan the board.
@@ -182,7 +225,7 @@ describe("PlayableGame", () => {
   });
 
   it("scrolls the wheel up to zoom in and down to zoom out on the board", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
 
@@ -206,7 +249,7 @@ describe("PlayableGame", () => {
   });
 
   it("prevents the default page scroll when zooming", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const event = new WheelEvent("wheel", {
       bubbles: true,
@@ -220,7 +263,7 @@ describe("PlayableGame", () => {
   });
 
   it("clamps the zoom scale so the board maps stays visible", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
     const wheel = (deltaY: number) =>
@@ -243,7 +286,7 @@ describe("PlayableGame", () => {
   });
 
   it("combines zoom and pan in the board transform", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
     const wheel = (deltaY: number) =>
@@ -272,7 +315,7 @@ describe("PlayableGame", () => {
   });
 
   it("coalesces many wheel zoom deltas within a frame into a single committed state update (M29-T3 / #210)", async () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
 
@@ -313,7 +356,7 @@ describe("PlayableGame", () => {
   });
 
   it("coalesces many drag pan deltas within a frame into a single committed state update (M29-T3 / #210)", async () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
 
@@ -354,7 +397,7 @@ describe("PlayableGame", () => {
   });
 
   it("still accumulates deltas across many frames, so no event is lost (M29-T3 / #210)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
 
@@ -379,7 +422,7 @@ describe("PlayableGame", () => {
   });
 
   it("cancels the rAF loop on dispose, so no further frames are scheduled after unmount (M29-T3 / #210, AC #2)", () => {
-    const { unmount } = render(<PlayableGame />);
+    const { unmount } = render(<PlayableGame mapConfig={GAME_MAP} />);
 
     // The initial render scheduled one frame callback (the loop's first tick).
     expect(raf.scheduledCount()).toBe(1);
@@ -396,13 +439,13 @@ describe("PlayableGame", () => {
   });
 
   it("renders the cell info panel showing an empty prompt initially", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     expect(screen.getByTestId("cell-info")).toBeInTheDocument();
     expect(screen.getByText(/click a hex to inspect/i)).toBeInTheDocument();
   });
 
   it("selects a hex on click, highlights it, and shows its info panel", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Click p1's Home Tree cell.
     const cells = screen.getAllByTestId("board-cell");
     const homeCell = cells.find(
@@ -424,7 +467,7 @@ describe("PlayableGame", () => {
   });
 
   it("lists buildable recruit actions from the panel and wires them to the game", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // The turn starts directly on the recruit step, so recruiting is already
     // legal (income is collected automatically).
     // Select a buildable hex (one adjacent to p1's Home Tree).
@@ -471,7 +514,7 @@ describe("PlayableGame", () => {
   });
 
   it("selecting the Home Tree surfaces recruit options that recruit end-to-end (M19-T3/#132)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Click p1's (the human's) Home Tree. On the recruit step, selecting the
     // Home Tree must surface the "create new unit" recruit options.
     const cells = screen.getAllByTestId("board-cell");
@@ -506,7 +549,7 @@ describe("PlayableGame", () => {
   /* ------------------------------------------------------------------ */
 
   it("floats the three panels as distinct absolutely-positioned overlays at corners (M11-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game");
     const board = screen.getByTestId("board");
 
@@ -537,7 +580,7 @@ describe("PlayableGame", () => {
   });
 
   it("keeps the board interactive outside the floating panels (only panels intercept pointer input) (M11-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // The overlay containers are pointer-events-none so the surrounding space
     // never intercepts the board; only the panel card inside is auto. The
     // bottom-right corner is now the standalone circular End Turn button (a
@@ -588,7 +631,7 @@ describe("PlayableGame", () => {
   });
 
   it("renders all three floating panels' content (status, cell info, actions) (M11-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Each of the three panels is present and shows its content.
     const status = within(screen.getByTestId("status-overlay"));
     expect(status.getByTestId("status")).toBeInTheDocument();
@@ -608,7 +651,7 @@ describe("PlayableGame", () => {
   });
 
   it("makes the circular End Turn button clickable: its wrapper opts back into pointer events so clicks register (M25-T1 / #166)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // The actions overlay container is pointer-events-none (so the board stays
     // interactive everywhere except on the button), but the End Turn button's
     // own wrapper must opt back in with pointer-events-auto — exactly matching
@@ -627,7 +670,7 @@ describe("PlayableGame", () => {
   });
 
   it("wires the floating actions overlay to the game: End Turn and the AI replies (M11-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const actions = within(screen.getByTestId("actions-overlay"));
     // Income is collected automatically at the start of the turn, so the human
     // ends their turn directly — the AI replies and the next human turn starts
@@ -642,7 +685,7 @@ describe("PlayableGame", () => {
   /* ------------------------------------------------------------------ */
 
   it("styles each floating panel card with the frosted-glass HUD surface (M11-T3 / M14-T1)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Each floating panel card is a design-token frosted-glass surface — a
     // translucent fill over the map with a backdrop blur — so the HUD reads as
     // a polished over-map game HUD that stays readable over any terrain. The
@@ -664,7 +707,7 @@ describe("PlayableGame", () => {
   });
 
   it("floats the HUD panels on a translucent glass surface, not a near-opaque sheet (M14-T1)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // The M14 glass-design polish (#96) wants the frosted-glass effect visible
     // over the map, so the HUD panels must use the translucent `glass` surface
     // rather than the near-opaque `glass-panel` content sheet.
@@ -680,7 +723,7 @@ describe("PlayableGame", () => {
   });
 
   it("pops each floating panel card in with the token menu-pop animation (M11-T3)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Each floating panel card animates in on mount via the token `menu-pop`
     // animation class defined in the theme styles (M5-T3), giving the HUD a
     // polished, non-jarring appearance over the map. The bottom-right End Turn
@@ -696,7 +739,7 @@ describe("PlayableGame", () => {
   });
 
   it("keeps the full-screen board layer beneath the themed floating panels (M11-T3)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const board = screen.getByTestId("board");
     // The board layer fills the viewport beneath the overlays and is the first
     // absolute layer (rendered before the z-10 panels), so the HUD never
@@ -759,7 +802,7 @@ describe("PlayableGame", () => {
   };
 
   it("selects a hex on a static pointer click (down→up) via the real pointer path (M12-T1)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const cells = screen.getAllByTestId("board-cell");
     const homeCell = cells.find(
       (c) =>
@@ -783,7 +826,7 @@ describe("PlayableGame", () => {
   });
 
   it("selects a movable unit via a static pointer click, highlights reachable targets, and pointer-clicking a target moves it (M12-T1)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
 
     // The turn begins directly on the recruit step, so the human's units are
     // already movable this turn (income is collected automatically).
@@ -834,7 +877,7 @@ describe("PlayableGame", () => {
   });
 
   it("a drag beyond the threshold pans the board WITHOUT selecting a cell (M12-T1)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
     const startStyle = board.getAttribute("style");
@@ -866,7 +909,7 @@ describe("PlayableGame", () => {
   });
 
   it("a sub-threshold wiggle is still a click: does not pan but does select (M12-T1)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
     const startStyle = board.getAttribute("style");
@@ -907,7 +950,7 @@ describe("PlayableGame", () => {
    */
 
   it("regression: a static pointer click on a hex selects it and updates the info panel (M12-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const cells = screen.getAllByTestId("board-cell");
     const homeCell = cells.find(
       (c) =>
@@ -938,7 +981,7 @@ describe("PlayableGame", () => {
   });
 
   it("regression: selecting a movable unit highlights reachable targets and pointer-clicking one moves it, updating the info panel (M12-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
 
     // The turn begins directly on the recruit step, so the human's units are
     // already movable this turn (income is collected automatically).
@@ -986,7 +1029,7 @@ describe("PlayableGame", () => {
   });
 
   it("regression: a genuine drag pans the board without selecting any cell or leaving selection artifacts (M12-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const board = screen.getByTestId("board");
     const startStyle = board.getAttribute("style");
@@ -1016,7 +1059,7 @@ describe("PlayableGame", () => {
   });
 
   it("regression: a static click still selects after a previous drag (suppressClick resets on pointer-down) (M12-T2)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const game = screen.getByTestId("playable-game") as HTMLElement;
     const cells = screen.getAllByTestId("board-cell");
     const homeCell = cells.find(
@@ -1045,7 +1088,7 @@ describe("PlayableGame", () => {
   /* ------------------------------------------------------------------ */
 
   it("shows only a circular End Turn button in the bottom-right corner (M17-T2 / #115)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const actions = within(screen.getByTestId("actions-overlay"));
     // The bottom-right corner hosts exactly one control: the circular End Turn
     // button (issue #113-2).
@@ -1062,7 +1105,7 @@ describe("PlayableGame", () => {
   });
 
   it("enables the End Turn button during the human's turn and disables it when done (M17-T2 / #115)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // On the human's turn the button is enabled.
     expect(screen.getByTestId("submit-turn")).toBeEnabled();
     // Ending the turn still advances it (the AI replies) and the next human
@@ -1073,7 +1116,7 @@ describe("PlayableGame", () => {
   });
 
   it("regression: End Turn works from the movefight step with units still unmoved (#131)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const cells = () => screen.getAllByTestId("board-cell");
 
     // Move the first p1 unit into a reachable target, advancing the session
@@ -1100,7 +1143,7 @@ describe("PlayableGame", () => {
   });
 
   it("regression: End Turn works from the recruit step before any move/fight (#131)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // Fresh session: the human's turn begins on the recruit step with all
     // units unmoved. Ending the turn must still submit and run the AI reply.
     expect(screen.getByTestId("submit-turn")).toBeEnabled();
@@ -1110,7 +1153,7 @@ describe("PlayableGame", () => {
   });
 
   it("does not reveal how many bananas the AI has (M17-T2 / #115)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     // The status/scores panel lists one entry per player but only the human's
     // player-score row carries a banana count (issue #113-3).
     const status = within(screen.getByTestId("status"));
@@ -1129,7 +1172,7 @@ describe("PlayableGame", () => {
   /* ------------------------------------------------------------------ */
 
   it("regression: no recruit buttons are offered after moving, so a mid-turn recruit can no longer crash the app (#123)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const cells = () => screen.getAllByTestId("board-cell");
 
     // Move first: select a p1 unit and move it, advancing the session to the
@@ -1178,7 +1221,7 @@ describe("PlayableGame", () => {
   });
 
   it("acceptance: a recruited unit renders on the board at its placement hex and stays selectable (#123)", () => {
-    render(<PlayableGame />);
+    render(<PlayableGame mapConfig={GAME_MAP} />);
     const cells = () => screen.getAllByTestId("board-cell");
 
     const p1Home = cells().find(

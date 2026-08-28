@@ -88,11 +88,11 @@ describe("standardSetup", () => {
     }
   });
 
-  it("generates a fresh 20x20 map by default and carries it on the state", () => {
+  it("generates a fresh 17x17 default map by default and carries it on the state (#226)", () => {
     const state = standardSetup();
-    expect(state.map.width).toBe(20);
-    expect(state.map.height).toBe(20);
-    expect(state.map.cells).toHaveLength(400);
+    expect(state.map.width).toBe(17);
+    expect(state.map.height).toBe(17);
+    expect(state.map.cells).toHaveLength(289);
   });
 
   it("places a different map per seed (fresh map per game)", () => {
@@ -116,9 +116,9 @@ describe("standardSetup", () => {
     const seen = new Set<string>();
     for (let i = 0; i < 6; i++) {
       const s = standardSetup();
-      // Fresh (random) seeds still yield valid 20×20 maps.
-      expect(s.map.width).toBe(20);
-      expect(s.map.height).toBe(20);
+      // Fresh (random) seeds still yield valid 17×17 default maps.
+      expect(s.map.width).toBe(17);
+      expect(s.map.height).toBe(17);
       seen.add(JSON.stringify(s.map.cells));
     }
     expect(seen.size).toBeGreaterThan(1);

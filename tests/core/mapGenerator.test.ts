@@ -160,8 +160,8 @@ function thrownKind(fn: () => unknown): string {
 describe("mapGenerator", () => {
   it("exposes the default config with playable defaults", () => {
     expect(DEFAULT_MAP_CONFIG).toEqual({
-      width: 20,
-      height: 20,
+      width: 17,
+      height: 17,
       islandSize: 0.66,
       mountainDensity: 0.1,
       lakeDensity: 0.05,
@@ -271,11 +271,11 @@ describe("mapGenerator", () => {
   });
 
   describe("generateMap", () => {
-    it("produces a 20x20 map with 400 cells by default", () => {
+    it("produces a 17x17 map with 289 cells by default (#226)", () => {
       const map = generateMap();
-      expect(map.width).toBe(20);
-      expect(map.height).toBe(20);
-      expect(map.cells).toHaveLength(400);
+      expect(map.width).toBe(17);
+      expect(map.height).toBe(17);
+      expect(map.cells).toHaveLength(289);
     });
 
     it("respects explicit width and height", () => {
@@ -377,6 +377,46 @@ describe("mapGenerator", () => {
       // Every direction has land, and no direction's reach far outpaces another.
       expect(counts.every((c) => c > 0)).toBe(true);
       expect(Math.max(...maxes) / Math.min(...maxes)).toBeLessThanOrEqual(1.8);
+    });
+
+    it("defaults the default map to ~1.5x fewer cells than the old 20x20 default (#226)", () => {
+      // The previous default was 20×20 = 400 cells with ~285 land cells. The
+      // new 17×17 default must be clearly smaller — both in total cells and in
+      // land — while still leaving plenty of usable land for a full game.
+      const map = generateMap();
+      expect(map.cells.length).toBeLessThan(300);
+      expect(400 / map.cells.length).toBeGreaterThan(1.3); // ~1.5x fewer cells
+      expect(map.cells.length).toBeGreaterThan(200);
+      // Land was ~285 before; the reduced default must shrink it toward ~1.5x
+      // fewer (≈190) but stay comfortably above what a full p1-vs-p2 game needs.
+      const land = landCellCount(map);
+      expect(land).toBeLessThan(230);
+      expect(land).toBeGreaterThan(150);
+    });
+
+    it("keeps the default map round (not diamond) under the smaller size (#226)", () => {
+      // The reduced board must still read clearly circular — the whole point of
+      // M27-T1 (#172) — asserted on the representative default map across the
+      // same seed set used by the circularity suite.
+      for (const seed of [0, 1, 2, 3, 4]) {
+        const map = generateMap({ seed });
+        expect(circularityRatio(map, 8)).toBeLessThanOrEqual(1.5);
+      }
+      // And on the bare default call (fixed seed 0).
+      expect(circularityRatio(generateMap(), 8)).toBeLessThanOrEqual(1.5);
+    });
+
+    it("still lets an explicit MapConfig override the smaller default size (#226)", () => {
+      // Explicit radius/size must still win so tests/reproduction can pin any
+      // board (including the old-size or custom-shaped ones).
+      const big = generateMap({ width: 25, height: 25 });
+      expect(big.width).toBe(25);
+      expect(big.height).toBe(25);
+      expect(big.cells).toHaveLength(625);
+      const wide = generateMap({ width: 40, height: 9 });
+      expect(wide.width).toBe(40);
+      expect(wide.height).toBe(9);
+      expect(wide.cells).toHaveLength(360);
     });
 
     it("propagates config validation errors", () => {
