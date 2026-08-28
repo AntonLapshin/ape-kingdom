@@ -406,6 +406,25 @@ describe("src/theme.css + index.css — cell & terrain overhaul (M17-T3/#116)", 
     expect(g).toBeGreaterThan(b);
   });
 
+  it("defines a distinct neutral-owner tint token for neutral unit badges (M30-T5/#234)", () => {
+    // The neutral guardian badge needs its own semantic tint token so it reads
+    // apart from p1/p2 units. It must be defined as a real colour and
+    // re-exposed to Tailwind via @theme inline.
+    const tintMatch = THEME.match(/--color-owner-neutral:\s*(#[0-9a-fA-F]{3,8})\s*;?/);
+    const tint = tintMatch?.[1] ?? "";
+    expect(tint).toBeTruthy();
+    expect(THEME).toMatch(
+      /--color-owner-neutral:\s*var\(--color-owner-neutral\)/,
+    );
+    // A desaturated warm taupe — distinct from the soft rose (p1) and violet
+    // (p2) owner tints, and not a green like the terrain-land below.
+    const r = parseInt(tint.slice(1, 3), 16);
+    const g = parseInt(tint.slice(3, 5), 16);
+    const b = parseInt(tint.slice(5, 7), 16);
+    expect(Math.max(r, g, b)).toBeGreaterThan(150);
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(100);
+  });
+
   it("provides a glass hexagon treatment in index.css", () => {
     // Both the board cells and the selector panel hexagon preview use a glass
     // effect (`.hex-glass`) backed only by tokens.

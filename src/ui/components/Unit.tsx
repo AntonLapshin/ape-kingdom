@@ -1,6 +1,11 @@
 import type { ApeKind, ApeRank, PlayerId } from "../../core/game";
 import { gameIcons } from "../../assets/icons";
-import { apeKindIcon } from "../presentation";
+import {
+  apeKindIcon,
+  isNeutralUnitBadge,
+  NEUTRAL_UNIT_BADGE_BG,
+  NEUTRAL_UNIT_LABEL,
+} from "../presentation";
 
 export interface UnitProps {
   /** Which ape kind this unit is (Monkey, Gibbon, Chimpanzee, Gorilla). */
@@ -32,23 +37,39 @@ export interface UnitProps {
  * mapping logic. It is purely presentational — it receives the unit's kind,
  * rank, and owner as props and renders them. No hooks, no context, no side
  * effects, no business logic.
+ *
+ * A **neutral** unit (owner `null`, M30-T5 #234) is rendered distinctly: the
+ * badge takes a soft neutral taupe tint (`NEUTRAL_UNIT_BADGE_BG`, selected by
+ * the pure `isNeutralUnitBadge` helper — no logic here) and gains a
+ * `NEUTRAL_UNIT_LABEL` tag, so the ownership-neutral guardian reads apart from
+ * p1/p2 units and from the neutral Groves/Nests site markers.
  */
 export function Unit({ kind, rank, owner, hasActed = false }: UnitProps) {
+  const neutral = isNeutralUnitBadge(owner);
   return (
     <span
       data-testid="board-unit"
       data-owner={owner}
       data-kind={kind}
       data-has-acted={hasActed ? "true" : "false"}
-      className={`mt-0.5 flex flex-col items-center rounded-xl border border-line bg-panel/80 px-1 py-0.5 text-[10px] font-bold text-text-primary backdrop-blur-sm ${
-        hasActed ? "opacity-40 grayscale" : ""
-      }`}
+      data-neutral={neutral ? "true" : "false"}
+      className={`mt-0.5 flex flex-col items-center rounded-xl border border-line px-1 py-0.5 text-[10px] font-bold text-text-primary backdrop-blur-sm ${
+        neutral ? NEUTRAL_UNIT_BADGE_BG : "bg-panel/80"
+      } ${hasActed ? "opacity-40 grayscale" : ""}`}
     >
       <img
         src={gameIcons[apeKindIcon(kind)]}
         alt={`${kind} unit`}
         className="h-8 w-8 object-contain"
       />
+      {neutral && (
+        <span
+          data-testid="board-unit-neutral-label"
+          className="mt-0.5 leading-none text-[9px] font-semibold uppercase tracking-wide text-text-muted"
+        >
+          {NEUTRAL_UNIT_LABEL}
+        </span>
+      )}
       <span className="mt-0.5 leading-none">{rank}</span>
     </span>
   );

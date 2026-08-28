@@ -113,4 +113,53 @@ describe("Unit", () => {
     expect(badges[1].className).toContain("opacity-40");
     expect(badges[1].className).toContain("grayscale");
   });
+
+  /* Neutral-unit distinct rendering (M30-T5/#234) */
+
+  it("marks a neutral unit badge as neutral and applies the neutral taupe tint (M30-T5/#234)", () => {
+    render(<Unit kind="Monkey" rank={1} owner={null} />);
+    const badge = screen.getByTestId("board-unit");
+    // A neutral owner renders no `data-owner` value (React omits null-valued
+    // data attributes) but is flagged neutral via `data-neutral`.
+    expect(badge.dataset.neutral).toBe("true");
+    // The neutral badge takes the distinct neutral tint token (not the plain
+    // glass chip that owned units use), so it reads apart from p1/p2 units.
+    expect(badge.className).toContain("bg-owner-neutral");
+    expect(badge.className).not.toContain("bg-panel");
+  });
+
+  it("renders a visible ownership-neutral label on a neutral unit badge (M30-T5/#234)", () => {
+    render(<Unit kind="Gorilla" rank={4} owner={null} />);
+    const label = screen.getByTestId("board-unit-neutral-label");
+    expect(label.textContent).toBe("Neutral");
+  });
+
+  it("does not render the neutral label or tint on owned units (M30-T5/#234)", () => {
+    const { container } = render(
+      <>
+        <Unit kind="Monkey" rank={1} owner="p1" />
+        <Unit kind="Gibbon" rank={2} owner="p2" />
+      </>,
+    );
+    const badges = container.querySelectorAll('[data-testid="board-unit"]');
+    expect(badges).toHaveLength(2);
+    for (const badge of badges) {
+      expect(badge.getAttribute("data-neutral")).toBe("false");
+      expect(badge.className).not.toContain("bg-owner-neutral");
+      // Owned badges stay on the plain glass chip.
+      expect(badge.className).toContain("bg-panel");
+    }
+    expect(
+      container.querySelectorAll('[data-testid="board-unit-neutral-label"]'),
+    ).toHaveLength(0);
+  });
+
+  it("still dims a neutral unit that has acted (combining neutral + acted styles) (M30-T5/#234)", () => {
+    render(<Unit kind="Gibbon" rank={2} owner={null} hasActed={true} />);
+    const badge = screen.getByTestId("board-unit");
+    expect(badge.dataset.neutral).toBe("true");
+    expect(badge.className).toContain("bg-owner-neutral");
+    expect(badge.className).toContain("opacity-40");
+    expect(badge.className).toContain("grayscale");
+  });
 });
