@@ -87,8 +87,8 @@ export interface UnitView {
   kind: ApeKind;
   /** Combat strength / rank (1–4) of the ape kind. */
   rank: ApeRank;
-  /** The player who owns this unit. */
-  owner: PlayerId;
+  /** The player who owns this unit, or null for a neutral unit. */
+  owner: PlayerId | null;
   /**
    * Whether the unit has already moved/fought this turn (M19-T6, #190).
    * Derived straight from the core `hasActed` flag so a unit that has acted

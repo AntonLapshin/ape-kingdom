@@ -46,8 +46,8 @@ export interface CellUnitInfo {
   kind: ApeKind;
   /** Combat strength / rank (1–4) of the ape kind. */
   rank: ApeRank;
-  /** The player who owns this unit. */
-  owner: PlayerId;
+  /** The player who owns this unit, or null for a neutral unit. */
+  owner: PlayerId | null;
   /** The banana cost to recruit this kind of ape (static table data). */
   cost: number;
 }

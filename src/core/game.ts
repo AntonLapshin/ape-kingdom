@@ -35,12 +35,12 @@ export interface ApeType {
   movement: number;
 }
 
-/** A concrete ape unit placed on the map, owned by a player. */
+/** A concrete ape unit placed on the map, owned by a player or neutral. */
 export interface ApeUnit {
   /** Which ape kind this unit is. */
   kind: ApeKind;
-  /** The player who owns this unit. */
-  owner: PlayerId;
+  /** The player who owns this unit, or null if the unit is neutral. */
+  owner: PlayerId | null;
   /** The hex this unit occupies. */
   hex: Hex;
   /** Whether the unit may act this turn (false for newly recruited apes). */
@@ -290,11 +290,21 @@ export function allowsRecruitment(kind: SiteKind): boolean {
  */
 export function createUnit(
   kind: ApeKind,
-  owner: PlayerId,
+  owner: PlayerId | null,
   hex: Hex,
   hasActed = true,
 ): ApeUnit {
   return { kind, owner, hex, hasActed };
+}
+
+/**
+ * Whether a unit is neutral — i.e. it belongs to no kingdom (`owner` is null).
+ *
+ * Neutral units appear on the map without a controlling player (for example
+ * future random neutral units protecting surrounding cells).
+ */
+export function isNeutralUnit(unit: ApeUnit): boolean {
+  return unit.owner === null;
 }
 
 /** Create a grave marker on a hex, owned by the given kingdom. */
@@ -656,7 +666,7 @@ export function territoryOwner(
 export function isOwnedBy(
   state: GameState,
   hex: Hex,
-  playerId: PlayerId,
+  playerId: PlayerId | null,
 ): boolean {
   return territoryOwner(state.sites, state.units, state.territory, hex) === playerId;
 }

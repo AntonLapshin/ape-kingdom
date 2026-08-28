@@ -7,8 +7,8 @@ export interface UnitProps {
   kind: ApeKind;
   /** Combat strength / rank (1–4) of the ape kind. */
   rank: ApeRank;
-  /** The player who owns this unit (drives the badge colour). */
-  owner: PlayerId;
+  /** The player who owns this unit, or null for a neutral unit (drives the badge colour). */
+  owner: PlayerId | null;
   /**
    * Whether the unit has already moved/fought this turn (M19-T6, #190).
    * When true the badge is rendered dimmed/opaque (reduced opacity + slight
