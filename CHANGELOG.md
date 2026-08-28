@@ -22,11 +22,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Remaining M30 scope planned `pi:ready` (2026-08-28):** M30-T3 #235 (neutral
   unit protection rule, `priority:p2`), M30-T4 #233 (interaction with neutral
   units — attack/defeat, capture, cross-turn behaviour, `priority:p2`) and
-  M30-T5 #234 (UI — render neutral units distinctly, `priority:p3`). This fully
-  covers the remaining M30 sub-issues; M31-T3/T4 and M32-T3/T4 remain to plan
-  on later PM turns.
+  M30-T5 #234 (UI — render neutral units distinctly, `priority:p3`). M30-T4
+  #233 is now **merged** (interaction with neutral units). This covers most of
+  the remaining M30 sub-issues; M30-T3/T5 and M31-T3/T4 and M32-T3/T4 remain to
+  plan on later PM turns.
 
 ### Added
+
+- Interaction with neutral units (M30-T4, #233). Defines and enforces how
+  players engage the random neutral guardian units placed during setup (M30-T2
+  #225): a player attacks and defeats a neutral unit with the existing combat
+  rules (`attackUnit` — a neutral unit's `owner` is `null`, so it is an enemy
+  to every player), and defeating it lifts its protection over its surrounding
+  cells so those cells become legal to enter and capture
+  (`moveUnit`/`isCellProtected`). Neutral units are **static guardians** across turns: `canNeutralUnitAct()`
+  is always false, and the AI legal enumeration (`legalActions`) and turn
+  reset/advance helpers (`gameLoop`, `gameSession`) now explicitly skip neutral
+  units, so they never move, attack, or join of their own accord — a neutral
+  unit's `hasActed` stays `true` across every turn. All interaction flows
+  through the core reducers with typed errors (`AttackError`/`MoveError`),
+  fully unit-tested in `tests/core/neutralInteraction.test.ts` (19 tests);
+  `src/core/**` stays 100% covered. Core-only change; no UI/render work in this
+  slice.
 
 - Added missing `placeNeutralUnits` boundary tests (M30-T2, #229). Following the
   non-blocking review note on PR #228 (#discussion_r3880724527), two tests now

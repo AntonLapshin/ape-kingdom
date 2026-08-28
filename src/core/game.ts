@@ -301,10 +301,63 @@ export function createUnit(
  * Whether a unit is neutral — i.e. it belongs to no kingdom (`owner` is null).
  *
  * Neutral units appear on the map without a controlling player (for example
- * future random neutral units protecting surrounding cells).
+ * the random neutral guardians placed during setup, M30-T2 #225). A neutral
+ * unit is an enemy to every player: it can be attacked and defeated via the
+ * normal combat rules (M30-T4 #233).
  */
 export function isNeutralUnit(unit: ApeUnit): boolean {
   return unit.owner === null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Neutral-unit interaction (M30-T4, #233)                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Neutral units are **static guardians** (M30-T4, #233).
+ *
+ * Random neutral units are placed on the map at setup (M30-T2 #225) and then
+ * remain in place until a player defeats them in combat. They are pure
+ * territory-guardians, not participants in the turn cycle, so they:
+ *
+ *  - **never act on their own** across turns — they do not move, attack,
+ *    join, recruit, or collect income. Because they belong to no player, the
+ *    AI's legal enumeration only ever selects player-owned units, and turn
+ *    advancement only resets `hasActed` for the current player's own units, so
+ *    a neutral unit's `hasActed` stays `true` across every turn — it can
+ *    never move, attack, or join (see {@link canNeutralUnitAct}).
+ *  - **protect their surrounding cells** while they stand, via the existing
+ *    Protection / Safety Zones rule (`isCellProtected`): an opposing unit of
+ *    the same rank may not enter or attack into a cell adjacent to the
+ *    neutral guardian.
+ *  - when **defeated**, are removed from `state.units`, which automatically
+ *    lifts any protection the neutral conferred over its surrounding cells.
+ *    Those cells then become legal for players to enter and capture, so
+ *    defeating a neutral guardian opens up the territory it held.
+ *
+ * All interaction with a neutral unit flows through the existing core
+ * reducers and their typed errors. A player attacks a neutral unit with
+ * `attackUnit` (its `owner` is `null`, so it is an enemy to every player),
+ * resolving combat by the same rank rules as any battle; a neutral unit's hex
+ * is never a legal `moveUnit` target (it is occupied), so a player must fight
+ * to take a guardian's cell. Defeating a neutral on a site-less cell flips
+ * that cell to the attacker's persistent territory, exactly as defeating a
+ * player-owned unit does.
+ */
+
+/**
+ * Whether a neutral unit may act on its own during a turn.
+ *
+ * Always returns `false`: neutral units are **static guardians** that never
+ * take a turn of their own (M30-T4 #233). They are placed at setup and stay
+ * put until a player defeats them in combat — they never move, attack, join,
+ * recruit, or otherwise act across turns. This is the single code-level
+ * definition of neutral cross-turn behaviour: callers that decide which units
+ * may act (the AI legal enumeration, turn reset) treat a neutral unit as
+ * never actionable.
+ */
+export function canNeutralUnitAct(): boolean {
+  return false;
 }
 
 /** Create a grave marker on a hex, owned by the given kingdom. */

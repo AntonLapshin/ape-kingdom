@@ -42,6 +42,7 @@ import {
   collectIncome,
   adjacentHexes,
   hexDistance,
+  isNeutralUnit,
   type ApeUnit,
 } from "./game";
 import {
@@ -454,8 +455,12 @@ export function standardSetup(config?: MapConfig): GameState {
 function resetUnitsForTurn(state: GameState, playerId: PlayerId): GameState {
   return {
     ...state,
+    // Neutral units are static guardians (M30-T4 #233) that never act: they
+    // are never reset to actionable, so a neutral unit's `hasActed` stays
+    // `true` across every turn and it can never move, attack, or join on its
+    // own. Only the current player's own units are reset.
     units: state.units.map((u) =>
-      u.owner === playerId ? { ...u, hasActed: false } : u,
+      isNeutralUnit(u) || u.owner !== playerId ? u : { ...u, hasActed: false },
     ),
   };
 }
