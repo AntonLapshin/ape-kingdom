@@ -13,7 +13,7 @@
  */
 
 import type { GameState, Hex, ApeKind, ApeUnit } from "./game";
-import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable, canJoinUnits, isCellProtected } from "./game";
+import { adjacentHexes, sameHex, costOf, rankOf, movementOf, APE_KINDS, isOwnedBy, OWN_LAND_RANGE, bfsReachable, canJoinUnits, isCellProtected, isNeutralUnit } from "./game";
 import { isWater, isMountain, type GameMap } from "./mapGenerator";
 
 /* ------------------------------------------------------------------ */
@@ -172,7 +172,10 @@ export function legalActions(state: GameState): GameAction[] {
   // may join an adjacent same-kingdom unit whose summed level stays ≤ max
   // rank, e.g. 1+1=2, 2+1=3, 2+2=4, 3+1=4; 2+3 is not possible).
   for (const unit of state.units) {
-    if (unit.owner !== me || unit.hasActed) continue;
+    // Neutral units are static guardians (M30-T4 #233) that never act: they
+    // are never offered as legal move/attack actors, so they can never move,
+    // attack, or join on their own (`canNeutralUnitAct` is always false).
+    if (isNeutralUnit(unit) || unit.owner !== me || unit.hasActed) continue;
     const movement = movementOf(unit.kind);
     // Pass the map (so water and mountain cells are excluded from legal move
     // targets) and the mover's owned-land predicate (so the extended range of
@@ -204,7 +207,8 @@ export function legalActions(state: GameState): GameAction[] {
 
   // C. Attack: every not-acted unit against every adjacent enemy unit.
   for (const unit of state.units) {
-    if (unit.owner !== me || unit.hasActed) continue;
+    // Static guardians are never attack actors either (M30-T4 #233).
+    if (isNeutralUnit(unit) || unit.owner !== me || unit.hasActed) continue;
     for (const targetHex of adjacentHexes(unit.hex)) {
       const defender = state.units.find((u) => sameHex(u.hex, targetHex));
       if (defender && defender.owner !== me) {

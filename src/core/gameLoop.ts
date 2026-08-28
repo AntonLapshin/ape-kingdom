@@ -30,6 +30,7 @@ import {
   AttackError,
   eliminatePlayers,
   resolveVictory,
+  isNeutralUnit,
 } from "./game";
 import {
   legalActions,
@@ -124,8 +125,12 @@ export function applyAction(state: GameState, action: GameAction): GameState {
 function resetUnitsForTurn(state: GameState, playerId: string): GameState {
   return {
     ...state,
+    // Neutral units are static guardians (M30-T4 #233, `canNeutralUnitAct` is
+    // always false): they are never reset to actionable, so a neutral unit's
+    // `hasActed` stays `true` across every turn and it can never move, attack,
+    // or join on its own. Only the current player's own units are reset.
     units: state.units.map((u) =>
-      u.owner === playerId ? { ...u, hasActed: false } : u,
+      isNeutralUnit(u) || u.owner !== playerId ? u : { ...u, hasActed: false },
     ),
   };
 }
