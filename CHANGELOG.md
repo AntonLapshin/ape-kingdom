@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Verify randomized spawns stay legal & opposite-sided (M31-T3, #239). Added
+  deterministic seed-based core tests that run the full two-player setup over
+  many seeds and map sizes (5×5 through 21×17) and assert, every time, that
+  both Home Trees and all of their starting-force hexes (home + the three
+  starting neighbours) sit on solid land, that the two spawns are strictly
+  separated, and that p1/p2 split across the island mid-line on every playable
+  map. The audit found every consumer of spawn/home/site placement
+  (`placeNeutralSites`, neutral-unit placement, territory init, site ownership)
+  already derives purely from the two chosen Home hexes — no fixed
+  leftmost/rightmost or fixed-column logic remains. Tests-only change;
+  `src/core/**` untouched and still 100% covered.
+
 - Render neutral units distinctly (M30-T5, #234). The dumb `Unit` badge now
   flags a neutral guardian (`owner === null`, selected by the pure
   `isNeutralUnitBadge` presentation helper) with a distinct ownership-neutral
