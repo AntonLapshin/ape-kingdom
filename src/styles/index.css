@@ -282,6 +282,16 @@
   filter: drop-shadow(0 0 3px var(--color-glass-inner));
 }
 
+/* Selected cell: the hexagon's inner glass edge (the outline that surrounds
+   the hexagon) turns blue instead of the unselected white glass rim so the
+   selected hex reads clearly (M32-T1). Descendant of the selected cell shell
+   — the selection logic/classes are unchanged; only the visible stroke colour
+   flips to the blue selection token. */
+.hex-cell.hex-selected .hex-glass-edge {
+  stroke: var(--color-selection);
+  filter: drop-shadow(0 0 3px var(--color-selection));
+}
+
 /* Current player's territory is visually distinct (accent glow ring). */
 .hex-cell.hex-current {
   box-shadow:
