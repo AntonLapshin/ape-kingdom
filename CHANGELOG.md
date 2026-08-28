@@ -40,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defaults + updated docs); no UI/sizing work in this slice (that is M31-T4).
   `src/core/**` stays 100% covered.
 
+- Hardened the `PlayableGame` UI tests against the smaller default map
+  (review fix for #226). The smaller 17×17 board left the seed-dependent
+  `PlayableGame` game-state tests (recruit placement, move-to-target, End Turn
+  + AI reply) able to fail intermittently on random map seeds (~4 of 9 suite
+  runs) because a fresh random board sometimes buried the buildable/reachable
+  hex those tests assume. `PlayableGame` now forwards an optional `mapConfig`
+  prop through to `useGameSession` (which already accepted one), and the
+  whole test file renders each game against a fixed seed (`{ seed: 0 }`) so the
+  board is deterministically reproducible — plus two new tests asserting the
+  seed is genuinely forwarded (same seed → identical board; different seed →
+  different spawn layout). No game rules changed; core coverage stays 100%.
+
 - Blue inner border on the selected cell (M32-T1, #221). When a hexagon is
   selected, the hexagon's inner glass edge — the `.hex-glass-edge` SVG outline
   that surrounds the hexagon — now renders **blue** (`var(--color-selection)`)

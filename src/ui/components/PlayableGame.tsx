@@ -9,6 +9,7 @@ import {
 } from "../viewModels/coalesce";
 import { isEndTurnEnabled } from "../presentation";
 import { exceedsDragThreshold } from "../viewModels/usePointer";
+import type { MapConfig } from "../../core/mapGenerator";
 import { Board } from "./Board";
 import { EndTurnButton } from "./EndTurnButton";
 import { StatusPanel } from "./StatusPanel";
@@ -17,6 +18,14 @@ import { CellInfoPanel } from "./CellInfoPanel";
 export interface PlayableGameProps {
   /** The deterministic AI seed used for the session (defaults to 0). */
   aiSeed?: number;
+  /**
+   * Optional map config forwarded to `useGameSession`. When a fixed `seed` is
+   * given, the generated board (and its spawn placement) is fully
+   * deterministic, which lets integration tests pin a known-good board instead
+   * of depending on a fresh random seed per render. Defaults to the standard
+   * 17×17 default map with a fresh random seed.
+   */
+  mapConfig?: MapConfig;
 }
 
 /**
@@ -85,7 +94,7 @@ export interface PlayableGameProps {
  * is thin view glue (accumulating drag deltas / wheel deltas into the view
  * models), not game logic.
  */
-export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
+export function PlayableGame({ aiSeed = 0, mapConfig }: PlayableGameProps) {
   const {
     view,
     selectedHex,
@@ -95,7 +104,7 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
     selectCell,
     selectAction,
     submitTurn,
-  } = useGameSession(aiSeed);
+  } = useGameSession(aiSeed, mapConfig);
   const { pan, panBy } = usePan();
   const { zoom, zoomBy } = useZoom();
 
