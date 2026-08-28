@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 import { useGameSession } from "../viewModels/useGameSession";
 import { usePan } from "../viewModels/usePan";
 import { useZoom, ZOOM_STEP } from "../viewModels/useZoom";
+import {
+  createCoalescer,
+  sumNumbers,
+  sumPanDeltas,
+} from "../viewModels/coalesce";
 import { isEndTurnEnabled } from "../presentation";
 import { exceedsDragThreshold } from "../viewModels/usePointer";
 import { Board } from "./Board";
@@ -94,6 +99,17 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
   const { pan, panBy } = usePan();
   const { zoom, zoomBy } = useZoom();
 
+  // M29-T3: coalesce the flurry of pointer/wheel events into at most one
+  // committed pan/zoom state update per animation frame. Pointer moves and
+  // wheel notches accumulate raw deltas into these pure coalescers (no commit
+  // yet); a single `requestAnimationFrame` loop below drains each accumulator
+  // once per frame and commits the frame's total via `panBy`/`zoomBy` in one
+  // state update, so the map stays smooth while dragging/zooming without
+  // losing any deltas. The accumulators are pure (view-model helpers); only the
+  // rAF scheduling side effect lives here in the component.
+  const panCoalescer = useRef(createCoalescer(sumPanDeltas)).current;
+  const zoomCoalescer = useRef(createCoalescer(sumNumbers)).current;
+
   // Drag state (M12-T1): the pointer we are tracking, the gesture's start
   // position (to decide click-vs-drag), and the last known pointer position
   // (to compute per-move pan deltas). A gesture is NOT captured/treated as a
@@ -161,9 +177,12 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
       // Guard against non-numeric deltas (e.g. jsdom test environments never
       // producing pointer coordinates) so the transform never becomes NaN.
       if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
-      panBy(dx, dy);
+      // Coalesce the drag delta into the pending frame total instead of
+      // committing a state update per pointer move (M29-T3); the rAF
+      // loop drains it once per frame.
+      panCoalescer.add({ x: dx, y: dy });
     },
-    [panBy],
+    [panCoalescer],
   );
 
   const onPointerUp = useCallback(
@@ -207,14 +226,39 @@ export function PlayableGame({ aiSeed = 0 }: PlayableGameProps) {
       event.preventDefault();
       // deltaY > 0 (scroll down) zooms out; deltaY < 0 (scroll up) zooms in.
       // The wheel sign is converted into a fixed zoom step so each notch of
-      // the wheel moves the scale by ZOOM_STEP.
+      // the wheel moves the scale by ZOOM_STEP. The delta is coalesced into
+      // the pending frame total rather than committing a state update per
+      // notch (M29-T3); the rAF loop drains it once per frame.
       const delta = (event.deltaY > 0 ? -1 : 1) * ZOOM_STEP;
-      zoomBy(delta);
+      zoomCoalescer.add(delta);
     };
 
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
-  }, [zoomBy]);
+  }, [zoomBy, zoomCoalescer]);
+
+  // M29-T3: drain the pan/zoom coalescers once per animation frame and
+  // commit each frame's total as a single state update (via `panBy`/`zoomBy`).
+  // The loop schedules itself with `requestAnimationFrame` and cancels it on
+  // dispose, so any number of pointer/wheel deltas within a frame collapse
+  // into at most one committed update while no delta is lost — the final
+  // pan/zoom offset reflects the sum of all accumulated deltas.
+  useEffect(() => {
+    let rafId = 0;
+    const tick = () => {
+      rafId = requestAnimationFrame(tick);
+      const panDelta = panCoalescer.take();
+      if (panDelta) {
+        panBy(panDelta.x, panDelta.y);
+      }
+      const zoomDelta = zoomCoalescer.take();
+      if (zoomDelta !== null) {
+        zoomBy(zoomDelta);
+      }
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [panBy, zoomBy, panCoalescer, zoomCoalescer]);
 
   return (
     <div
