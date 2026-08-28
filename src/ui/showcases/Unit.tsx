@@ -33,3 +33,15 @@ export const PlayerTwoKinds = () => (
     <Unit kind="Gorilla" rank={4} owner="p2" />
   </div>
 );
+
+/** Neutral guardian units (owner null, M30-T5 #234) render distinctly — a
+    neutral taupe tint plus a "Neutral" label — so they read apart from the
+    p1/p2 units above and from the neutral Groves/Nests site markers. */
+export const NeutralGuardians = () => (
+  <div className="flex flex-wrap gap-2">
+    <Unit kind="Monkey" rank={1} owner={null} />
+    <Unit kind="Gibbon" rank={2} owner={null} />
+    <Unit kind="Chimpanzee" rank={3} owner={null} />
+    <Unit kind="Gorilla" rank={4} owner={null} />
+  </div>
+);

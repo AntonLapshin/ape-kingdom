@@ -29,6 +29,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Render neutral units distinctly (M30-T5, #234). The dumb `Unit` badge now
+  flags a neutral guardian (`owner === null`, selected by the pure
+  `isNeutralUnitBadge` presentation helper) with a distinct ownership-neutral
+  tint (`bg-owner-neutral`, a new `--color-owner-neutral` semantic token in
+  the theme) plus an uppercase "Neutral" label (via `NEUTRAL_UNIT_LABEL`), so
+  a neutral unit reads cleanly apart from p1/p2 units (which keep the plain
+  glass badge) and from the neutral Groves/Nests site markers. A dedicated
+  `NeutralGuardians` showcase demos the state. When a neutral guardian is
+  defeated/captured (M30-T4 #233) the rendered board reflects it exactly —
+  the neutral badge/label vanish as the winning unit occupies the cell,
+  consistent with the core combat resolution (covered by a board-level
+  integration test). UI stays thin/dumb; all logic is a read-only presentation
+  map in `src/ui/presentation.ts`; `src/core/**` untouched and still 100%
+  covered.
+
 - Neutral unit protection rule (M30-T3, #235). Each neutral guardian unit
   placed during setup (M30-T2 #225) protects the cells surrounding it from
   player entry and attack, reusing the existing Protection / Safety Zones

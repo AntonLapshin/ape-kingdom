@@ -128,6 +128,14 @@
   --color-owner-p1: #ecd0c6;
   --color-owner-p2: #d8cbec;
 
+  /* Neutral-owner tint (M30-T5, #234) — a warm desaturated taupe used to
+     render neutral guardian units distinctly from p1/p2 units. Unlike the
+     soft rose/violet kingdom tints that colour owned *territory* hexagons,
+     this neutral tint colours the neutral *unit badge* (an ownership-neutral
+     chip) so a neutral unit reads apart from owned units and the neutral
+     Groves/Nests site markers. Kept token-driven so a re-skin can retune it. */
+  --color-owner-neutral: #cfc6bb;
+
   /* Stage (backdrop) and dark gradient stops — kept in lock-step with the
      refined brand family (rose → violet → deep cocoa) so the stage gradient
      reads as one cohesive ramp (M14-T3, #97). */
@@ -222,6 +230,7 @@
   /* Owner territory tints */
   --color-owner-p1: var(--color-owner-p1);
   --color-owner-p2: var(--color-owner-p2);
+  --color-owner-neutral: var(--color-owner-neutral);
 
   --color-stage: var(--color-stage);
   --color-stage-dark-start: var(--color-stage-dark-start);

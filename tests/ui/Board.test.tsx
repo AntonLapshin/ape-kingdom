@@ -41,6 +41,7 @@ import {
   createUnit,
   sameHex,
   isCellProtected,
+  rankOf,
   type Hex,
 } from "../../src/core/game";
 
@@ -795,5 +796,106 @@ describe("Board bounding-box memoization + layout (M29-T2/#211)", () => {
     // Both cells are present and positioned by the centred offset.
     const cells = screen.getAllByTestId("board-cell");
     expect(cells).toHaveLength(2);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Neutral-unit board rendering (M30-T5/#234)                          */
+/* ------------------------------------------------------------------ */
+
+describe("Board neutral-unit rendering (M30-T5/#234)", () => {
+  /** A standard setup with all p1 units reset so they can act this turn. */
+  function playable() {
+    const base = standardSetup({ seed: 0 });
+    return {
+      ...base,
+      units: base.units.map((u) =>
+        u.owner === "p1" ? { ...u, hasActed: false } : u,
+      ),
+    };
+  }
+
+  /** Render the board for `state` and return the unit-badge element on `hex`. */
+  function unitEl(
+    state: ReturnType<typeof standardSetup>,
+    hex: Hex,
+    currentPlayer: "p1" | "p2" = "p1",
+  ) {
+    render(<Board board={boardCells(state)} currentPlayer={currentPlayer} />);
+    const cell = screen
+      .getAllByTestId("board-cell")
+      .find((c) => c.dataset.hex === `${hex.q},${hex.r}`)!;
+    return cell.querySelector('[data-testid="board-unit"]') as HTMLElement | null;
+  }
+
+  it("renders a neutral guardian unit with the distinct neutral badge styling", () => {
+    const state = playable();
+    const neutralHex = state.units.find((u) => u.owner === null)?.hex;
+    expect(neutralHex).toBeDefined();
+    const badge = unitEl(state, neutralHex!);
+    expect(badge).not.toBeNull();
+    expect(badge!.dataset.neutral).toBe("true");
+    // The neutral badge carries the distinct neutral tint + ownership-neutral
+    // label, so it reads apart from p1/p2 units and the neutral site markers.
+    expect(badge!.className).toContain("bg-owner-neutral");
+    const label = badge!.querySelector('[data-testid="board-unit-neutral-label"]');
+    expect(label).not.toBeNull();
+    expect(label!.textContent).toBe("Neutral");
+  });
+
+  it("renders p1/p2 units without the neutral tint or label", () => {
+    const state = playable();
+    const p1Badge = unitEl(state, state.units.find((u) => u.owner === "p1")!.hex);
+    const p2Badge = unitEl(state, state.units.find((u) => u.owner === "p2")!.hex, "p2");
+    for (const badge of [p1Badge, p2Badge]) {
+      expect(badge).not.toBeNull();
+      expect(badge!.dataset.neutral).toBe("false");
+      expect(badge!.className).not.toContain("bg-owner-neutral");
+      expect(badge!.querySelector('[data-testid="board-unit-neutral-label"]')).toBeNull();
+    }
+  });
+
+  it("reflects the protected cell becoming occupiable once the neutral guardian is defeated (M30-T4/#233)", () => {
+    // A higher-rank p1 unit neighbours (and can defeat) a neutral guardian.
+    const state = playable();
+    const neutral = state.units.find((u) => u.owner === null)!;
+    expect(rankOf(neutral.kind)).toBe(1); // neutral guardians are Monkeys
+    const neigh = state.map.cells
+      .map((c) => c.hex)
+      .find(
+        (c) =>
+          Math.abs(c.q - neutral.hex.q) + Math.abs(c.r - neutral.hex.r) === 1 &&
+          terrainAt(state.map, c) === "land",
+      )!;
+    expect(neigh).toBeDefined();
+    const attacker = createUnit("Gorilla", "p1", neigh, false);
+    const next = attackUnit(
+      { ...state, units: [...state.units, attacker] },
+      attacker,
+      neutral.hex,
+    );
+
+    // The neutral guardian is destroyed: no neutral unit stands on its old
+    // hex — the winning Gorilla moved onto it as p1 — so the cell is no longer
+    // occupied by a neutral and the defence it conferred is lifted. The attack
+    // itself succeeded over the formerly neutral cell (occupiable), consistent
+    // with the core combat resolution (M30-T4/#233).
+    expect(
+      next.units.some((u) => sameHex(u.hex, neutral.hex) && u.owner === null),
+    ).toBe(false);
+
+    // The rendered board matches: the cell hosts the p1 badge (neither a
+    // neutral badge nor a neutral label) — protection lifted, cell occupiable.
+    const board = boardCells(next).find((c) => sameHex(c.hex, neutral.hex))!;
+    expect(board.unit).not.toBeNull();
+    expect(board.unit!.owner).toBe("p1");
+    const badge = unitEl(next, neutral.hex);
+    expect(badge).not.toBeNull();
+    expect(badge!.dataset.owner).toBe("p1");
+    expect(badge!.dataset.neutral).toBe("false");
+    expect(badge!.className).not.toContain("bg-owner-neutral");
+    expect(
+      badge!.querySelector('[data-testid="board-unit-neutral-label"]'),
+    ).toBeNull();
   });
 });

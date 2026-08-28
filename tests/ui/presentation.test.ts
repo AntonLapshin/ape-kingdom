@@ -14,6 +14,9 @@ import {
   boardLayout,
   BOARD_PAD,
   hexToPixel,
+  NEUTRAL_UNIT_BADGE_BG,
+  NEUTRAL_UNIT_LABEL,
+  isNeutralUnitBadge,
 } from "../../src/ui/presentation";
 import type { BoardCell } from "../../src/ui/viewModels/useGameSession";
 
@@ -303,5 +306,28 @@ describe("boardLayout", () => {
     const snapshot = JSON.stringify(input);
     boardLayout(input);
     expect(JSON.stringify(input)).toBe(snapshot);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Neutral-unit badge presentation (M30-T5/#234)                        */
+/* ------------------------------------------------------------------ */
+
+describe("neutral-unit badge presentation (M30-T5/#234)", () => {
+  it("detects a neutral unit badge exactly when the owner is null", () => {
+    expect(isNeutralUnitBadge(null)).toBe(true);
+    expect(isNeutralUnitBadge("p1")).toBe(false);
+    expect(isNeutralUnitBadge("p2")).toBe(false);
+  });
+
+  it("provides a distinct neutral taupe tint token class for the badge", () => {
+    // The neutral badge uses a dedicated owner-neutral tile, distinct from the
+    // p1/p2 owner tints and from the plain `bg-panel` glass chip.
+    expect(NEUTRAL_UNIT_BADGE_BG).toBe("bg-owner-neutral");
+    expect(NEUTRAL_UNIT_BADGE_BG).toMatch(/^bg-owner-/);
+  });
+
+  it("provides a readable ownership-neutral label for the badge", () => {
+    expect(NEUTRAL_UNIT_LABEL).toBe("Neutral");
   });
 });

@@ -200,6 +200,36 @@ export function terrainLabel(terrain: Terrain | null | undefined): string {
 export const FOG_BG = "bg-fog";
 
 /**
+ * The token-backed background class used to tint a neutral unit's badge
+ * (M30-T5, #234). Neutral guardian units (owner `null`) render on a soft
+ * neutral taupe chip so they read apart from the p1/p2 unit badges (which
+ * stay on the plain `bg-panel` glass chip) and from the neutral Groves/Nests
+ * site markers. This is the badge-face tint only — the *territory* tint of
+ * the hosting hexagon is untouched (a neutral cell keeps its terrain colour
+ * via `ownerBackground`). Pure presentation — no game logic.
+ */
+export const NEUTRAL_UNIT_BADGE_BG = "bg-owner-neutral";
+
+/**
+ * A short human-readable label shown on a neutral guardian unit's badge
+ * (M30-T5, #234) so it is clearly flagged as ownership-neutral — distinct
+ * from p1/p2 units. Pure presentation — no game logic.
+ */
+export const NEUTRAL_UNIT_LABEL = "Neutral";
+
+/**
+ * Whether a unit badge should render the neutral (ownership-neutral) styling
+ * (M30-T5, #234). A unit is neutral exactly when its owner is `null` — the
+ * same ownership signal the core uses for neutral units (`owner === null`,
+ * `isNeutralUnit`). Pure presentation — a read-only owner → boolean map, no
+ * game logic. Centralised here so the dumb `Unit` component and tests share
+ * one source of truth.
+ */
+export function isNeutralUnitBadge(owner: PlayerId | null): boolean {
+  return owner === null;
+}
+
+/**
  * Token-backed background classes used to tint an owned cell/hexagon by its
  * owner (soft rose for p1, soft violet for p2) — M13-T2, #89. The owner colour
  * lives only on the hexagon, never on the unit badge (M17-T3, #116).
