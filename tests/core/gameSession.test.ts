@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { legalActions } from "../../src/core/ai";
 import { aiTurnActions } from "../../src/core/gameLoop";
-import { sameHex, adjacentHexes } from "../../src/core/game";
+import { sameHex, adjacentHexes, hexDistance } from "../../src/core/game";
 import { createUnit, createSite, createPlayer } from "../../src/core/game";
 import { generateMap, terrainAt, type GameMap } from "../../src/core/mapGenerator";
 import type { GameSession } from "../../src/core/gameSession";
@@ -187,6 +187,149 @@ describe("standardSetup", () => {
       const terrain = terrainAt(state.map, unit.hex);
       expect(terrain).not.toBe("water");
       expect(terrain).not.toBeNull();
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Randomized spawn legality & opposite-side guarantees (M31-T3 #239)  */
+/* ------------------------------------------------------------------ */
+
+describe("randomized spawns stay legal & opposite-sided (M31-T3 #239)", () => {
+  // A spread of map sizes (including the smallest legal 5×5 and the default
+  // 17×17) each run over many seeds. Across every (size, seed) pairing the
+  // randomized spawns must land on legal land and stay on opposite-ish sides.
+  const mapSizes: Array<{ width: number; height: number }> = [
+    { width: 5, height: 5 },
+    { width: 7, height: 7 },
+    { width: 9, height: 9 },
+    { width: 13, height: 13 },
+    { width: 17, height: 17 },
+    { width: 21, height: 17 },
+  ];
+  const SEED_COUNT = 30;
+
+  // The hexes a player's starting force actually occupies around a Home Tree:
+  // the Home Tree itself plus the three closest neighbours (see `startingForce`
+  // and `gameSession.forceHexes`). `chooseHomeHexes` guarantees exactly these
+  // four hexes are solid land, so no starting unit ever sits in the sea.
+  const forceHexes = (hex: { q: number; r: number }) => [
+    hex,
+    ...adjacentHexes(hex).slice(0, 3),
+  ];
+
+  it("lands both spawns and all starting-force hexes on land across many seeds/sizes", () => {
+    for (const { width, height } of mapSizes) {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const state = standardSetup({ width, height, seed });
+        const homes = state.sites.filter((s) => s.kind === "HomeTree");
+        expect(homes).toHaveLength(2);
+        for (const home of homes) {
+          // Every starting-force hex (home + its three starting neighbours)
+          // must be solid land surface — never water, never off the board.
+          for (const hex of forceHexes(home.hex)) {
+            const terrain = terrainAt(state.map, hex);
+            expect(terrain).not.toBeNull();
+            expect(terrain).not.toBe("water");
+          }
+          // The Home Tree itself sits on a plain-land cell (not a mountain).
+          expect(terrainAt(state.map, home.hex)).toBe("land");
+        }
+      }
+    }
+  });
+
+  it("keeps the two Home Trees on strictly separated sides across many seeds/sizes", () => {
+    // The p1<->p2 left-vs-right ordering holds on every map and seed (the
+    // picker splitters around the mid-line, falling back to separated extremes
+    // only on degenerate maps) and the spawns are never the same hex.
+    for (const { width, height } of mapSizes) {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const state = standardSetup({ width, height, seed });
+        const homeOf = (id: string) =>
+          state.sites.find(
+            (s) => s.kind === "HomeTree" && s.owner === id,
+          )!.hex;
+        const p1Home = homeOf("p1");
+        const p2Home = homeOf("p2");
+        expect(p1Home.q).toBeLessThanOrEqual(p2Home.q);
+        expect(sameHex(p1Home, p2Home)).toBe(false);
+        // Far enough apart to start the game with room (distinct hexes).
+        expect(hexDistance(p1Home, p2Home)).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it("splits the two Home Trees across the island mid-line on playable maps", () => {
+    // On maps with room on both sides the picker places p1 strictly on the
+    // left half of the q axis and p2 strictly on the right half. (Only tiny /
+    // degenerate maps fall back to separated extremes, which is covered above.)
+    const playable = mapSizes.filter(({ width }) => width >= 7);
+    for (const { width, height } of playable) {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const state = standardSetup({ width, height, seed });
+        const homeOf = (id: string) =>
+          state.sites.find(
+            (s) => s.kind === "HomeTree" && s.owner === id,
+          )!.hex;
+        const p1Home = homeOf("p1");
+        const p2Home = homeOf("p2");
+        expect(p1Home.q).toBeLessThan(state.map.width / 2);
+        expect(p2Home.q).toBeGreaterThanOrEqual(state.map.width / 2);
+      }
+    }
+  });
+
+  it("never lets a neutral site or unit overlap a starting-force hex across seeds", () => {
+    // Neutral sites must not sit on a starting-force hex (home + its three
+    // starting neighbours) or off the land; neutral units additionally must
+    // stay off the full six-hex Home-Tree neighbourhood (M30-T2 #225).
+    for (let seed = 0; seed < SEED_COUNT; seed++) {
+      const state = standardSetup({ seed });
+      const forceKeys = new Set<string>(
+        state.sites
+          .filter((s) => s.kind === "HomeTree")
+          .flatMap((s) => forceHexes(s.hex))
+          .map((h) => `${h.q},${h.r}`),
+      );
+      const neighbourhoodKeys = new Set<string>(
+        state.sites
+          .filter((s) => s.kind === "HomeTree")
+          .flatMap((s) => [s.hex, ...adjacentHexes(s.hex)])
+          .map((h) => `${h.q},${h.r}`),
+      );
+      for (const site of state.sites) {
+        if (site.kind === "HomeTree") continue;
+        expect(forceKeys.has(`${site.hex.q},${site.hex.r}`)).toBe(false);
+        expect(terrainAt(state.map, site.hex)).toBe("land");
+      }
+      for (const unit of state.units) {
+        if (unit.owner !== null) continue;
+        expect(neighbourhoodKeys.has(`${unit.hex.q},${unit.hex.r}`)).toBe(false);
+        expect(terrainAt(state.map, unit.hex)).toBe("land");
+      }
+    }
+  });
+
+  it("seeds site-less territory purely from the chosen homes (no hard-coded spawn cells)", () => {
+    for (let seed = 0; seed < SEED_COUNT; seed++) {
+      const state = standardSetup({ seed });
+      const homeSites = new Set(
+        state.sites
+          .filter((s) => s.kind === "HomeTree")
+          .map((s) => `${s.hex.q},${s.hex.r}`),
+      );
+      // Every recorded territory cell is one a starting unit of the owning
+      // player actually stands on — never a hard-coded spawn column.
+      for (const [key, owner] of Object.entries(state.territory ?? {})) {
+        if (homeSites.has(key)) continue;
+        expect(
+          state.units.some(
+            (u) =>
+              u.owner === owner && `${u.hex.q},${u.hex.r}` === key,
+          ),
+        ).toBe(true);
+      }
     }
   });
 });
