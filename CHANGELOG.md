@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Blue inner border on the selected cell (M32-T1, #221). When a hexagon is
+  selected, the hexagon's inner glass edge — the `.hex-glass-edge` SVG outline
+  that surrounds the hexagon — now renders **blue** (`var(--color-selection)`)
+  instead of the unselected white glass rim, so the selected hex reads clearly
+  against the board. The rule is a descendant of the existing `hex-selected`
+  shell, so selection logic/classes are unchanged (the outer blue selection
+  ring, move-target circles and pointer affordances are preserved) and
+  unselected cells keep their white glass edge. Pure presentational CSS change
+  in `src/styles/index.css`; `src/core` untouched and still 100% covered;
+  structural theme tests assert the new rule draws only from the blue selection
+  token with no raw color.
+
 - Random map + random spawn on each load (M31-T1, #220). `standardSetup(config?)`
   in `src/core/gameSession.ts` now draws a **fresh random seed** via the new pure
   `randomSeed()` helper whenever no explicit `MapConfig.seed` is supplied, so every

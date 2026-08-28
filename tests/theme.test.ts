@@ -140,6 +140,32 @@ describe("src/styles/index.css — selected-hex blue border (M13-T3/#90)", () =>
     expect(combined).toContain("var(--color-selection-soft)");
     expect(combined).not.toMatch(/brand-amber/);
   });
+
+  it("turns the hexagon's inner glass edge blue when the cell is selected (M32-T1/#221)", () => {
+    // Issue #214 item 1 / #221: the selected cell's hexagon inner border (the
+    // `.hex-glass-edge` outline that surrounds the hexagon) must render blue,
+    // distinct from the unselected white glass rim. The rule is a descendant
+    // of the selected shell and must draw from the blue selection token — no
+    // raw color — while the unselected `.hex-glass-edge` keeps its white glass
+    // line token (asserted by the M18-T3 test above).
+    const inner = STYLES.match(
+      /\.hex-cell\.hex-selected\s+\.hex-glass-edge\s*\{([^}]*)\}/,
+    )?.[1];
+    expect(inner).toBeTruthy();
+    expect(inner).toContain("stroke: var(--color-selection)");
+    expect(inner).toContain("var(--color-selection)");
+    expect(inner).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    expect(inner).not.toMatch(/rgba?\(/);
+  });
+
+  it("keeps the unselected hexagon inner edge on the white glass token (M32-T1/#221)", () => {
+    // An unselected cell must keep its current white glass edge (M18-T3). The
+    // base `.hex-glass-edge` rule still draws from `--color-glass-line`; only
+    // the selected descendant flips it to blue.
+    const edge = STYLES.match(/\.hex-glass-edge\s*\{([^}]*)\}/)?.[1];
+    expect(edge).toBeTruthy();
+    expect(edge).toContain("var(--color-glass-line)");
+  });
 });
 
 describe("src/styles/index.css — frosted-glass HUD surface (M14-T1/#96)", () => {
