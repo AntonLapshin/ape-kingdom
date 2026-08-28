@@ -391,12 +391,18 @@ export function standardSetup(config?: MapConfig): GameState {
   const neutralSites = placeNeutralSites(map, p1Home, p2Home);
 
   // Place a handful of random neutral units (M30-T2, #225) on land cells clear
-  // of the player Home-Tree spawn hexes/neighbourhoods and the neutral sites,
-  // driven by a seeded RNG derived from the map seed so a fixed seed reproduces
-  // the exact layout while a fresh seed yields a fresh neutral placement.
+  // of the player Home-Tree spawn hexes/**neighbourhoods** (home + all six
+  // adjacent hexes, so a neutral never sits right next to a Home Tree) and the
+  // neutral sites, driven by a seeded RNG derived from the map seed so a fixed
+  // seed reproduces the exact layout while a fresh seed yields a fresh neutral
+  // placement. `forceHexes` covers the Home Tree hex and the three starting-
+  // force neighbours; `adjacentHexes` adds the remaining three so the whole
+  // neighbourhood is excluded.
   const occupiedKeys = new Set<string>([
     ...forceHexes(p1Home).map(hexKey),
     ...forceHexes(p2Home).map(hexKey),
+    ...adjacentHexes(p1Home).map(hexKey),
+    ...adjacentHexes(p2Home).map(hexKey),
     ...neutralSites.map((s) => hexKey(s.hex)),
   ]);
   const neutralUnits = placeNeutralUnits(map, occupiedKeys, undefined, neutralSeedFor(seed));

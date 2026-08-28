@@ -74,8 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   random **plain-land** cells, drawn without replacement off a seeded
   Fisher–Yates shuffle so a fixed seed reproduces the exact layout and a fresh
   seed yields a fresh one. `standardSetup` now wires it in after the sites:
-  neutral units land clear of both players' Home-Tree spawn hexes/neighbourhoods
-  and the neutral Groves/Nests (their hex keys are the `occupiedKeys`), so they
+  neutral units land clear of both players' Home-Tree spawn hexes/**neighbourhoods**
+  (the Home Tree hex plus all six adjacent hexes, so a neutral never sits right
+  next to a Home Tree) and the neutral Groves/Nests (their hex keys are the
+  `occupiedKeys`), so they
   never block or overlap spawns or sites. The neutral RNG seed is derived from
   the map/spawn seed via a fixed constant (`neutralSeedFor`), keeping placement
   **orthogonal** to the map/spawn randomness — an explicit `MapConfig.seed`

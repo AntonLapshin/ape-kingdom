@@ -201,8 +201,13 @@ describe("neutral units in setup (M30-T2 #225)", () => {
       state.sites
         .filter((s) => s.kind === "HomeTree")
         .flatMap((s) => {
-          const [n1, n2, n3] = adjacentHexes(s.hex);
-          return [s.hex, n1, n2, n3].map((h) => `${h.q},${h.r}`);
+          // The FULL Home-Tree neighbourhood: the Home Tree hex plus all six
+          // adjacent hexes (M30-T2 #225 acceptance criterion #2 — a neutral
+          // must never sit on any hex of the neighbourhood, not just the
+          // three starting-force neighbours).
+          return [s.hex, ...adjacentHexes(s.hex)].map(
+            (h) => `${h.q},${h.r}`,
+          );
         }),
     );
   const siteKeys = (state: ReturnType<typeof standardSetup>): Set<string> =>
