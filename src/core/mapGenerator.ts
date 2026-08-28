@@ -61,9 +61,9 @@ export interface GameMap {
 
 /** Configuration passed to `generateMap`. Every field is optional. */
 export interface MapConfig {
-  /** Grid width (cells along the q axis). Default 20. */
+  /** Grid width (cells along the q axis). Default 17. */
   width?: number;
-  /** Grid height (cells along the r axis). Default 20. */
+  /** Grid height (cells along the r axis). Default 17. */
   height?: number;
   /**
    * Fraction of the interior that becomes the island, in `(0, 1]`.
@@ -90,10 +90,23 @@ export type ResolvedMapConfig = Required<MapConfig>;
 /** Smallest allowed grid dimension (so there is always interior room). */
 export const MIN_MAP_DIMENSION = 5;
 
-/** Sensible defaults for a playable map. */
+/**
+ * Sensible defaults for a playable map.
+ *
+ * The default grid is **17×17** (289 cells) — about 1.5× smaller than the old
+ * 20×20 default in total cells/land (the default island yields ~192 land cells
+ * vs ~285 before, i.e. land shrinks by roughly the intended ~1.5×), while
+ * still leaving ample room for a full p1-vs-p2 game (spawns, Home Trees,
+ * Groves, Nests, resources and the random neutral units). 17 is also the
+ * smallest odd dimension that keeps the generated island **robustly** circular
+ * under the coastal-waviness generator: unlike the even 16×16 grid (whose
+ * centre-on-integer parity lets some seeds clip the circle against the
+ * corners and push the sector-extent ratio above 1.5), a 17×17 board keeps the
+ * worst-case circularity ratio comfortably ≤ 1.5 across seeds (M31-T2, #226).
+ */
 export const DEFAULT_MAP_CONFIG: ResolvedMapConfig = {
-  width: 20,
-  height: 20,
+  width: 17,
+  height: 17,
   islandSize: 0.66,
   mountainDensity: 0.1,
   lakeDensity: 0.05,

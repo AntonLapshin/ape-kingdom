@@ -352,7 +352,8 @@ export function randomSeed(): number {
  * map.
  *
  * A new playable map is generated via `generateMap` (M9-T1) each time setup
- * runs — by default 20×20 with the default generation props — so every game
+ * runs — by default 17×17 with the default generation props (the smaller,
+ * clearly-circular default map, M31-T2 #226) — so every game
  * starts on a fresh board instead of a fixed small one. When no explicit
  * `MapConfig.seed` is supplied a fresh random seed is drawn (see
  * `randomSeed`), so two `standardSetup()` calls produce **different** maps and
@@ -548,7 +549,7 @@ function sameAction(a: GameAction, b: GameAction): boolean {
  * The AI's reply is driven by `aiSeed` (deterministic for a given seed) and
  * `aiOptions` (behavior knobs), both of which are carried through to
  * `submitTurn`. An optional `mapConfig` is passed to `standardSetup` to
- * reproduce a specific generated board deterministically (default 20×20). An
+ * reproduce a specific generated board deterministically (default 17×17). An
  * optional `trainedPolicy` (M28-T3) supplies the trained-AI opponent; when
  * absent the session falls back to the rule-legal AI for its replies.
  */

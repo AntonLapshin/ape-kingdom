@@ -40,6 +40,7 @@ import {
   attackUnit,
   createUnit,
   sameHex,
+  isCellProtected,
   type Hex,
 } from "../../src/core/game";
 
@@ -645,10 +646,18 @@ describe("Board territory-ownership display (M19-T1/#130)", () => {
   });
 
   it("flips ownership to an enemy unit that moves onto the site", () => {
-    // p2 (enemy) moves a fresh unit onto a p1-owned Nest.
+    // p2 (enemy) moves a fresh unit onto a p1-owned Nest. Pick a neutral Nest
+    // that a p2 Monkey can legally reach (on the smaller default map the first
+    // neutral Nest may sit protected next to a p1 Home Tree, which would throw
+    // a MoveError before the ownership-flip even runs) so this test exercises
+    // the ownership-flip rule rather than incidentally the Protection rule.
     const state = playable();
+    const p2Monkey = createUnit("Monkey", "p2", { q: 0, r: 0 }, false);
     const nest = state.sites.find(
-      (s) => s.kind === "Nest" && s.owner === null,
+      (s) =>
+        s.kind === "Nest" &&
+        s.owner === null &&
+        !isCellProtected(state, s.hex, p2Monkey),
     )!;
     const owned = ownSite(state, nest.hex, "p1");
     const from = adjacentEmpty(owned, nest.hex);
