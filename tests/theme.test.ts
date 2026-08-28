@@ -504,3 +504,57 @@ describe("src/styles/index.css — End Turn frosted-glass effect (M29-T1/#186)",
   });
 });
 
+
+/* ------------------------------------------------------------------ */
+/* Neutral-gray text palette (M32-T4 / #240)                          */
+/* ------------------------------------------------------------------ */
+describe("src/theme.css — neutral-gray text roles (M32-T4/#240)", () => {
+  // The four ordered text roles (primary > body > muted > faint) must read as
+  // neutral grays — no warm cocoa/brown cast — while keeping the same
+  // relative luminance hierarchy so heading/body/muted hierarchy still reads.
+
+  // Extract each role's hex value and its relative luminance, and assert the
+  // role is a *neutral* gray (R === G === B, i.e. no chromatic/warm cast).
+  it("uses neutral gray (achromatic) text roles with the hierarchy intact", () => {
+    const luminances: number[] = [];
+    for (const role of ["primary", "body", "muted", "faint"]) {
+      const key = `--color-text-${role}`;
+      const m = THEME.match(new RegExp(`${key}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`));
+      expect(m, `missing ${key}`).toBeTruthy();
+      const hex = (m as RegExpMatchArray)[1];
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      // Neutral gray: channels are equal (no warm/chromatic cast). Allow a
+      // tiny ±1 tolerance so a near-neutral gray isn't rejected.
+      expect(Math.abs(r - g)).toBeLessThanOrEqual(1);
+      expect(Math.abs(g - b)).toBeLessThanOrEqual(1);
+      expect(Math.abs(r - b)).toBeLessThanOrEqual(1);
+      // Relative luminance of the gray (sRGB-linearized).
+      const c = r / 255;
+      const lin = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      luminances.push(0.2126 * lin + 0.7152 * lin + 0.0722 * lin);
+    }
+    // Hierarchy preserved: primary is darkest, faint is lightest, and each
+    // successive role is lighter than the previous one.
+    expect(luminances[0]).toBeLessThan(luminances[1]);
+    expect(luminances[1]).toBeLessThan(luminances[2]);
+    expect(luminances[2]).toBeLessThan(luminances[3]);
+  });
+
+  it("keeps on-accent / inverted text light so contrast on accent surfaces holds", () => {
+    // The light-on-accent role must remain a near-white (high-luminance) so
+    // text on the accent/strong surfaces keeps readable contrast — unchanged
+    // by the neutralization.
+    const m = THEME.match(/--color-text-on-accent:\s*(#[0-9a-fA-F]{3,8})\s*;?/);
+    expect(m, "missing --color-text-on-accent").toBeTruthy();
+    const hex = (m as RegExpMatchArray)[1];
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    // Near-white: every channel is high (>= 0xE0).
+    expect(r).toBeGreaterThanOrEqual(0xe0);
+    expect(g).toBeGreaterThanOrEqual(0xe0);
+    expect(b).toBeGreaterThanOrEqual(0xe0);
+  });
+});

@@ -79,12 +79,14 @@
   --color-line: #f0e7e0;
   --color-line-strong: #e0d4c8;
 
-  /* Text roles — warm cocoa/mud neutrals that harmonize with the amber/rose
-     family (slightly warmer than before for cohesion). */
-  --color-text-primary: #4c3626;
-  --color-text-body: #6b5342;
-  --color-text-muted: #98806e;
-  --color-text-faint: #bfa996;
+  /* Text roles — neutral gray shades (M32-T4, #240) with no warm cocoa/brown
+     cast, so UI text reads cleanly. Kept on grays that preserve the same
+     relative luminance hierarchy (primary > body > muted > faint) and the
+     readable contrast on the panels/glass surfaces. */
+  --color-text-primary: #3b3b3b;
+  --color-text-body: #5c5c5c;
+  --color-text-muted: #858585;
+  --color-text-faint: #b0b0b0;
   --color-text-on-accent: #ffffff;
 
   /* Shadows — warmer, deeper, and with a hover-elevation variant so controls

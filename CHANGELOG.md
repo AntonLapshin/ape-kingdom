@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Neutralize the brownish text palette to neutral gray (M32-T4, #240). The four
+  text role tokens in `src/theme.css` (`--color-text-primary/body/muted/faint`)
+  move from the warm cocoa/mud cast to neutral achromatic grays, so UI text
+  reads cleanly without the brownish tint, while preserving the same relative
+  luminance hierarchy (primary > body > muted > faint) and readable contrast
+  on the parchment panels/glass. `--color-text-on-accent` stays white,
+  so on-accent/inverted text contrast is unchanged. A structural theme test
+  asserts each role is an achromatic gray with the hierarchy intact and the
+  on-accent role stays near-white. Pure presentational change to
+  `src/theme.css` only; `src/core/**` untouched and still 100% covered.
+
 - Render neutral units distinctly (M30-T5, #234). The dumb `Unit` badge now
   flags a neutral guardian (`owner === null`, selected by the pure
   `isNeutralUnitBadge` presentation helper) with a distinct ownership-neutral
