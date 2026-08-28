@@ -20,6 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Core neutral-unit data model (M30-T1, #219). The `ApeUnit` type in
+  `src/core/game.ts` now models a neutral unit — a unit that belongs to no
+  kingdom — by widening `owner` from `PlayerId` to `PlayerId | null`, while
+  existing player units keep their concrete owner with no runtime change. A new
+  pure helper, `isNeutralUnit(unit)`, reports whether a unit has no owning
+  kingdom (`owner === null`). The nullable owner is threaded through the derived
+  unit summary types (`CellUnitInfo` in `src/core/cellInfo.ts` and `UnitView` in
+  `src/ui/viewModels/useGameSession.ts`) and the dumb `Unit` component's `owner`
+  prop, and `standardSetup` in `src/core/gameSession.ts` narrows the guard so
+  starting-force units (always player-owned) claim territory as before. This is
+  the first, smallest slice for random neutral units (#216): no placement,
+  protection, or UI rendering wiring yet — those are later slices. Core stays
+  pure and 100% covered (lines, functions, statements and branches). No UI
+  behaviour change.
+
 - Coalesce pan/zoom updates to one per animation frame (M29-T3, #210).
   Dragging the map and scrolling the wheel no longer fire one React state
   update (full board re-render) per pointer/wheel event. New pure,

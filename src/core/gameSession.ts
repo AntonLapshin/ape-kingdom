@@ -254,6 +254,11 @@ export function standardSetup(config?: MapConfig): GameState {
   const homeSites = new Set<string>([hexKey(p1Home), hexKey(p2Home)]);
   for (const unit of [...p1.units, ...p2.units]) {
     if (homeSites.has(hexKey(unit.hex))) continue;
+    /* c8 ignore start -- starting-force units are always player-owned, so a
+       neutral unit can never reach this loop (neutral placement is a later
+       slice); this guard only narrows the nullable `ApeUnit.owner` type. */
+    if (unit.owner === null) continue;
+    /* c8 ignore stop */
     territory[hexKey(unit.hex)] = unit.owner;
   }
 

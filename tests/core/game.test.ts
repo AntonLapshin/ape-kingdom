@@ -41,6 +41,7 @@ import {
   reachableForUnit,
   kindForRank,
   canJoinUnits,
+  isNeutralUnit,
   MAX_RANK,
   isCellProtected,
   Grave,
@@ -138,6 +139,23 @@ describe("unit creation", () => {
     expect(unit.owner).toBe("p2");
     expect(unit.hex).toEqual({ q: 0, r: 0 });
     expect(unit.hasActed).toBe(false);
+  });
+
+  it("creates a neutral unit with no owner (owner null)", () => {
+    const unit = createUnit("Monkey", null, { q: 5, r: 6 });
+    expect(unit.kind).toBe("Monkey");
+    expect(unit.owner).toBeNull();
+    expect(unit.hex).toEqual({ q: 5, r: 6 });
+    expect(unit.hasActed).toBe(true);
+  });
+
+  it("isNeutralUnit reports a null-owner unit as neutral", () => {
+    expect(isNeutralUnit(createUnit("Monkey", null, { q: 1, r: 1 }))).toBe(true);
+  });
+
+  it("isNeutralUnit reports a player-owned unit as not neutral", () => {
+    expect(isNeutralUnit(createUnit("Monkey", "p1", { q: 1, r: 1 }))).toBe(false);
+    expect(isNeutralUnit(createUnit("Gorilla", "p2", { q: 1, r: 1 }, false))).toBe(false);
   });
 });
 
