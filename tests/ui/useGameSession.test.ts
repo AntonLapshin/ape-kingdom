@@ -253,7 +253,10 @@ describe("revealedHexKeys (fog-of-war view adaptation)", () => {
   });
 
   it("the opponent p2's own sight is never revealed to the human (no enemy sight leak)", () => {
-    const state = standardSetup();
+    // A fixed map seed guarantees p2's Home Tree spawns far from p1's vision
+    // (random unseeded maps could place the two spawns close enough that p1's
+    // opening sight lines reach p2's home, which is not what this test asserts).
+    const state = standardSetup({ seed: 0 });
     // p2's Home Tree is never among the human's revealed hexes (unless it
     // happens to sit inside p1's vision — it is far away on the map, so not).
     const p2Home = state.sites.find(

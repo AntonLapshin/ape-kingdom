@@ -151,8 +151,10 @@ describe("CellInfoPanel read-only", () => {
   });
 
   it("preview hexagon keeps the owner tint after the unit vacates an owned site (M19-T1/#130)", () => {
-    // p1's Home Tree keeps its p1 owner tint once the unit walks off it.
-    const state = standardSetup();
+    // p1's Home Tree keeps its p1 owner tint once the unit walks off it. A
+    // fixed map seed keeps the spawn/topology deterministic so the found "away"
+    // hex is always a passable land cell (unseeded maps can pick a mountain).
+    const state = standardSetup({ seed: 0 });
     const home = p1Home(state);
     const unit = state.units.find(
       (u) => u.owner === "p1" && sameHex(u.hex, home),
