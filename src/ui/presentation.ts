@@ -168,6 +168,30 @@ export const TERRAIN_BG: Record<Terrain, string> = {
 };
 
 /**
+ * A short human-readable label for each terrain type (M32-T2, #227).
+ *
+ * Used by the cell-info/bottom panel to show the selected cell's terrain in a
+ * clear, consistent way ("Land", "Water", "Mountain") instead of exposing
+ * the raw terrain key. "Land" is the plain/empty reading (a cell with no
+ * mountain is shown as plain land). Purely presentational — a read-only
+ * terrain → label map, no game logic.
+ */
+export const TERRAIN_LABELS: Record<Terrain, string> = {
+  land: "Land",
+  water: "Water",
+  mountain: "Mountain",
+};
+
+/**
+ * Resolve the friendly terrain label for a hex (M32-T2, #227), defaulting an
+ * unexpected/unknown terrain to the plain "Land" reading so the panel never
+ * shows a raw/garbled terrain key. Pure presentation — no game logic.
+ */
+export function terrainLabel(terrain: Terrain | null | undefined): string {
+  return terrain ? (TERRAIN_LABELS[terrain] ?? TERRAIN_LABELS.land) : TERRAIN_LABELS.land;
+}
+
+/**
  * The token-backed background class used to render a cell hidden by fog of
  * war (M22-T2, #159). Fogged cells use a dark `bg-fog` token so unrevealed
  * cells read as hidden against the revealed board. Pure presentation — no

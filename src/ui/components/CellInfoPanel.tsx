@@ -1,6 +1,12 @@
 import type { CellInfo } from "../../core/cellInfo";
 import type { GameAction } from "../../core/ai";
-import { SITE_LABELS, cellHexagonClass, cellOwner, legalRecruitActions } from "../presentation";
+import {
+  SITE_LABELS,
+  cellHexagonClass,
+  cellOwner,
+  legalRecruitActions,
+  terrainLabel,
+} from "../presentation";
 import { Hexagon } from "./Hexagon";
 import { Unit } from "./Unit";
 
@@ -83,7 +89,16 @@ export function CellInfoPanel({ info, onSelectAction, legalActions }: CellInfoPa
           <p className="text-sm font-semibold text-text-primary">
             Hex ({info.hex.q}, {info.hex.r})
           </p>
-          <p className="text-xs capitalize text-text-muted">{info.terrain}</p>
+          {/* The selected cell's terrain as a clear, consistent label
+              (M32-T2 / issue 227): a mountain shows "Mountain", a water cell
+              "Water", and a plain cell reads as "Land" (no fake terrain).
+              Pure presentation via `terrainLabel` — no game logic. */}
+          <p
+            data-testid="cell-info-terrain"
+            className="text-xs font-medium text-text-muted"
+          >
+            {terrainLabel(info.terrain)}
+          </p>
         </div>
         <Hexagon
           bgClass={cellHexagonClass(hexagonOwner, info.terrain)}

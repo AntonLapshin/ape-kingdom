@@ -4,6 +4,8 @@ import {
   HEX_SIZE,
   HEX_GAP,
   TERRAIN_BG,
+  TERRAIN_LABELS,
+  terrainLabel,
   OWNER_BG,
   cellHexagonClass,
   cellOwner,
@@ -63,6 +65,31 @@ describe("cellHexagonClass", () => {
 /* ------------------------------------------------------------------ */
 /* isEndTurnEnabled (End Turn enabled state, M19-T2/#131)              */
 /* ------------------------------------------------------------------ */
+
+describe("terrainLabel", () => {
+  it("maps every terrain to a friendly label", () => {
+    expect(TERRAIN_LABELS.land).toBe("Land");
+    expect(TERRAIN_LABELS.water).toBe("Water");
+    expect(TERRAIN_LABELS.mountain).toBe("Mountain");
+  });
+
+  it("returns the matching label for each terrain", () => {
+    expect(terrainLabel("land")).toBe("Land");
+    expect(terrainLabel("water")).toBe("Water");
+    expect(terrainLabel("mountain")).toBe("Mountain");
+  });
+
+  it("reads a plain cell as Land and never shows a fake terrain", () => {
+    // A plain (no mountain) cell is "Land"; null/undefined also read Land.
+    expect(terrainLabel(null)).toBe("Land");
+    expect(terrainLabel(undefined)).toBe("Land");
+  });
+
+  it("falls back to the plain Land reading for an unknown terrain", () => {
+    // Cast a bogus key through the type to exercise the defensive default.
+    expect(terrainLabel("bogus" as never)).toBe("Land");
+  });
+});
 
 describe("isEndTurnEnabled", () => {
   it("is enabled whenever it is the human's turn and the game is not done", () => {
