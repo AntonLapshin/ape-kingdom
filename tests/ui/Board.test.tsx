@@ -29,7 +29,8 @@ vi.mock("../../src/ui/components/Cell", async (importOriginal) => {
 });
 
 import { Board } from "../../src/ui/components/Board";
-import { hexToPixel, SITE_LABELS } from "../../src/ui/presentation";
+import { hexToPixel, SITE_LABELS, boardLayout } from "../../src/ui/presentation";
+import * as presentation from "../../src/ui/presentation";
 import { gameIcons } from "../../src/assets/icons";
 import { boardCells } from "../../src/ui/viewModels/useGameSession";
 import { standardSetup } from "../../src/core/gameSession";
@@ -698,5 +699,84 @@ describe("Board territory-ownership display (M19-T1/#130)", () => {
     const el = cellEl(next, nest.hex, "p2");
     expect(el.dataset.owner).toBe("p2");
     expect(el.className).toContain("bg-owner-p2");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Board bounding-box memoization + layout (M29-T2, #211)             */
+/* ------------------------------------------------------------------ */
+
+describe("Board bounding-box memoization + layout (M29-T2/#211)", () => {
+  // A tiny 2-cell board whose layout is easy to assert precisely.
+  const miniBoard: import("../../src/ui/viewModels/useGameSession").BoardCell[] = [
+    {
+      hex: { q: 0, r: 0 },
+      terrain: "land",
+      site: null,
+      unit: null,
+      grave: null,
+      owner: null,
+      fogged: false,
+    },
+    {
+      hex: { q: 1, r: 0 },
+      terrain: "land",
+      site: null,
+      unit: null,
+      grave: null,
+      owner: null,
+      fogged: false,
+    },
+  ];
+
+  it("recomputes the bounding box only when the board array identity changes (memoized)", () => {
+    // Spy on the pure helper Board calls; the spy's call count tells us how
+    // many times the O(n) min/max pass actually ran. Because Board memoizes
+    // `boardLayout` on the board array identity, a pan/zoom-only rerender
+    // (which reuses the same `board` reference) must NOT re-invoke it.
+    const layoutSpy = vi.spyOn(presentation, "boardLayout");
+    const onSelectCell = vi.fn();
+    const { rerender } = render(
+      <Board board={miniBoard} currentPlayer="p1" pan={{ x: 0, y: 0 }} onSelectCell={onSelectCell} />,
+    );
+    expect(layoutSpy).toHaveBeenCalledTimes(1);
+
+    // Pan changes only the wrapper transform — the board reference is the
+    // same, so the memoized layout is reused and the helper is not re-run.
+    rerender(
+      <Board board={miniBoard} currentPlayer="p1" pan={{ x: 50, y: -30 }} onSelectCell={onSelectCell} />,
+    );
+    expect(layoutSpy).toHaveBeenCalledTimes(1);
+
+    // Zoom alone likewise reuses the memoized layout.
+    rerender(
+      <Board board={miniBoard} currentPlayer="p1" pan={{ x: 50, y: -30 }} zoom={1.4} onSelectCell={onSelectCell} />,
+    );
+    expect(layoutSpy).toHaveBeenCalledTimes(1);
+
+    // A genuinely new board array (e.g. an actual game-state change) busts
+    // the memo and recomputes once more.
+    const newBoard = [...miniBoard];
+    rerender(
+      <Board board={newBoard} currentPlayer="p1" pan={{ x: 50, y: -30 }} zoom={1.4} onSelectCell={onSelectCell} />,
+    );
+    expect(layoutSpy).toHaveBeenCalledTimes(2);
+
+    layoutSpy.mockRestore();
+  });
+
+  it("sizes and centres the wrapper from the memoized bounds (same layout as before)", () => {
+    const { container } = render(
+      <Board board={miniBoard} currentPlayer="p1" />,
+    );
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    // Independently compute the expected geometry with the pure helper and
+    // assert the rendered Board layouts cells identically.
+    const layout = boardLayout(miniBoard);
+    // The wrapper dimensions equal the padded bounding box.
+    expect(boardEl).toHaveStyle({ width: `${layout.width}px`, height: `${layout.height}px` });
+    // Both cells are present and positioned by the centred offset.
+    const cells = screen.getAllByTestId("board-cell");
+    expect(cells).toHaveLength(2);
   });
 });

@@ -16,6 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Hoist the board bounding-box computation into a memoized pure helper
+  (M29-T2, #211). The O(n) `board.map` + `Math.min`/`Math.max` pass over all
+  ~400 cells (plus padding) that the board wrapper needed to size and centre
+  itself was running inline in `Board` on every render — and thus on every
+  pan/zoom frame. It is now a standalone pure, unit-testable helper,
+  `boardLayout(cells)` in `src/ui/presentation.ts` (with `BOARD_PAD`), that
+  deterministically returns the wrapper width/height and the per-cell centring
+  offset from a `BoardCell[]` with no React and no side effects. `Board` calls
+  it through a `useMemo` keyed on the board array identity, so a pan/zoom
+  re-render (which reuses the same `board` reference) reuses the memoized
+  layout instead of re-running the O(n) pass, while a genuine game-state change
+  recomputes it. Layout output is pixel-for-pixel identical to the old inline
+  expression; cells are laid out in exactly the same positions and the map
+  stays centred. Core is untouched; the pure helper is unit-tested (stable
+  result for the same input, recomputed for a changed input, pure/deterministic)
+  and a `Board` render test spies on `boardLayout` to assert it is not invoked
+  again on a pan/zoom-only rerender.
+
 - Memoize board cells so pan/zoom don't re-render every hex (M29-T1).
   Wrap the dumb `Cell` component in `React.memo` and stabilize the two
   per-cell props that would otherwise bust the memo cache on every pan/zoom

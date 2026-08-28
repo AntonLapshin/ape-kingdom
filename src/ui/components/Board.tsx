@@ -4,7 +4,7 @@ import type { BoardCell } from "../viewModels/useGameSession";
 import { ownerBackground } from "../viewModels/useGameSession";
 import type { Hex, PlayerId } from "../../core/game";
 import type { PanOffset } from "../viewModels/usePan";
-import { HEX_SIZE, hexToPixel } from "../presentation";
+import { boardLayout, HEX_SIZE, hexToPixel } from "../presentation";
 import { boardTransform } from "../viewModels/useZoom";
 import { Cell } from "./Cell";
 import { Content } from "./Content";
@@ -119,15 +119,11 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
     [board, onSelectCell],
   );
 
-  // Compute the bounding box so the board is centred in its container.
-  const positions = board.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
-  const minX = Math.min(...positions.map((p) => p.x));
-  const maxX = Math.max(...positions.map((p) => p.x));
-  const minY = Math.min(...positions.map((p) => p.y));
-  const maxY = Math.max(...positions.map((p) => p.y));
-  const pad = HEX_SIZE + 8;
-  const width = maxX - minX + pad * 2;
-  const height = maxY - minY + pad * 2;
+  // Memoized bounding box (pure helper, M29-T2): recomputed only when the
+  // board array identity changes, never on a pan/zoom re-render of this
+  // component (which reuses the same `board` reference).
+  const layout = useMemo(() => boardLayout(board), [board]);
+  const { minX, minY, pad } = layout;
 
   const transform = pan
     ? boardTransform(zoom ?? 1, pan)
@@ -136,7 +132,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
   return (
     <div
       className="relative mx-auto select-none"
-      style={{ width, height, transform }}
+      style={{ width: layout.width, height: layout.height, transform }}
       data-testid="board"
     >
       {board.map((cell, index) => {

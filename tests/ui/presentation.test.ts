@@ -9,7 +9,24 @@ import {
   cellOwner,
   isEndTurnEnabled,
   hexagonPoints,
+  boardLayout,
+  BOARD_PAD,
+  hexToPixel,
 } from "../../src/ui/presentation";
+import type { BoardCell } from "../../src/ui/viewModels/useGameSession";
+
+/** A minimal cell-shaped input for the pure `boardLayout` helper. */
+function cell(q: number, r: number): BoardCell {
+  return {
+    hex: { q, r },
+    terrain: "land",
+    site: null,
+    unit: null,
+    grave: null,
+    owner: null,
+    fogged: false,
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /* cellHexagonClass (pure presentation helper, M17-T3/#116)            */
@@ -197,5 +214,67 @@ describe("hexagonPoints", () => {
     const corners = hexagonPoints(100).split(" ");
     expect(corners[1].split(",")[0]).toBe("93.0");
     expect(corners[2].split(",")[0]).toBe("93.0");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* boardLayout (memoized pure bounding-box helper, M29-T2/#211)       */
+/* ------------------------------------------------------------------ */
+
+describe("boardLayout", () => {
+  /** A tiny 2×1 board laid out around hex (0,0) and (1,0). */
+  const twoCells = [cell(0, 0), cell(1, 0)];
+
+  /** A different board (different cells AND different array identity). */
+  const threeCells = [cell(0, 0), cell(0, 1), cell(1, 1)];
+
+  it("mirrors the inline Board geometry: min/max of hexToPixel plus padding", () => {
+    const positions = twoCells.map((c) => hexToPixel(c.hex.q, c.hex.r));
+    const minX = Math.min(...positions.map((p) => p.x));
+    const maxX = Math.max(...positions.map((p) => p.x));
+    const minY = Math.min(...positions.map((p) => p.y));
+    const maxY = Math.max(...positions.map((p) => p.y));
+    const pad = HEX_SIZE + 8;
+    const layout = boardLayout(twoCells);
+    expect(layout.minX).toBe(minX);
+    expect(layout.minY).toBe(minY);
+    expect(layout.pad).toBe(pad);
+    expect(layout.width).toBe(maxX - minX + pad * 2);
+    expect(layout.height).toBe(maxY - minY + pad * 2);
+  });
+
+  it("centres the map: origins are offset by padding inside the wrapper", () => {
+    // The (0,0) cell maps to pixel (0,0), which after the minX/minY offset
+    // lands at exactly `pad` px inside the wrapper's top-left.
+    const layout = boardLayout(twoCells);
+    expect(layout.minX).toBe(0);
+    expect(layout.minY).toBe(0);
+    expect(layout.pad).toBe(BOARD_PAD);
+  });
+
+  it("returns a stable/identical result for the same input array", () => {
+    expect(boardLayout(twoCells)).toEqual(boardLayout(twoCells));
+    // Every field is deterministic and identical across calls.
+    const a = boardLayout(twoCells);
+    const b = boardLayout(twoCells);
+    expect(a).toEqual(b);
+    expect(a.width).toBe(b.width);
+    expect(a.height).toBe(b.height);
+  });
+
+  it("returns a recomputed/different result when the input cells change", () => {
+    const a = boardLayout(twoCells);
+    const b = boardLayout(threeCells);
+    // A board with an extra cell in a new row spans further vertically.
+    expect(b.height).not.toBe(a.height);
+    expect(b.minY).toBe(0);
+    expect(b.height).toBeGreaterThan(a.height);
+  });
+
+  it("is a pure function: it never mutates the input cells array", () => {
+    const input = twoCells;
+    const snapshot = JSON.stringify(input);
+    boardLayout(input);
+    expect(JSON.stringify(input)).toBe(snapshot);
   });
 });
