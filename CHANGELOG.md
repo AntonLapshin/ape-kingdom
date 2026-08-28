@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added missing `placeNeutralUnits` boundary tests (M30-T2, #229). Following the
+  non-blocking review note on PR #228 (#discussion_r3880724527), two tests now
+  cover the previously-untested boundaries of `placeNeutralUnits` in
+  `src/core/gameSession.ts`: (1) when fewer free land cells remain than `count`,
+  exactly the number that fit are placed (e.g. requesting 8 with only 3 free land
+  cells returns exactly 3, each on a distinct unoccupied land cell); and (2) the
+  `count: 0` → `[]` edge. Test-only change — no production code touched;
+  `src/core/**` stays 100% covered.
+
 - Smaller and clearly-round default map (M31-T2, #226). The default `MapConfig`
   is now a **17×17** grid (289 cells) instead of the old 20×20 (400 cells) —
   roughly **1.5× smaller** in cells and usable land (the default island yields

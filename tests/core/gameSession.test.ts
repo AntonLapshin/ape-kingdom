@@ -312,6 +312,30 @@ describe("placeNeutralUnits", () => {
     const neutralUnits = placeNeutralUnits(map, occupied, 6, 42);
     expect(neutralUnits).toHaveLength(0);
   });
+
+  it("places only as many as fit when fewer land cells remain than `count`", () => {
+    const map = standardSetup({ seed: 4 }).map;
+    // Occupy every plain-land cell except exactly three, so `count` (8)
+    // exceeds the number of free land cells (3) — only 3 should be placed.
+    const landHexes = map.cells
+      .filter((cell) => cell.terrain === "land")
+      .map((cell) => key(cell.hex));
+    const occupied = new Set<string>(landHexes.slice(3));
+    const neutralUnits = placeNeutralUnits(map, occupied, 8, 42);
+    expect(neutralUnits).toHaveLength(3);
+    const keys = neutralUnits.map((u) => key(u.hex));
+    // Each placed unit sits on one of the remaining free land cells, distinct.
+    expect(new Set(keys).size).toBe(3);
+    for (const hexKey of keys) {
+      expect(occupied.has(hexKey)).toBe(false);
+      expect(landHexes.includes(hexKey)).toBe(true);
+    }
+  });
+
+  it("places no units when `count` is zero (edge)", () => {
+    const map = standardSetup({ seed: 4 }).map;
+    expect(placeNeutralUnits(map, new Set(), 0, 42)).toEqual([]);
+  });
 });
 
 /* ------------------------------------------------------------------ */
