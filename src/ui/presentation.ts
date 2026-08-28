@@ -5,6 +5,7 @@ import { sameHex } from "../core/game";
 import type { Terrain } from "../core/mapGenerator";
 import type { GameIconName } from "../assets/icons";
 import type { CellActionItem } from "../core/cellInfo";
+import type { BoardCell } from "./viewModels/useGameSession";
 
 /**
  * Pure presentation helpers shared by the thin UI components.
@@ -303,4 +304,47 @@ const H = 1.5 * HEX_SIZE;
  */
 export function hexToPixel(q: number, r: number): { x: number; y: number } {
   return { x: W * (q + r / 2), y: H * r };
+}
+
+/**
+ * The resolved geometry `Board` needs to lay out its cells and centre the map
+ * in its container (M29-T2). This is a pure, deterministic derivation from the
+ * board's `BoardCell[]` — no React, no side effects — so it is unit-testable
+ * without mounting a component and can be memoized by `Board` so a pan/zoom
+ * re-render (which reuses the same board array reference) does not recompute
+ * it.
+ */
+export interface BoardLayout {
+  /** The pixel x offset applied to each cell so the map is centred. */
+  minX: number;
+  /** The pixel y offset applied to each cell so the map is centred. */
+  minY: number;
+  /** The padding (px) around the map inside the board wrapper. */
+  pad: number;
+  /** The wrapper width (px) — the map's horizontal extent plus padding. */
+  width: number;
+  /** The wrapper height (px) — the map's vertical extent plus padding. */
+  height: number;
+}
+
+/** The padding (px) between the map's bounding box and the board wrapper edge. */
+export const BOARD_PAD = HEX_SIZE + 8;
+
+/**
+ * Compute the bounding box of all board cells so the map is centred in its
+ * container (M29-T2). Pure geometry: a single map + min/max pass over the
+ * cells' `hexToPixel` positions, plus padding, returning the wrapper
+ * width/height and the per-cell centring offset. Returns a stable result for
+ * the same input, so `Board` memoizes it on the board array identity.
+ */
+export function boardLayout(cells: BoardCell[]): BoardLayout {
+  const positions = cells.map((cell) => hexToPixel(cell.hex.q, cell.hex.r));
+  const minX = Math.min(...positions.map((p) => p.x));
+  const maxX = Math.max(...positions.map((p) => p.x));
+  const minY = Math.min(...positions.map((p) => p.y));
+  const maxY = Math.max(...positions.map((p) => p.y));
+  const pad = BOARD_PAD;
+  const width = maxX - minX + pad * 2;
+  const height = maxY - minY + pad * 2;
+  return { minX, minY, pad, width, height };
 }
