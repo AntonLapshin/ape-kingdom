@@ -17,8 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Random neutral units) → M30, #215 (Enhance map generator) → M31, #214 (UI
   adjustments) → M32. First `pi:ready` slices created: M30-T1 #219, M31-T1
   #220, M32-T1 #221 (merged via PRs #222/#223/#224). Next batch `pi:ready`:
-  M30-T2 #225 (random neutral unit placement), M31-T2 #226 (smaller circular
-  default map), M32-T2 #227 (cell-info shows terrain).
+  M30-T2 #225 (random neutral unit placement) — merged; M31-T2 #226 (smaller
+  circular default map), M32-T2 #227 (cell-info shows terrain) still open.
 
 ### Added
 
@@ -66,6 +66,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protection, or UI rendering wiring yet — those are later slices. Core stays
   pure and 100% covered (lines, functions, statements and branches). No UI
   behaviour change.
+
+- Random neutral units on the map during setup (M30-T2, #225). New pure helper
+  `placeNeutralUnits(map, occupiedKeys, count?, seed?)` in
+  `src/core/gameSession.ts` places a small handful (default 8,
+  `DEFAULT_NEUTRAL_UNIT_COUNT`) of neutral `Monkey` units (`owner` null) on
+  random **plain-land** cells, drawn without replacement off a seeded
+  Fisher–Yates shuffle so a fixed seed reproduces the exact layout and a fresh
+  seed yields a fresh one. `standardSetup` now wires it in after the sites:
+  neutral units land clear of both players' Home-Tree spawn hexes/**neighbourhoods**
+  (the Home Tree hex plus all six adjacent hexes, so a neutral never sits right
+  next to a Home Tree) and the neutral Groves/Nests (their hex keys are the
+  `occupiedKeys`), so they
+  never block or overlap spawns or sites. The neutral RNG seed is derived from
+  the map/spawn seed via a fixed constant (`neutralSeedFor`), keeping placement
+  **orthogonal** to the map/spawn randomness — an explicit `MapConfig.seed`
+  reproduces the whole setup (map, spawns and neutrals) deterministically, while
+  a fresh seed produces fresh neutrals. Core stays pure and 100% covered; the M12
+  pointer-click UI test was made robust to the new neutral units (they can sit
+  adjacent and be attack targets, so it now picks a non-enemy reachable target).
 
 - Coalesce pan/zoom updates to one per animation frame (M29-T3, #210).
   Dragging the map and scrolling the wheel no longer fire one React state

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { legalActions } from "../../src/core/ai";
 import { aiTurnActions } from "../../src/core/gameLoop";
-import { sameHex } from "../../src/core/game";
+import { sameHex, adjacentHexes } from "../../src/core/game";
 import { createUnit, createSite, createPlayer } from "../../src/core/game";
 import { generateMap, terrainAt, type GameMap } from "../../src/core/mapGenerator";
 import type { GameSession } from "../../src/core/gameSession";
@@ -13,6 +13,8 @@ import {
   standardSetup,
   chooseHomeHexes,
   randomSeed,
+  placeNeutralUnits,
+  DEFAULT_NEUTRAL_UNIT_COUNT,
   GameSessionError,
 } from "../../src/core/gameSession";
 import { TRAINED_AI_SOURCE, TRAINED_AI_VERSION } from "../../src/core/training";
@@ -186,6 +188,129 @@ describe("standardSetup", () => {
       expect(terrain).not.toBe("water");
       expect(terrain).not.toBeNull();
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* placeNeutralUnits / neutral units in setup (M30-T2 #225)            */
+/* ------------------------------------------------------------------ */
+
+describe("neutral units in setup (M30-T2 #225)", () => {
+  const homeKeys = (state: ReturnType<typeof standardSetup>): Set<string> =>
+    new Set(
+      state.sites
+        .filter((s) => s.kind === "HomeTree")
+        .flatMap((s) => {
+          // The FULL Home-Tree neighbourhood: the Home Tree hex plus all six
+          // adjacent hexes (M30-T2 #225 acceptance criterion #2 — a neutral
+          // must never sit on any hex of the neighbourhood, not just the
+          // three starting-force neighbours).
+          return [s.hex, ...adjacentHexes(s.hex)].map(
+            (h) => `${h.q},${h.r}`,
+          );
+        }),
+    );
+  const siteKeys = (state: ReturnType<typeof standardSetup>): Set<string> =>
+    new Set(state.sites.map((s) => `${s.hex.q},${s.hex.r}`));
+
+  it("places a handful of neutral (owner null) units during setup", () => {
+    const state = standardSetup();
+    const neutrals = state.units.filter((u) => u.owner === null);
+    expect(neutrals.length).toBeGreaterThan(0);
+    expect(neutrals.length).toBeLessThanOrEqual(DEFAULT_NEUTRAL_UNIT_COUNT);
+    for (const u of neutrals) expect(u.owner).toBeNull();
+  });
+
+  it("places every neutral unit on a plain-land cell", () => {
+    const state = standardSetup();
+    for (const u of state.units) {
+      if (u.owner !== null) continue;
+      expect(terrainAt(state.map, u.hex)).toBe("land");
+    }
+  });
+
+  it("keeps neutral units clear of home spawn hexes/neighbourhoods and sites", () => {
+    const state = standardSetup();
+    const occupied = new Set([...homeKeys(state), ...siteKeys(state)]);
+    for (const u of state.units) {
+      if (u.owner !== null) continue;
+      expect(occupied.has(`${u.hex.q},${u.hex.r}`)).toBe(false);
+    }
+  });
+
+  it("places no two neutral units on the same hex", () => {
+    const state = standardSetup();
+    const keys = state.units
+      .filter((u) => u.owner === null)
+      .map((u) => `${u.hex.q},${u.hex.r}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("reproduces the exact neutral layout for the same setup seed", () => {
+    const a = standardSetup({ seed: 11 });
+    const b = standardSetup({ seed: 11 });
+    const neutralOf = (state: ReturnType<typeof standardSetup>) =>
+      state.units
+        .filter((u) => u.owner === null)
+        .map((u) => `${u.hex.q},${u.hex.r}`)
+        .sort();
+    expect(neutralOf(a)).toEqual(neutralOf(b));
+  });
+
+  it("produces a fresh neutral layout under a fresh map seed", () => {
+    // Across several distinct seeds the neutral layouts are not all pinned to
+    // a single fixed placement.
+    const seen = new Set<string>();
+    for (let seed = 0; seed < 30; seed++) {
+      const layout = standardSetup({ seed })
+        .units.filter((u) => u.owner === null)
+        .map((u) => `${u.hex.q},${u.hex.r}`)
+        .sort()
+        .join("|");
+      seen.add(layout);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* placeNeutralUnits (pure helper)                                     */
+/* ------------------------------------------------------------------ */
+
+describe("placeNeutralUnits", () => {
+  const key = (hex: { q: number; r: number }) => `${hex.q},${hex.r}`;
+
+  it("places exactly `count` neutral units across distinct land cells", () => {
+    const map = standardSetup({ seed: 4 }).map;
+    const neutralUnits = placeNeutralUnits(map, new Set(), 6, 42);
+    expect(neutralUnits).toHaveLength(6);
+    const keys = neutralUnits.map((u) => key(u.hex));
+    expect(new Set(keys).size).toBe(6);
+    for (const u of neutralUnits) {
+      expect(u.owner).toBeNull();
+      expect(terrainAt(map, u.hex)).toBe("land");
+    }
+  });
+
+  it("is deterministic under a fixed seed and fresh under a new seed", () => {
+    const map = standardSetup({ seed: 4 }).map;
+    const a = placeNeutralUnits(map, new Set(), 6, 42);
+    const b = placeNeutralUnits(map, new Set(), 6, 42);
+    const c = placeNeutralUnits(map, new Set(), 6, 99);
+    expect(a.map((u) => key(u.hex))).toEqual(b.map((u) => key(u.hex)));
+    expect(a.map((u) => key(u.hex))).not.toEqual(c.map((u) => key(u.hex)));
+  });
+
+  it("never places on occupied (cleared) hexes", () => {
+    const state = standardSetup({ seed: 4 });
+    const map = state.map;
+    const occupied = new Set<string>();
+    // Occupy every plain-land cell so no neutral unit can be placed.
+    for (const cell of map.cells) {
+      if (cell.terrain === "land") occupied.add(key(cell.hex));
+    }
+    const neutralUnits = placeNeutralUnits(map, occupied, 6, 42);
+    expect(neutralUnits).toHaveLength(0);
   });
 });
 

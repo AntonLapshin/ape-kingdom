@@ -110,9 +110,12 @@ describe("movementInfo", () => {
     const blockers = adjacentHexes(origin.hex).map((hex) =>
       createUnit("Monkey", me, hex, false),
     );
-    const clearedUnits = state.units.filter(
-      (u) => sameHex(u.hex, origin.hex) || u.owner !== me,
-    );
+    // Isolate the origin unit: clear every other unit (enemies AND neutrals,
+    // M30-T2 #225) so only the origin unit can move and the six blocker hexes
+    // around it are exactly the join targets — a random neutral sitting on one
+    // of those hexes would otherwise turn it into a capture target instead of
+    // a plain reachable join target and break the length-6 assertion.
+    const clearedUnits = state.units.filter((u) => sameHex(u.hex, origin.hex));
     const newState: GameState = {
       ...state,
       units: [...clearedUnits, ...blockers],

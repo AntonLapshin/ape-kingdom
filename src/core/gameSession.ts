@@ -37,10 +37,12 @@ import type { GameState, PlayerId, Hex, Site } from "./game";
 import {
   sameHex,
   createSite,
+  createUnit,
   startingForce,
   collectIncome,
   adjacentHexes,
   hexDistance,
+  type ApeUnit,
 } from "./game";
 import {
   generateMap,
@@ -258,6 +260,73 @@ function placeNeutralSites(map: GameMap, p1Home: Hex, p2Home: Hex): Site[] {
   ];
 }
 
+/**
+ * The default number of neutral units placed on the map during setup (M30-T2,
+ * #225). A small "handful" per the issue — enough to add neutral presence
+ * without crowding the board or the spawns.
+ */
+export const DEFAULT_NEUTRAL_UNIT_COUNT = 8;
+
+/**
+ * Derive the seed driving neutral-unit placement from the map/spawn seed.
+ *
+ * XOR-ing a fixed constant into the map seed yields a **distinct** deterministic
+ * RNG stream for neutral placement, so the neutral layout is orthogonal to the
+ * map/spawn randomness: a fresh map seed still produces a fresh neutral layout,
+ * while a fixed `MapConfig.seed` reproduces the exact same neutral units (tests
+ * can pass an explicit `seed` to pin the whole setup, neutrals included).
+ */
+function neutralSeedFor(mapSeed: number): number {
+  return (mapSeed ^ 0x5f3759df) >>> 0;
+}
+
+/**
+ * Place a small number of random neutral ape units (`owner` null) on the map
+ * during setup, driven by a seeded RNG so a fixed seed reproduces the exact
+ * same placement (M30-T2, #225).
+ *
+ * Each neutral unit lands on a plain-land cell that is **clear of** the player
+ * Home-Tree spawn hexes/neighbourhoods (`occupiedKeys`) and the existing
+ * neutral Groves/Nests (also in `occupiedKeys`), so neutrals never block or
+ * overlap spawns or sites too aggressively. Cells are drawn without
+ * replacement, so no two neutral units share a hex. When fewer than `count`
+ * land cells are available, only as many as fit are placed.
+ *
+ * @param map the generated board the units are placed on (must have plain-land
+ *   cells to place onto).
+ * @param occupiedKeys the hex keys to keep clear (home force hexes + all site
+ *   hexes, including the Home Trees and the neutral Groves/Nests).
+ * @param count the number of neutral units to place (default
+ *   {@link DEFAULT_NEUTRAL_UNIT_COUNT}).
+ * @param seed the seeded RNG seed; a fixed seed reproduces the exact layout.
+ */
+export function placeNeutralUnits(
+  map: GameMap,
+  occupiedKeys: ReadonlySet<string>,
+  count: number = DEFAULT_NEUTRAL_UNIT_COUNT,
+  seed = 0,
+): ApeUnit[] {
+  const available = map.cells
+    .filter((cell) => cell.terrain === "land")
+    .map((cell) => cell.hex)
+    .filter((hex) => !occupiedKeys.has(hexKey(hex)));
+
+  // Seeded Fisher–Yates shuffle, then keep the first `count` as the neutral
+  // unit hexes — deterministic for a given seed and without replacement.
+  const rng = mulberry32(seed);
+  const shuffled = [...available];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = tmp;
+  }
+
+  return shuffled.slice(0, Math.min(count, shuffled.length)).map(
+    (hex) => createUnit("Monkey", null, hex),
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Standard two-player setup                                           */
 /* ------------------------------------------------------------------ */
@@ -293,9 +362,12 @@ export function randomSeed(): number {
  *
  * Per the rules each player places one Home Tree on opposite sides of the
  * island, with 6 neutral Groves and 4 Nests between them, and starts with the
- * standard `startingForce` (3 Monkeys, 1 Gibbon, 2 bananas). Both Home Trees
- * and every site are placed on land cells, and no starting unit is placed in
- * the sea. The generated board is carried on the returned state's `map`.
+ * standard `startingForce` (3 Monkeys, 1 Gibbon, 2 bananas). A handful of
+ * random neutral ape units (M30-T2, #225) are placed on land cells clear of the
+ * spawns and sites, driven by a seeded RNG derived from the map seed. Both
+ * Home Trees and every site are placed on land cells, and no starting unit is
+ * placed in the sea. The generated board is carried on the returned state's
+ * `map`.
  *
  * The returned state has `p1` as the current player. Throws a typed
  * `GameSessionError` (`no-suitable-home`) if the map is too degenerate to
@@ -315,6 +387,26 @@ export function standardSetup(config?: MapConfig): GameState {
   const p1 = startingForce("p1", p1Home);
   const p2 = startingForce("p2", p2Home);
 
+  // The neutral sites (6 Groves + 4 Nests) placed between the players.
+  const neutralSites = placeNeutralSites(map, p1Home, p2Home);
+
+  // Place a handful of random neutral units (M30-T2, #225) on land cells clear
+  // of the player Home-Tree spawn hexes/**neighbourhoods** (home + all six
+  // adjacent hexes, so a neutral never sits right next to a Home Tree) and the
+  // neutral sites, driven by a seeded RNG derived from the map seed so a fixed
+  // seed reproduces the exact layout while a fresh seed yields a fresh neutral
+  // placement. `forceHexes` covers the Home Tree hex and the three starting-
+  // force neighbours; `adjacentHexes` adds the remaining three so the whole
+  // neighbourhood is excluded.
+  const occupiedKeys = new Set<string>([
+    ...forceHexes(p1Home).map(hexKey),
+    ...forceHexes(p2Home).map(hexKey),
+    ...adjacentHexes(p1Home).map(hexKey),
+    ...adjacentHexes(p2Home).map(hexKey),
+    ...neutralSites.map((s) => hexKey(s.hex)),
+  ]);
+  const neutralUnits = placeNeutralUnits(map, occupiedKeys, undefined, neutralSeedFor(seed));
+
   // Seed persistent site-less territory (M24-T2, #160): every site-less cell a
   // player's starting unit stands on becomes that kingdom's territory and
   // stays owned after the unit vacates. The Home Tree cells are already owned
@@ -324,8 +416,9 @@ export function standardSetup(config?: MapConfig): GameState {
   for (const unit of [...p1.units, ...p2.units]) {
     if (homeSites.has(hexKey(unit.hex))) continue;
     /* c8 ignore start -- starting-force units are always player-owned, so a
-       neutral unit can never reach this loop (neutral placement is a later
-       slice); this guard only narrows the nullable `ApeUnit.owner` type. */
+       neutral unit can never reach this loop (they are excluded from the
+       territory record by construction); this guard only narrows the nullable
+       `ApeUnit.owner` type. */
     if (unit.owner === null) continue;
     /* c8 ignore stop */
     territory[hexKey(unit.hex)] = unit.owner;
@@ -336,9 +429,9 @@ export function standardSetup(config?: MapConfig): GameState {
     sites: [
       createSite("HomeTree", p1Home.q, p1Home.r, "p1"),
       createSite("HomeTree", p2Home.q, p2Home.r, "p2"),
-      ...placeNeutralSites(map, p1Home, p2Home),
+      ...neutralSites,
     ],
-    units: [...p1.units, ...p2.units],
+    units: [...p1.units, ...p2.units, ...neutralUnits],
     players: { p1: p1.player, p2: p2.player },
     currentPlayer: "p1",
     turnOrder: ["p1", "p2"],

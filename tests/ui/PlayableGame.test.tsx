@@ -801,10 +801,16 @@ describe("PlayableGame", () => {
     staticClick(unitCell!);
     expect(unitCell!.className).toContain("hex-selected");
 
-    // Its reachable move-target cells are highlighted.
-    const targets = screen
+    // Its reachable move-target cells are highlighted. Skip enemy (attackable)
+    // targets — they resolve as combat, which may destroy the unit (M30-T2 #225
+    // added neutral units that can sit adjacent, so a highlighted target is not
+    // always a plain capture-free move). Pick a non-enemy reachable target so
+    // clicking it reliably issues a `move` and the unit lands there.
+    const allTargets = screen
       .getAllByTestId("board-cell")
       .filter((c) => c.dataset.moveTarget === "true");
+    expect(allTargets.length).toBeGreaterThan(0);
+    const targets = allTargets.filter((c) => c.dataset.enemyTarget !== "true");
     expect(targets.length).toBeGreaterThan(0);
     expect(unitCell!.dataset.moveTarget).toBe("false");
 
