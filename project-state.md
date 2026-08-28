@@ -4,13 +4,28 @@
 
 ## Status
 
-**PROJECT COMPLETE — all milestones M1–M28 done (completed_at 2026-08-27).**
-Every planned sub-issue is implemented, tested, and merged; CI + Pages green;
+**PROJECT COMPLETE — all original milestones M1–M28 done (completed_at
+2026-08-27), plus post-ship M29 (UI performance, #208) implemented.** Every
+planned sub-issue is implemented, tested, and merged; CI + Pages green;
 861 tests pass; 100% coverage on `src/core/**`; build succeeds.
 
-New post-ship issue #208 ("Improve UI performance" — UI very slow when dragging
-the map, CPU spikes) is planned as milestone M29, split 2026-08-27 into three
-concise, testable slices, all `pi:ready`; parent #208 closed. Root cause (from
+**Post-ship M29 (UI performance) COMPLETE:** M29-T1 #209, M29-T2 #211 and
+M29-T3 #210 merged via PRs #212/#213/#217 (2026-08-28). Board cells memoized,
+bounding-box hoisted into a memoized pure helper, pan/zoom coalesced to one
+update per animation frame.
+
+**Three new post-ship feedback issues arrived after M29 and are being planned
+as M30–M32 (2026-08-28):** #216 (Random neutral units) → M30; #215 (Enhance map
+generator) → M31; #214 (UI adjustments) → M32. Parents closed; split into
+milestone sub-issues in manifest.md. First batch of `pi:ready` slices created:
+M30-T1 #219 (core neutral-unit data model, `priority:p1`), M31-T1 #220 (random
+map on each load + random player spawn, `priority:p1`), M32-T1 #221 (blue inner
+border on selected cell, `priority:p1`). Remaining slices of M30/M31/M32 are
+planned on later PM turns.
+
+Prior post-ship work — new post-ship issue #208 ("Improve UI performance" — UI
+very slow when dragging the map, CPU spikes) was planned as milestone M29, split
+2026-08-27 into three concise, testable slices; parent #208 closed. Root cause (from
 repo reading): every `panBy`/`zoomBy` (React state in `usePan`/`useZoom`)
 re-renders `Board`, which recomputes the bounding box with an O(n) map + min/max
 over all ~400 cells and re-renders every `Cell` (each mounting an SVG `clipPath`)

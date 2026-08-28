@@ -9,10 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Project status
 
-- **Project complete.** All milestones M1–M28 are implemented, tested, merged,
-  and deployed. 861 tests pass, 100% coverage on `src/core/**`, build succeeds,
-  CI + GitHub Pages green at
-  https://AntonLapshin.github.io/ape-kingdom/. Completed 2026-08-27.
+- **Original milestones M1–M28 complete** (completed 2026-08-27) plus post-ship
+  M29 (UI performance, #208) implemented (PRs #212/#213/#217). 861 tests pass,
+  100% coverage on `src/core/**`, build succeeds, CI + GitHub Pages green at
+  https://AntonLapshin.github.io/ape-kingdom/.
+- **Three new post-ship feedback issues planned as M30–M32 (2026-08-28):** #216
+  (Random neutral units) → M30, #215 (Enhance map generator) → M31, #214 (UI
+  adjustments) → M32. First `pi:ready` slices created: M30-T1 #219, M31-T1
+  #220, M32-T1 #221.
 
 ### Added
 

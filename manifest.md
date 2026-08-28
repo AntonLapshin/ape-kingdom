@@ -2,9 +2,13 @@
 
 > Project charter / intent.
 
-**Status: done** — all milestones M1–M28 are COMPLETE and merged (completed_at:
-2026-08-27T22:58:00Z), plus post-ship M29 (UI performance, #208) planned
-2026-08-27 and being implemented. Post-ship feedback is planned
+**Status: in progress (post-ship)** — all original milestones M1–M28 are
+COMPLETE and merged (completed_at: 2026-08-27T22:58:00Z), plus post-ship M29
+(UI performance, #208) planned 2026-08-27 and implemented (PRs #217/#213/#212
+merged). After M1–M29 completed, three new post-ship feedback issues arrived and
+were planned as M30 (#216 Random neutral units), M31 (#215 Enhance map
+generator) and M32 (#214 UI adjustments) on 2026-08-28 — parents closed; first
+slices M30-T1 #219, M31-T1 #220, M32-T1 #221 are `pi:ready`. Post-ship feedback is planned
 under M13 (#88), M14 (#94), M15 (#102), M16 (#103), M17 (#113), M18 (#122),
 M19 (#129), M20 (terrain & movement legality #137/#142/#138 — M20-T1/T2/T3
 #146/#147/#148 `pi:ready`), M21 (#143 game rules + graves), M22 (#144 map
@@ -606,3 +610,53 @@ plan.md §16.3 — planned 2026-08-27.
   - [ ] M29-T1 Memoize board cells so a pan/zoom transform change does not re-render every hex (#209, `priority:p1`)
   - [ ] M29-T2 Hoist the board bounding-box computation into a memoized pure helper computed once per board-data change (#211, `priority:p1`)
   - [ ] M29-T3 Coalesce pan/zoom state updates to one per animation frame (rAF-throttle pointer/wheel) (#210, `priority:p2`)
+
+### M30 — Random neutral units (#216)
+
+**Goal:** Address the post-ship feature request #216 ("Place some random neutral
+units around the map — they do not belong to any kingdom, but they protect
+surrounding cells"). Introduce neutral units (no owning kingdom) into the core
+model, place them randomly during setup, give them a protection effect over
+surrounding cells (leveraging the Protection / Safety Zones mechanic already in
+`guidelines/ape-kingdom-rules.md` §174–185), define how players interact with
+them, and render them distinctly in the UI. New game feature — must be designed
+to respect the existing rules (no regression to existing mechanics) and be 100%
+covered in `src/core`. Planned 2026-08-28.
+
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M30-T1 Core neutral-unit data model — a unit type that can belong to no kingdom, plus a neutral check helper (#219, `priority:p1`)
+  - [ ] M30-T2 Place random neutral units on the map during setup (seeded random placement on land, clear of spawn/sites) (`priority:p1`)
+  - [ ] M30-T3 Neutral unit protection rule — a neutral unit protects its surrounding cells from player entry/attack (leveraging the existing Protection/Safety Zones rule) (`priority:p2`)
+  - [ ] M30-T4 Interaction with neutral units — attacking/defeating them, capturing their protected cells, and what neutral units do across turns (`priority:p2`)
+  - [ ] M30-T5 UI — render neutral units distinctly (ownership-neutral tint/label so they read apart from p1/p2 and neutral sites) (`priority:p3`)
+
+### M31 — Map generator enhancements (#215)
+
+**Goal:** Address the post-ship map-generator request #215: (1) a clearly
+circlish map shape (not a diamond — verify the screen-geometry circular fix from
+M27-T1 #172 is actually producing a round island and improve if it still reads
+diamond-ish) made ~1.5 smaller, (2) generate a random map on each load, and
+(3) random player spawn locations each time. Core map-generator / setup changes
+plus UI sizing, fully tested in `src/core`, 100% covered. Planned 2026-08-28.
+
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M31-T1 Random map on each load + random player spawn hexes each game (#220, `priority:p1`)
+  - [ ] M31-T2 Default map smaller (~1.5×) and clearly circular — tune/verify the island shape so it reads round, not diamond (`priority:p1`)
+  - [ ] M31-T3 Verify randomized spawns stay legal & on opposite-ish sides; adjust any site/territory placement that assumed fixed leftmost/rightmost spawns (`priority:p2`)
+  - [ ] M31-T4 UI — board sizing/centring and demo/showcase adjust for the smaller-map default and random layout (`priority:p3`)
+
+### M32 — UI adjustments (#214)
+
+**Goal:** Address the post-ship UI adjustment request #214: (1) selected cell
+gets a blue inner border (the white glowing hexagon border turns blue on
+selection), (2) the bottom/cell-info panel shows the terrain (mountain or tree)
+when a cell is selected, (3) fog-of-war cells are brighter (grayish/silver
+instead of the very dark `--color-fog`), and (4) the brownish font color becomes
+neutral gray. Pure presentational changes — no core rule changes. Planned
+2026-08-28.
+
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M32-T1 Blue inner border on the selected cell (#221, `priority:p1`)
+  - [ ] M32-T2 Cell-info/bottom panel shows the terrain (mountain or tree) when a cell is selected (`priority:p1`)
+  - [ ] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (`priority:p2`)
+  - [ ] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (`priority:p2`)
