@@ -23,11 +23,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unit protection rule, `priority:p2`), M30-T4 #233 (interaction with neutral
   units — attack/defeat, capture, cross-turn behaviour, `priority:p2`) and
   M30-T5 #234 (UI — render neutral units distinctly, `priority:p3`). M30-T4
-  #233 is now **merged** (interaction with neutral units). This covers most of
-  the remaining M30 sub-issues; M30-T3/T5 and M31-T3/T4 and M32-T3/T4 remain to
+  #233 and M30-T3 #235 are now **merged**. This covers most of
+  the remaining M30 sub-issues; M30-T5 and M31-T3/T4 and M32-T3/T4 remain to
   plan on later PM turns.
 
 ### Added
+
+- Neutral unit protection rule (M30-T3, #235). Each neutral guardian unit
+  placed during setup (M30-T2 #225) protects the cells surrounding it from
+  player entry and attack, reusing the existing Protection / Safety Zones
+  mechanic (`isCellProtected`, §174–185) so neutral-owned protection works
+  exactly like the established kingdom protections: because a neutral unit's
+  `owner` is `null` — an enemy to every player — it protects its adjacent
+  cells from *any* player unit of the same rank. The rule is enforced by the
+  core legality checks (a move/attack into a cell protected by a neutral is
+  rejected with the same typed `MoveError`/`AttackError` `protected` error as
+  kingdom guards) and is fully unit-tested in a dedicated
+  `tests/core/neutralProtection.test.ts` (17 tests): protect-and-reject cases
+  across ranks and both kingdoms, neutral protection does not over-block
+  (never its own hex, never different-rank movers, multiple guardians act
+  independently), co-existing kingdom (and neutral Home Tree) protection is
+  unchanged — no regression to the p1/p2 safety-zone and #195 rules.
+  `src/core/**` stays 100% covered. Core-only change; no UI/render work in
+  this slice.
 
 - Interaction with neutral units (M30-T4, #233). Defines and enforces how
   players engage the random neutral guardian units placed during setup (M30-T2
