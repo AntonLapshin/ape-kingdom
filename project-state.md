@@ -20,8 +20,13 @@ generator) → M31; #214 (UI adjustments) → M32. Parents closed; split into
 milestone sub-issues in manifest.md. First batch of `pi:ready` slices created:
 M30-T1 #219 (core neutral-unit data model, `priority:p1`), M31-T1 #220 (random
 map on each load + random player spawn, `priority:p1`), M32-T1 #221 (blue inner
-border on selected cell, `priority:p1`). Remaining slices of M30/M31/M32 are
-planned on later PM turns.
+border on selected cell, `priority:p1`) — all merged (PRs #222/#223/#224).
+
+**Next `pi:ready` batch planned 2026-08-28:** M30-T2 #225 (place random neutral
+units during setup, `priority:p1`), M31-T2 #226 (smaller+clearly-circular
+default map, `priority:p1`), M32-T2 #227 (cell-info shows terrain,
+`priority:p1`). Remaining slices of M30/M31/M32 (M30-T3/T4/T5, M31-T3/T4,
+M32-T3/T4) are planned on later PM turns.
 
 Prior post-ship work — new post-ship issue #208 ("Improve UI performance" — UI
 very slow when dragging the map, CPU spikes) was planned as milestone M29, split

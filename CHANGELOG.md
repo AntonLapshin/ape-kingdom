@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Three new post-ship feedback issues planned as M30–M32 (2026-08-28):** #216
   (Random neutral units) → M30, #215 (Enhance map generator) → M31, #214 (UI
   adjustments) → M32. First `pi:ready` slices created: M30-T1 #219, M31-T1
-  #220, M32-T1 #221.
+  #220, M32-T1 #221 (merged via PRs #222/#223/#224). Next batch `pi:ready`:
+  M30-T2 #225 (random neutral unit placement), M31-T2 #226 (smaller circular
+  default map), M32-T2 #227 (cell-info shows terrain).
 
 ### Added
 
