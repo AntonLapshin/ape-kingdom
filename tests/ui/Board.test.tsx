@@ -29,7 +29,7 @@ vi.mock("../../src/ui/components/Cell", async (importOriginal) => {
 });
 
 import { Board } from "../../src/ui/components/Board";
-import { hexToPixel, SITE_LABELS, boardLayout } from "../../src/ui/presentation";
+import { hexToPixel, SITE_LABELS, boardLayout, HEX_SIZE } from "../../src/ui/presentation";
 import * as presentation from "../../src/ui/presentation";
 import { gameIcons } from "../../src/assets/icons";
 import { boardCells } from "../../src/ui/viewModels/useGameSession";
@@ -796,6 +796,33 @@ describe("Board bounding-box memoization + layout (M29-T2/#211)", () => {
     // Both cells are present and positioned by the centred offset.
     const cells = screen.getAllByTestId("board-cell");
     expect(cells).toHaveLength(2);
+  });
+
+  it("scales the wrapper and every cell uniformly when a scale is provided (M31-T4)", () => {
+    const { container } = render(
+      <Board board={miniBoard} currentPlayer="p1" scale={0.5} />,
+    );
+    const boardEl = container.querySelector('[data-testid="board"]')!;
+    const layout = boardLayout(miniBoard);
+    // The wrapper dimensions are scaled down by the factor (so the board box
+    // itself is small, not just visually transformed).
+    expect(boardEl).toHaveStyle({
+      width: `${layout.width * 0.5}px`,
+      height: `${layout.height * 0.5}px`,
+    });
+    // Every cell's left/top offset is scaled from the full-size centred offset.
+    const cells = screen.getAllByTestId("board-cell");
+    expect(cells).toHaveLength(2);
+    for (const hex of miniBoard.map((c) => c.hex)) {
+      const p = hexToPixel(hex.q, hex.r);
+      const expectedX = (p.x - layout.minX + layout.pad - HEX_SIZE) * 0.5;
+      const expectedY = (p.y - layout.minY + layout.pad - HEX_SIZE) * 0.5;
+      const cell = cells.find(
+        (c) => c.dataset.hex === `${hex.q},${hex.r}`,
+      )!;
+      expect(parseFloat(cell.style.left)).toBeCloseTo(expectedX, 5);
+      expect(parseFloat(cell.style.top)).toBeCloseTo(expectedY, 5);
+    }
   });
 });
 

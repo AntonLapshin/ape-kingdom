@@ -13,6 +13,8 @@ import {
   hexagonPoints,
   boardLayout,
   BOARD_PAD,
+  boardScaleForWidth,
+  SHOWCASE_BOARD_WIDTH,
   hexToPixel,
   NEUTRAL_UNIT_BADGE_BG,
   NEUTRAL_UNIT_LABEL,
@@ -329,5 +331,31 @@ describe("neutral-unit badge presentation (M30-T5/#234)", () => {
 
   it("provides a readable ownership-neutral label for the badge", () => {
     expect(NEUTRAL_UNIT_LABEL).toBe("Neutral");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* boardScaleForWidth (Showcase thumbnail scale, M31-T4)               */
+/* ------------------------------------------------------------------ */
+
+describe("boardScaleForWidth", () => {
+  it("shrinks a board wider than the target down to the target width", () => {
+    const scale = boardScaleForWidth(1933);
+    expect(scale).toBeCloseTo(SHOWCASE_BOARD_WIDTH / 1933, 6);
+  });
+
+  it("returns 1 for a board already at or below the target width", () => {
+    expect(boardScaleForWidth(SHOWCASE_BOARD_WIDTH)).toBe(1);
+    expect(boardScaleForWidth(200)).toBe(1);
+  });
+
+  it("handles a caller-provided target width", () => {
+    const scale = boardScaleForWidth(1000, 400);
+    expect(scale).toBeCloseTo(400 / 1000, 6);
+  });
+
+  it("returns 1 for a zero/unknown board width", () => {
+    expect(boardScaleForWidth(0)).toBe(1);
+    expect(boardScaleForWidth(-5)).toBe(1);
   });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { PlayableGame } from "../../src/ui/components/PlayableGame";
 import { installFakeRaf } from "./testRaf";
+import { boardScaleToFit } from "../../src/ui/viewModels/useZoom";
 
 /* ------------------------------------------------------------------ */
 /* PlayableGame (composition wired to the useGameSession view model)   */
@@ -1281,5 +1282,70 @@ describe("PlayableGame", () => {
     // It stays present after re-render / selecting the cell (no crash).
     act(() => fireEvent.click(placed));
     expect(screen.getByTestId("cell-info")).toBeInTheDocument();
+  });
+
+  it("flex-centres the board layer both ways (vertical + horizontal) (M31-T4)", () => {
+    render(<PlayableGame mapConfig={GAME_MAP} />);
+    const boardLayer = screen.getByTestId("board-layer");
+    // The layer both fills the viewport (absolute inset-0) and is a flex
+    // container that centres the board on both axes, so the smaller circular
+    // default map sits centered in the viewport (no off-centre top-anchor).
+    expect(boardLayer.className).toContain("inset-0");
+    expect(boardLayer.className).toContain("flex");
+    expect(boardLayer.className).toContain("items-center");
+    expect(boardLayer.className).toContain("justify-center");
+  });
+
+  it("defaults the zoom to a fit-to-viewport scale on mount when the viewport is measurable (M31-T4)", () => {
+    // jsdom reports clientWidth/Height as 0 (which leaves the default zoom), so
+    // give ALL elements a concrete viewport size on the prototype before the
+    // first render — the fit effect then reads a measurable size on mount and
+    // computes a scale that makes the whole circular map visible.
+    const vw = 1440;
+    const vh = 900;
+    const origW = Object.getOwnPropertyDescriptor(
+      window.HTMLElement.prototype,
+      "clientWidth",
+    );
+    const origH = Object.getOwnPropertyDescriptor(
+      window.HTMLElement.prototype,
+      "clientHeight",
+    );
+    Object.defineProperty(window.HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      value: vw,
+    });
+    Object.defineProperty(window.HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      value: vh,
+    });
+    try {
+      render(<PlayableGame mapConfig={GAME_MAP} />);
+      const board = screen.getByTestId("board") as HTMLElement;
+      const style = board.getAttribute("style") ?? "";
+
+      // Read the board wrapper's own inline layout size (unchanged by the CSS
+      // zoom transform) and assert the applied zoom is the pure fit-to-viewport
+      // scale for that board against the mocked viewport.
+      const boardW = parseFloat(board.style.width);
+      const boardH = parseFloat(board.style.height);
+      const expected = boardScaleToFit(boardW, boardH, vw, vh);
+      expect(style).toContain(`scale(${expected})`);
+      // The scale actually shrinks the board into the viewport (fully visible).
+      expect(expected).toBeLessThan(1);
+      expect(expected * boardW).toBeLessThanOrEqual(vw);
+      expect(expected * boardH).toBeLessThanOrEqual(vh);
+    } finally {
+      if (origW) {
+        Object.defineProperty(window.HTMLElement.prototype, "clientWidth", origW);
+      }
+      if (origH) {
+        Object.defineProperty(
+          window.HTMLElement.prototype,
+          "clientHeight",
+          origH,
+        );
+      }
+    }
   });
 });

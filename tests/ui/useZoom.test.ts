@@ -5,11 +5,68 @@ import {
   clampZoom,
   zoomBy,
   boardTransform,
+  boardScaleToFit,
+  FIT_VIEWPORT_MARGIN,
   ZOOM_MIN,
   ZOOM_MAX,
   DEFAULT_ZOOM,
   ZOOM_STEP,
 } from "../../src/ui/viewModels/useZoom";
+
+/* ------------------------------------------------------------------ */
+/* boardScaleToFit (pure fit-to-viewport helper, M31-T4)               */
+/* ------------------------------------------------------------------ */
+
+describe("boardScaleToFit", () => {
+  it("scales a board larger than the viewport so it fits fully", () => {
+    // Board 1933×1160 in a 1440×900 viewport: height is the binding dimension.
+    const viewportW = 1440;
+    const viewportH = 900;
+    const margin = FIT_VIEWPORT_MARGIN;
+    const expected = Math.min(
+      (viewportW - margin * 2) / 1933,
+      (viewportH - margin * 2) / 1160,
+    );
+    expect(boardScaleToFit(1933, 1160, viewportW, viewportH)).toBeCloseTo(
+      expected,
+      6,
+    );
+  });
+
+  it("uses the smaller dimension when height binds", () => {
+    // A board whose height (not width) is the binding dimension in the viewport.
+    const scale = boardScaleToFit(800, 720, 1920, 900);
+    const expected = (900 - FIT_VIEWPORT_MARGIN * 2) / 720;
+    expect(scale).toBeCloseTo(expected, 6);
+  });
+
+  it("respects a caller-provided margin on every side", () => {
+    const scale = boardScaleToFit(2400, 1000, 1440, 900, 96);
+    // Width binds with the custom 96px margin on each side.
+    const expected = (1440 - 96 * 2) / 2400;
+    expect(scale).toBeCloseTo(expected, 6);
+  });
+
+  it("does not zoom a board smaller than the viewport above the max", () => {
+    // A tiny board in a large viewport would want to be magnified, but the
+    // helper clamps to the allowed zoom range rather than blowing it up.
+    expect(boardScaleToFit(200, 200, 1440, 900)).toBeLessThanOrEqual(ZOOM_MAX);
+    expect(boardScaleToFit(200, 200, 1440, 900)).toBeGreaterThanOrEqual(
+      ZOOM_MIN,
+    );
+  });
+
+  it("clamps to the allowed zoom range", () => {
+    // An extremely wide board in a tiny viewport can never fit within ZOOM_MIN.
+    expect(boardScaleToFit(999999, 999999, 100, 100)).toBe(ZOOM_MIN);
+  });
+
+  it("handles a zero/unknown viewport size gracefully without NaN", () => {
+    const scale = boardScaleToFit(1933, 1160, 0, 0);
+    expect(Number.isFinite(scale)).toBe(true);
+    expect(scale).toBeGreaterThanOrEqual(ZOOM_MIN);
+  });
+});
 
 /* ------------------------------------------------------------------ */
 /* clampZoom (pure presentation helper)                                */

@@ -402,3 +402,24 @@ export function boardLayout(cells: BoardCell[]): BoardLayout {
   const height = maxY - minY + pad * 2;
   return { minX, minY, pad, width, height };
 }
+
+/** The target rendered width (px) of the demo Board thumbnails in the Showcase
+ * browser (M31-T4). Large enough to read the smaller circular default map
+ * clearly, small enough to sit comfortably inside the showcase canvas. */
+export const SHOWCASE_BOARD_WIDTH = 560;
+
+/**
+ * Pure presentation helper (M31-T4): compute a uniform scale that shrinks a
+ * board whose wrapper is `boardW` px wide down to a `targetW`-px thumbnail,
+ * so the whole smaller circular default map is visible in the Showcase canvas
+ * instead of overflowing/clipping. Returns 1 when the board is already at or
+ * below the target width (or the width is unknown). Pure geometry — no game
+ * logic, no React.
+ */
+export function boardScaleForWidth(
+  boardW: number,
+  targetW: number = SHOWCASE_BOARD_WIDTH,
+): number {
+  if (boardW <= 0 || boardW <= targetW) return 1;
+  return targetW / boardW;
+}

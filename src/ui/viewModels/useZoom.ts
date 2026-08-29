@@ -31,6 +31,35 @@ export function clampZoom(scale: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, scale));
 }
 
+/** The visible margin (px) left on each side of the board when fitting it to
+ * the viewport (M31-T4). Ensures the whole circular map reads comfortably
+ * inside the window with a modest frame and no clipping. */
+export const FIT_VIEWPORT_MARGIN = 48;
+
+/**
+ * Pure presentation helper (M31-T4): compute the zoom scale that fits a board
+ * of `boardW × boardH` pixels inside a `viewportW × viewportH` viewport,
+ * leaving `margin` px visible on every side, clamped to the allowed zoom
+ * range ([ZOOM_MIN, ZOOM_MAX]).
+ *
+ * This lets the playable game default the board to a scale where the whole
+ * smaller, clearly-circular default map is fully visible and centred at mount
+ * (rather than starting clipped at the old default zoom of 1, which was tuned
+ * for a larger fixed-size board). Pure geometry — no game logic, no React.
+ */
+export function boardScaleToFit(
+  boardW: number,
+  boardH: number,
+  viewportW: number,
+  viewportH: number,
+  margin: number = FIT_VIEWPORT_MARGIN,
+): number {
+  const availW = Math.max(1, viewportW - margin * 2);
+  const availH = Math.max(1, viewportH - margin * 2);
+  const scale = Math.min(availW / Math.max(1, boardW), availH / Math.max(1, boardH));
+  return clampZoom(scale);
+}
+
 /**
  * Pure presentation helper: apply a wheel delta (positive = zoom in, negative
  * = zoom out) to the current zoom scale, clamped to the allowed range.
