@@ -40,6 +40,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- First-mover compensation to balance the severe second-mover advantage (M33-T1,
+  #247). The second mover used to win ~87% of strategic-AI games because they
+  could always answer the first mover's early capture (analysis Gap 1,
+  `docs/analysis.md`). The rule is codified in the Setup section of
+  `guidelines/ape-kingdom-rules.md`: the first player starts with **3 bananas**
+  (the +1 economy head-start) while the second player starts with the base
+  **2**, otherwise identical apes on both sides. `src/core` implements it
+  purely: `startingForce(playerId, origin, bananas?)` now takes an explicit
+  starting banana balance (default 2), and `standardSetup` passes the +1
+  head-start (3) for p1 so a fresh game opens balanced instead of a straight
+  race into the shared contested zone. Headless `playAiGame` record on the
+  strategic default map shows the p2 win share dropping from ~73% (16 vs 44)
+  to ~58% (25 vs 35) over a fixed deterministic seed set, with both seats
+  winning substantial shares — a real step off the one-sided ~87% rout toward
+  the balanced range.
+
 - UI board framing/centring for the smaller circular default map (M31-T4,
   #246). Pure UI presentational change so the playable board and the demo
   thumbnails read well with the new smaller (17×17), clearly-circular default

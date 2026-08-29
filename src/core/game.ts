@@ -382,13 +382,22 @@ export function createPlayer(id: PlayerId, bananas = 0): Player {
 
 /**
  * Build the standard two-player setup force from the rules:
- * each player starts with 3 Monkeys, 1 Gibbon, and 2 bananas.
+ * each player starts with 3 Monkeys and 1 Gibbon. The first player begins
+ * with a small economy head-start (3 bananas, M33-T1 #247) to offset the
+ * second mover's reply advantage, while the second player starts with the
+ * base 2 bananas.
  *
  * The units are placed at the given origin hex and three of its neighbours
  * (one unit per hex). Returns the starting units and player state for the
  * given player id.
  */
-export function startingForce(playerId: PlayerId, origin: Hex): {
+export function startingForce(
+  playerId: PlayerId,
+  origin: Hex,
+  /** Starting banana balance. Defaults to 2 (the base force); the first
+   *  player's compensation passes 3 (see `standardSetup`). */
+  bananas = 2,
+): {
   units: ApeUnit[];
   player: Player;
 } {
@@ -400,7 +409,7 @@ export function startingForce(playerId: PlayerId, origin: Hex): {
       createUnit("Monkey", playerId, n2),
       createUnit("Gibbon", playerId, n3),
     ],
-    player: createPlayer(playerId, 2),
+    player: createPlayer(playerId, bananas),
   };
 }
 

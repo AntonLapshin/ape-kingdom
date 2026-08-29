@@ -51,10 +51,14 @@ Each player places one Home Tree on opposite sides of the map.
 Place neutral sites between them:
    - 6 Groves
    - 4 Nests
-Each player starts with:
+Each player starts with the same force of apes:
    - 3 Monkeys
    - 1 Gibbon
-   - 2 bananas
+The first player also begins with a small economy head-start to offset the
+second mover's reply advantage: **3 bananas** instead of the second player's **2**.
+(First-mover compensation, M33-T1 #247: the second mover would otherwise win the
+majority of strategic games because they can always answer the first mover's
+early capture, so the first player gets +1 banana to make the opening fair.)
 
 For more players, add roughly 2 Groves and 1 Nest per extra player, and give each player the same starting force.
 

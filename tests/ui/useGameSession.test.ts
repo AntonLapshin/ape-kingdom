@@ -557,9 +557,10 @@ describe("useGameSession", () => {
     expect(view.legalActions.some((a) => a.type === "recruit")).toBe(true);
     expect(view.board.length).toBeGreaterThan(0);
     expect(view.players).toHaveLength(2);
-    // The projected start-of-turn state reflects the automatic income (2 base +
-    // 3 from p1's Home Tree = 5 bananas).
-    expect(view.players.find((p) => p.id === "p1")!.bananas).toBe(5);
+    // The projected start-of-turn state reflects the automatic income (3 base
+    // + 3 from p1's Home Tree = 6 bananas, given the M33-T1 #247 first-mover
+    // compensation that gives p1 a +1 banana head-start).
+    expect(view.players.find((p) => p.id === "p1")!.bananas).toBe(6);
   });
 
   it("selectAction delegates to the core controller and advances the view", () => {

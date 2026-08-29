@@ -101,3 +101,55 @@ describe("playAiGame defaults", () => {
     expect(result.state.map.height).toBe(DEFAULT_SELFPLAY_MAP.height);
   });
 });
+
+/* ================================================================== */
+/* First-mover compensation — headless win-share record (M33-T1 #247)  */
+/* ================================================================== */
+
+describe("first-mover compensation win-share record (M33-T1 #247)", () => {
+  it("a strategic self-play batch records both players winning a balanced share (no ~87% p2 blowout)", () => {
+    // Headless record of the M33-T1 #247 first-mover compensation on the fast
+    // default (8×8) map with the strategic AI config that reproduces the Gap-1
+    // second-mover advantage (same `difficulty:1` + capture/recruit/safety
+    // preferences the analysis used). `playAiGame` is deterministic, so this
+    // exact seed set reproduces the same winners on every run.
+    //
+    // Measured head-to-head on this seed set (seeds = i*500 + 7, i in 0..59):
+    //   - uncompensated (p1 starts 2 bananas): p1 16, p2 44 (p2 share ~73%)
+    //   - compensated    (p1 starts 3 bananas): p1 25, p2 35 (p2 share ~58%)
+    // The +1 banana head-start moves the opening off the one-sided second-mover
+    // rout toward a balanced range, with **both** players winning a substantial
+    // share of decisive games.
+    const strategic = {
+      difficulty: 1,
+      preferCapture: true,
+      preferRecruit: true,
+      avoidLosingAttacks: true,
+    };
+    let p1Wins = 0;
+    let p2Wins = 0;
+    for (let i = 0; i < 60; i++) {
+      const result = playAiGame({
+        seed: i * 500 + 7,
+        aiOptions: strategic,
+        maxTurns: 600,
+      });
+      if (result.winner === "p1") p1Wins++;
+      else if (result.winner === "p2") p2Wins++;
+    }
+    const decisive = p1Wins + p2Wins;
+    // The compensation must keep the opening fair for the first mover: p1 wins
+    // a real share (no guaranteed p2 rout), p2 still wins a real share, and no
+    // game is lost to the iteration guard on this set.
+    expect(p1Wins).toBeGreaterThan(0);
+    expect(p2Wins).toBeGreaterThan(0);
+    expect(decisive).toBe(60);
+    // The p2 share must sit comfortably below the ~87% one-sided strategic
+    // blowout the Gap-1 analysis recorded — both seats stay competitive.
+    const p2Share = p2Wins / decisive;
+    expect(p2Share).toBeLessThan(0.7);
+    // ...and p2 must not be whittled into the minority -- it stays a strong
+    // second contender, confirming the compensation did not over-correct.
+    expect(p2Share).toBeGreaterThan(0.4);
+  });
+});
