@@ -649,7 +649,7 @@ plus UI sizing, fully tested in `src/core`, 100% covered. Planned 2026-08-28.
 **Sub-issues (first slice) — `pi:ready`:**
   - [x] M31-T1 Random map on each load + random player spawn hexes each game (#220, PR #223)
   - [x] M31-T2 Default map smaller (~1.5×) and clearly circular — tune/verify the island shape so it reads round, not diamond (#226, PR #230)
-  - [ ] M31-T3 Verify randomized spawns stay legal & on opposite-ish sides; adjust any site/territory placement that assumed fixed leftmost/rightmost spawns (#239, `pi:ready`, `priority:p2`)
+  - [x] M31-T3 Verify randomized spawns stay legal & on opposite-ish sides; adjust any site/territory placement that assumed fixed leftmost/rightmost spawns (#239, PR #242)
   - [ ] M31-T4 UI — board sizing/centring and demo/showcase adjust for the smaller-map default and random layout (`priority:p3`)
 
 ### M32 — UI adjustments (#214)
@@ -665,5 +665,5 @@ neutral gray. Pure presentational changes — no core rule changes. Planned
 **Sub-issues (first slice) — `pi:ready`:**
   - [x] M32-T1 Blue inner border on the selected cell (#221, PR #224)
   - [x] M32-T2 Cell-info/bottom panel shows the terrain (mountain or tree) when a cell is selected (#227, PR #231)
-  - [ ] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (#241, `pi:ready`, `priority:p2`)
-  - [ ] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (#240, `pi:ready`, `priority:p2`)
+  - [x] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (#241, PR #244)
+  - [x] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (#240, PR #243)

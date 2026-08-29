@@ -4,6 +4,15 @@
 
 ## Status
 
+**Remaining M31/M32 slice M31-T4 planned `pi:ready` (2026-08-29):** M31-T3
+#239 (PR #242), M32-T3 #241 (PR #244) and M32-T4 #240 (PR #243) are all now
+**merged** — their manifest boxes ticked in-place this turn. The only
+remaining unchecked sub-issue across all milestones is **M31-T4** (UI board
+sizing/centring + demo/showcase adjust for the smaller circular/random map),
+now created as `pi:ready` **#246** (`size:s`, `type:feature`,
+`milestone:m31`, `priority:p3`). Once #246 merges, M31 is COMPLETE and the
+entire manifest backlog is empty.
+
 **PROJECT COMPLETE — all original milestones M1–M28 done (completed_at
 2026-08-27), plus post-ship M29 (UI performance, #208) implemented.** Every
 planned sub-issue is implemented, tested, and merged; CI + Pages green;
