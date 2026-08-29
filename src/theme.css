@@ -113,11 +113,14 @@
   --color-terrain-water: #4e6f86;
   --color-terrain-mountain: #8f8378;
 
-  /* Fog of war (M22-T2, #159) — a dark, desaturated shroud so cells the
-     player cannot yet see read as hidden, and the revealed board pops once
+  /* Fog of war (M22-T2, #159) — a grayish/silver shroud (M32-T3, #241) so
+     cells the player cannot yet see read as hidden but no longer look like a
+     near-black void. Lighter than the old #1a1e24, yet still clearly muted
+     and distinct from the revealed land/water greens/blues, so unrevealed
+     cells stay readable as hidden and the revealed board still pops once
      units/Home Trees light it up. Slightly lighter than the board backdrop
      so fogged land/water are distinguishable from the empty ocean gap. */
-  --color-fog: #1a1e24;
+  --color-fog: #4a5159;
 
   /* The board canvas behind the surrounding ocean (M17-T3, #116) — a dark,
      near-black backdrop so the map's water border and the space outside it

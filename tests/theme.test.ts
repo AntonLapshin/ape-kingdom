@@ -506,6 +506,59 @@ describe("src/styles/index.css — End Turn frosted-glass effect (M29-T1/#186)",
 
 
 /* ------------------------------------------------------------------ */
+/* Brightened fog-of-war shroud (M32-T3 / #241)                       */
+/* ------------------------------------------------------------------ */
+describe("src/theme.css — brightened fog-of-war shroud (M32-T3/#241)", () => {
+  // Acceptance criterion: the --color-fog token must be a clear grayish/silver
+  // tone — visibly lighter than the old #1a1e24 near-black — while still
+  // clearly distinct from revealed land (#7f9d6b green) and water (#4e6f86
+  // blue) so fog still reads as hidden.
+
+  const fogMatch = THEME.match(/--color-fog:\s*(#[0-9a-fA-F]{3,8})\s*;/);
+  const fog = fogMatch?.[1] ?? "";
+
+  it("defines a concrete fog token re-exposed to Tailwind", () => {
+    expect(fog).toBeTruthy();
+    expect(THEME).toMatch(/--color-fog:\s*var\(--color-fog\)/);
+  });
+
+  it("is visibly lighter (brighter) than the old near-black shroud", () => {
+    // Grayish/silver: channels are approximately equal (a muted, low-chroma
+    // gray rather than a saturated green/blue like the terrain tokens).
+    const r = parseInt(fog.slice(1, 3), 16);
+    const g = parseInt(fog.slice(3, 5), 16);
+    const b = parseInt(fog.slice(5, 7), 16);
+    const spread = Math.max(r, g, b) - Math.min(r, g, b);
+    expect(spread).toBeLessThan(20);
+    // Brighter than the old shroud: peak channel clears #1a1e24's peak (0x24)
+    // by a wide margin so the cells no longer read as a near-black void.
+    expect(Math.max(r, g, b)).toBeGreaterThan(0x24 + 0x2a);
+  });
+
+  it("stays clearly distinct from revealed land and water", () => {
+    // Land (#7f9d6b) is green-dominant, water (#4e6f86) blue-dominant; the
+    // fog gray must read apart from both — its chromatic spread stays low
+    // while land's and water's stay high.
+    const land = THEME.match(/--color-terrain-land:\s*(#[0-9a-fA-F]{3,8})\s*;/)?.[1];
+    const water = THEME.match(/--color-terrain-water:\s*(#[0-9a-fA-F]{3,8})\s*;/)?.[1];
+    const spread = (hex: string) =>
+      Math.max(
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16),
+      ) -
+      Math.min(
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16),
+      );
+    const fogSpread = spread(fog);
+    expect(land && spread(land)).toBeGreaterThan(fogSpread);
+    expect(water && spread(water)).toBeGreaterThan(fogSpread);
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* Neutral-gray text palette (M32-T4 / #240)                          */
 /* ------------------------------------------------------------------ */
 describe("src/theme.css — neutral-gray text roles (M32-T4/#240)", () => {
