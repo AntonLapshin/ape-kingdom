@@ -184,13 +184,28 @@ describe("player creation", () => {
 });
 
 describe("standard setup (Setup section)", () => {
-  it("gives each player 3 Monkeys, 1 Gibbon, and 2 bananas", () => {
+  it("gives each player 3 Monkeys and 1 Gibbon, with the default base force of 2 bananas", () => {
     const force = startingForce("p1", { q: 0, r: 0 });
     expect(force.units).toHaveLength(4);
     expect(force.units.filter((u) => u.kind === "Monkey")).toHaveLength(3);
     expect(force.units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
     expect(force.units.every((u) => u.owner === "p1")).toBe(true);
     expect(force.player).toEqual({ id: "p1", bananas: 2, eliminated: false });
+  });
+
+  it("honours an explicit starting banana balance (first-mover compensation, M33-T1 #247)", () => {
+    // The first player's +1 banana head-start: 3 instead of the base 2.
+    const p1 = startingForce("p1", { q: 0, r: 0 }, 3);
+    const p2 = startingForce("p2", { q: 5, r: 5 });
+    expect(p1.player.bananas).toBe(3);
+    expect(p2.player.bananas).toBe(2);
+    // The compensation changes only the economy, never the unit force: both
+    // sides field the same 3 Monkeys + 1 Gibbon kind-for-kind.
+    expect(p1.units.map((u) => u.kind)).toEqual(p2.units.map((u) => u.kind));
+    expect(p1.units.filter((u) => u.kind === "Monkey")).toHaveLength(3);
+    expect(p1.units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
+    expect(p1.units).toHaveLength(4);
+    expect(p2.units).toHaveLength(4);
   });
 
   it("places the starting units at distinct hexes around the origin", () => {

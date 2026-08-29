@@ -364,16 +364,20 @@ export function randomSeed(): number {
  *
  * Per the rules each player places one Home Tree on opposite sides of the
  * island, with 6 neutral Groves and 4 Nests between them, and starts with the
- * standard `startingForce` (3 Monkeys, 1 Gibbon, 2 bananas). A handful of
+ * standard `startingForce` (3 Monkeys, 1 Gibbon; p1 starts with 3 bananas
+ * under the first-mover compensation #247, p2 with 2). A handful of
  * random neutral ape units (M30-T2, #225) are placed on land cells clear of the
  * spawns and sites, driven by a seeded RNG derived from the map seed. Both
  * Home Trees and every site are placed on land cells, and no starting unit is
  * placed in the sea. The generated board is carried on the returned state's
  * `map`.
  *
- * The returned state has `p1` as the current player. Throws a typed
- * `GameSessionError` (`no-suitable-home`) if the map is too degenerate to
- * place both Home Trees on land.
+ * The returned state has `p1` as the current player. Under the first-mover
+ * compensation (M33-T1 #247) the first player **p1** begins with **3** bananas
+ * (the +1 head-start codified in the Setup rules) while **p2** begins with the
+ * base **2** bananas, so the opening is not a straight race into the shared
+ * contested zone. Throws a typed `GameSessionError` (`no-suitable-home`) if the
+ * map is too degenerate to place both Home Trees on land.
  */
 export function standardSetup(config?: MapConfig): GameState {
   // The effective seed drives BOTH the map and the spawn pick, so an explicit
@@ -386,7 +390,10 @@ export function standardSetup(config?: MapConfig): GameState {
   const map = generateMap(mapConfig);
   const { p1: p1Home, p2: p2Home } = chooseHomeHexes(map, seed);
 
-  const p1 = startingForce("p1", p1Home);
+  // First-mover compensation (M33-T1 #247): the first player p1 starts with
+  // the +1 banana head-start (3 total) codified in the Setup rules, while p2
+  // starts with the base force of 2. Both otherwise have identical apes.
+  const p1 = startingForce("p1", p1Home, 3);
   const p2 = startingForce("p2", p2Home);
 
   // The neutral sites (6 Groves + 4 Nests) placed between the players.

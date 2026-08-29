@@ -78,14 +78,17 @@ describe("standardSetup", () => {
     expect(state.sites.filter((s) => s.kind === "Nest")).toHaveLength(4);
   });
 
-  it("gives each player the standard starting force (3 Monkeys, 1 Gibbon, 2 bananas)", () => {
+  it("gives the first player the +1 banana head-start and p2 the base force (M33-T1 #247)", () => {
     const state = standardSetup();
     for (const id of ["p1", "p2"]) {
       const units = state.units.filter((u) => u.owner === id);
       expect(units.filter((u) => u.kind === "Monkey")).toHaveLength(3);
       expect(units.filter((u) => u.kind === "Gibbon")).toHaveLength(1);
-      expect(state.players[id].bananas).toBe(2);
     }
+    // First-mover compensation: p1 (first mover) starts with +1 banana (3),
+    // p2 (second mover) with the base 2.
+    expect(state.players.p1.bananas).toBe(3);
+    expect(state.players.p2.bananas).toBe(2);
   });
 
   it("generates a fresh 17x17 default map by default and carries it on the state (#226)", () => {
@@ -604,13 +607,15 @@ describe("createGameSession", () => {
 
   it("applies income from controlled sites automatically at the start of the turn", () => {
     const session = createGameSession();
-    // p1 starts with 2 bananas and controls their Home Tree (income 3), so the
-    // projected start-of-turn state has collected the 3 bananas automatically.
+    // The first player p1 starts with 3 bananas under the first-mover
+    // compensation (M33-T1 #247) and controls their Home Tree (income 3), so
+    // the projected start-of-turn state has collected the 3 bananas
+    // automatically on top.
     const setup = standardSetup();
     expect(session.state.players.p1.bananas).toBe(
       setup.players.p1.bananas + 3,
     );
-    expect(session.state.players.p1.bananas).toBe(5);
+    expect(session.state.players.p1.bananas).toBe(6);
   });
 
   it("exposes the initial GameState and the current player's legal moves", () => {
@@ -989,7 +994,9 @@ describe("resetTurn", () => {
     // The base state (start of the turn) is preserved; the projected state has
     // the turn's income collected automatically.
     expect(reset.baseState).toEqual(session.baseState);
-    expect(reset.state.players.p1.bananas).toBe(5);
+    // p1 starts with 3 bananas (M33-T1 #247) plus the 3 Home-Tree income that
+    // is collected automatically at the start of the turn = 6.
+    expect(reset.state.players.p1.bananas).toBe(6);
   });
 
   it("returns the session unchanged once the game has ended", () => {
