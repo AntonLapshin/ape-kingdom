@@ -193,9 +193,9 @@ export function terrainLabel(terrain: Terrain | null | undefined): string {
 
 /**
  * The token-backed background class used to render a cell hidden by fog of
- * war (M22-T2, #159). Fogged cells use a dark `bg-fog` token so unrevealed
- * cells read as hidden against the revealed board. Pure presentation — no
- * game logic.
+ * war (M22-T2, #159). Fogged cells use a grayish/silver `bg-fog` token (M32-T3,
+ * #241) so unrevealed cells read as hidden — but no longer near-black —
+ * against the revealed board. Pure presentation — no game logic.
  */
 export const FOG_BG = "bg-fog";
 

@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Brighten fog-of-war cells to a grayish/silver tone (M32-T3, #241). The fog
+  shroud token `--color-fog` in `src/theme.css` moves from the near-black
+  `#1a1e24` to a clear silver-gray `#4a5159`, so unrevealed cells still read
+  as hidden but no longer look like a dark void. The tone stays low-chroma and
+  clearly distinct from the revealed land/water tints so fog is still
+  unmistakable, and `bg-fog`/`FOG_BG` application in the dumb `Cell` component
+  is unchanged (fogged cells still never show move-target highlights or
+  content). A structural theme test asserts the token is a grayish/silver tone
+  visibly lighter than the old shroud and distinct from land/water. Pure
+  presentational change to `src/theme.css` only; `src/core/**` untouched and
+  still 100% covered.
+
 - Verify randomized spawns stay legal & opposite-sided (M31-T3, #239). Added
   deterministic seed-based core tests that run the full two-player setup over
   many seeds and map sizes (5×5 through 21×17) and assert, every time, that
