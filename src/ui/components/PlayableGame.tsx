@@ -7,8 +7,9 @@ import {
   sumNumbers,
   sumPanDeltas,
 } from "../viewModels/coalesce";
-import { isEndTurnEnabled } from "../presentation";
+import { isEndTurnEnabled, boardLayout } from "../presentation";
 import { exceedsDragThreshold } from "../viewModels/usePointer";
+import { boardScaleToFit } from "../viewModels/useZoom";
 import type { MapConfig } from "../../core/mapGenerator";
 import { Board } from "./Board";
 import { EndTurnButton } from "./EndTurnButton";
@@ -106,7 +107,7 @@ export function PlayableGame({ aiSeed = 0, mapConfig }: PlayableGameProps) {
     submitTurn,
   } = useGameSession(aiSeed, mapConfig);
   const { pan, panBy } = usePan();
-  const { zoom, zoomBy } = useZoom();
+  const { zoom, zoomBy, setZoom } = useZoom();
 
   // M29-T3: coalesce the flurry of pointer/wheel events into at most one
   // committed pan/zoom state update per animation frame. Pointer moves and
@@ -246,6 +247,28 @@ export function PlayableGame({ aiSeed = 0, mapConfig }: PlayableGameProps) {
     return () => node.removeEventListener("wheel", onWheel);
   }, [zoomBy, zoomCoalescer]);
 
+  // M31-T4: on mount, fit the generated board to the viewport so the whole
+  // smaller, clearly-circular default map is fully visible and centred at the
+  // default zoom (instead of starting clipped, as the old fixed-size board did
+  // at zoom 1). The board wrapper's size is derived purely from the generated
+  // cells via `boardLayout`, and the needed scale comes from the viewport
+  // element's real dimensions via the pure `boardScaleToFit` helper. In
+  // environments with no measurable viewport size (e.g. jsdom) the scale stays
+  // at its default 1, so organic pan/zoom wire up from an unchanged baseline.
+  // The board-layer flex-centres both axes, so no initial pan offset is needed.
+  useEffect(() => {
+    const node = viewportRef.current;
+    if (!node) return;
+    const viewportW = node.clientWidth;
+    const viewportH = node.clientHeight;
+    if (viewportW <= 0 || viewportH <= 0) return;
+    const layout = boardLayout(view.board);
+    setZoom(boardScaleToFit(layout.width, layout.height, viewportW, viewportH));
+    // Runs once on mount: the board and viewport don't change for the life of
+    // this screen, so an empty dependency list is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // M29-T3: drain the pan/zoom coalescers once per animation frame and
   // commit each frame's total as a single state update (via `panBy`/`zoomBy`).
   // The loop schedules itself with `requestAnimationFrame` and cancels it on
@@ -287,7 +310,7 @@ export function PlayableGame({ aiSeed = 0, mapConfig }: PlayableGameProps) {
           glass hexagons pop (M17-T3). */}
       <div
         data-testid="board-layer"
-        className="absolute inset-0 select-none bg-board-dark"
+        className="absolute inset-0 flex select-none items-center justify-center bg-board-dark"
       >
         <Board
           board={view.board}

@@ -40,6 +40,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- UI board framing/centring for the smaller circular default map (M31-T4,
+  #246). Pure UI presentational change so the playable board and the demo
+  thumbnails read well with the new smaller (17×17), clearly-circular default
+  map and its randomized layout. Two pure sizing helpers are added:
+  `boardScaleToFit` in `src/ui/viewModels/useZoom.ts` (the zoom scale that
+  fits a board inside a viewport with a `FIT_VIEWPORT_MARGIN` frame, clamped
+  to the allowed zoom range) and `boardScaleForWidth` in
+  `src/ui/presentation.ts` (a uniform scale that shrinks a board wrapper down
+  to a `SHOWCASE_BOARD_WIDTH` thumbnail). `PlayableGame` now (1) flex-centres
+  its full-screen `board-layer` on both axes (`flex items-center justify-center`)
+  so the smaller circular map is vertically and horizontally centred instead of
+  top-anchored, and (2) on mount measures the real viewport and applies a
+  fit-to-viewport default zoom via the pure `boardScaleToFit` helper, so the
+  whole map is fully visible at the default zoom with no awkward margins or
+  clipping (jsdom keeps zoom 1, so organic pan/zoom wire up unchanged). The
+  dumb `Board` component gains an optional `scale?: number` prop that scales
+  every cell position and the wrapper width/height uniformly, letting the
+  Showcase demos render a contained thumbnail; the `Board` showcase (`Opening`
+  / `PlayerTwoTurn`) now render the circular map at `boardScaleForWidth` so the
+  whole board is clearly visible in the showcase canvas rather than overflowing/
+  mis-scaled. No `src/core` rules or game logic touched — `src/core/**` stays
+  100% covered; new unit tests cover the two sizing helpers and the Board
+  `scale` prop, and PlayableGame tests cover the flex-centred board-layer and
+  the fit-to-viewport mount behaviour.
+
 - Brighten fog-of-war cells to a grayish/silver tone (M32-T3, #241). The fog
   shroud token `--color-fog` in `src/theme.css` moves from the near-black
   `#1a1e24` to a clear silver-gray `#4a5159`, so unrevealed cells still read

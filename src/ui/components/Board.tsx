@@ -97,6 +97,15 @@ export interface BoardProps {
    * cell (M10-T3). When omitted, cells are not clickable.
    */
   onSelectCell?: (hex: Hex) => void;
+  /**
+   * An optional uniform scale to render the whole board at (M31-T4). When
+   * provided, every cell's position and the wrapper's width/height are
+   * multiplied by this factor, so the board can be shrunk to a contained
+   * thumbnail (e.g. the Showcase demos) without relying on a CSS transform
+   * that would leave the cell layout box overflowing. Defaults to 1 (full
+   * size). Pure presentation — no game logic.
+   */
+  scale?: number;
 }
 
 /**
@@ -110,7 +119,7 @@ export interface BoardProps {
  * — it receives the already-adapted `BoardCell[]` and renders props only. No
  * business logic, no hooks, no side effects.
  */
-export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableHexes, enemyTargetHexes, onSelectCell }: BoardProps) {
+export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableHexes, enemyTargetHexes, onSelectCell, scale = 1 }: BoardProps) {
   // Stable per-hex `onSelect` closures and `children` elements, built once per
   // board/`onSelectCell` change so a pan/zoom re-render reuses the same Cell
   // props and the memoized `Cell` skips re-rendering (M29-T1).
@@ -132,7 +141,7 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
   return (
     <div
       className="relative mx-auto select-none"
-      style={{ width: layout.width, height: layout.height, transform }}
+      style={{ width: layout.width * scale, height: layout.height * scale, transform }}
       data-testid="board"
     >
       {board.map((cell, index) => {
@@ -166,8 +175,8 @@ export function Board({ board, currentPlayer, pan, zoom, selectedHex, reachableH
             isMoveTarget={isMoveTarget}
             isEnemyTarget={isEnemyTarget}
             fogged={cell.fogged}
-            x={x - minX + pad - HEX_SIZE}
-            y={y - minY + pad - HEX_SIZE}
+            x={(x - minX + pad - HEX_SIZE) * scale}
+            y={(y - minY + pad - HEX_SIZE) * scale}
             animationDelay={index * 40}
             onSelect={
               onSelectByHex.get(`${cell.hex.q},${cell.hex.r}`)
