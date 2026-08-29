@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Project status
 
+- **M31-T3 #239 (PR #242), M32-T3 #241 (PR #244), M32-T4 #240 (PR #243) all
+  merged (2026-08-29)** — remaining M31 slice **M31-T4 #246** (UI board
+  sizing/centring for the smaller circular/random map) planned `pi:ready`
+  (`priority:p3`).
+- **New issue #245 "Refine the rules" planned as M33 (2026-08-29):** parent
+  #245 closed; milestone **M33 — Refine the rules for interest & balance**
+  added. First `pi:ready` batch from the deferred enjoyment-gap analysis:
+  M33-T1 #247 (first-mover compensation, `priority:p1`), M33-T2 #248
+  (comeback/anti-avalanche economy, `priority:p2`), M33-T3 #249 (graves
+  death-spiral softening, `priority:p2`). Each requires codifying the rule
+  into `guidelines/ape-kingdom-rules.md` before implementing in `src/core`.
 - **Original milestones M1–M28 complete** (completed 2026-08-27) plus post-ship
   M29 (UI performance, #208) implemented (PRs #212/#213/#217). 861 tests pass,
   100% coverage on `src/core/**`, build succeeds, CI + GitHub Pages green at

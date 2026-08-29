@@ -4,14 +4,23 @@
 
 ## Status
 
-**Remaining M31/M32 slice M31-T4 planned `pi:ready` (2026-08-29):** M31-T3
-#239 (PR #242), M32-T3 #241 (PR #244) and M32-T4 #240 (PR #243) are all now
-**merged** — their manifest boxes ticked in-place this turn. The only
-remaining unchecked sub-issue across all milestones is **M31-T4** (UI board
-sizing/centring + demo/showcase adjust for the smaller circular/random map),
-now created as `pi:ready` **#246** (`size:s`, `type:feature`,
-`milestone:m31`, `priority:p3`). Once #246 merges, M31 is COMPLETE and the
-entire manifest backlog is empty.
+**New issue #245 "Refine the rules" planned as M33 (2026-08-29):** the
+open-ended "make the game more interesting and balanced" request was split
+(parent #245 closed) into milestone **M33 — Refine the rules for interest &
+balance**, grounded in the deferred enjoyment-gap analysis gaps
+(`docs/analysis.md` #200, follow-ups #196/#198/#199). Rule-consistent
+(first codify into `guidelines/ape-kingdom-rules.md`, then implement in
+`src/core`): M33-T1 #247 (first-mover compensation, `priority:p1`), M33-T2
+#248 (comeback/anti-avalanche economy, `priority:p2`), M33-T3 #249 (graves
+death-spiral softening, `priority:p2`) — all `pi:ready`; M33-T4 (AI
+difficulty selector) and M33-T5 (2p victory doc) planned on later PM turns.
+
+**M31-T4 planned `pi:ready` (2026-08-29):** M31-T3 #239 (PR #242), M32-T3
+#241 (PR #244) and M32-T4 #240 (PR #243) are all now **merged** — their
+manifest boxes ticked in-place this turn. The remaining M31 unchecked slice
+is **M31-T4** (UI board sizing/centring + demo/showcase adjust for the
+smaller circular/random map), now created as `pi:ready` **#246** (`size:s`,
+`type:feature`, `milestone:m31`, `priority:p3`).
 
 **PROJECT COMPLETE — all original milestones M1–M28 done (completed_at
 2026-08-27), plus post-ship M29 (UI performance, #208) implemented.** Every

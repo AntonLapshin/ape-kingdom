@@ -2,8 +2,15 @@
 
 > Project charter / intent.
 
-**Status: in progress (post-ship)** — all original milestones M1–M28 are
-COMPLETE and merged (completed_at: 2026-08-27T22:58:00Z), plus post-ship M29
+**Status: in progress (post-ship)** — M31-T3 (#239, PR #242), M32-T3 (#241,
+PR #244) and M32-T4 (#240, PR #243) are all MERGED (ticked in-place
+2026-08-29); M31-T4 (UI board sizing/centring, #246) is the last M31 unchecked
+slice, now `pi:ready`. New post-ship issue **#245 ("Refine the rules")** planned
+as **M33** on 2026-08-29 (parent closed): rule-consistent balance/interest
+improvements from the deferred enjoyment-gap analysis gaps (first-mover
+compensation, comeback/anti-avalanche, graves death-spiral, AI difficulty
+selector, victory clarification) — first batch M33-T1/T2/T3 `pi:ready`. All
+original milestones M1–M28 are COMPLETE and merged (completed_at: 2026-08-27T22:58:00Z), plus post-ship M29
 (UI performance, #208) planned 2026-08-27 and implemented (PRs #217/#213/#212
 merged). After M1–M29 completed, three new post-ship feedback issues arrived and
 were planned as M30 (#216 Random neutral units), M31 (#215 Enhance map
@@ -667,3 +674,22 @@ neutral gray. Pure presentational changes — no core rule changes. Planned
   - [x] M32-T2 Cell-info/bottom panel shows the terrain (mountain or tree) when a cell is selected (#227, PR #231)
   - [x] M32-T3 Brighten fog-of-war cells to a grayish/silver tone (#241, PR #244)
   - [x] M32-T4 Neutralize the brownish font color (text tokens) to neutral gray (#240, PR #243)
+
+### M33 — Refine the rules for interest & balance (#245)
+
+**Goal:** Address the post-ship balance/interest request #245 ("read the code
+and rules and see what can be improved to make the game more interesting and
+balanced") by implementing the remaining **rule-consistent** improvements
+identified in the enjoyment-gap analysis `docs/analysis.md` (#200) and deferred
+follow-ups #196/#198/#199/#197. Note the standing constraint: **no game feature
+outside `guidelines/ape-kingdom-rules.md` may be added** — every balance change
+must be codified into the rules file *first* (flagged `[CODIFY]` in the
+analysis) before it is implemented in `src/core`, and stays within the existing
+rule set. Planned 2026-08-29. Parent #245 closed.
+
+**Sub-issues (first slice) — `pi:ready`:**
+  - [ ] M33-T1 Balance the severe second-mover advantage — codify + implement a minimal first-mover compensation (e.g. p1 starts with +1 banana, per analysis Gap 1 Option A) (`priority:p1`)
+  - [ ] M33-T2 Add a comeback / anti-avalanche economy mechanic — codify + implement a rule-consistent catch-up stabilizer (analysis Gap 3, e.g. recovery income for a kingdom knocked off its Home Tree) (`priority:p2`)
+  - [ ] M33-T3 Soften the graves death-spiral — codify + implement a gradual-bankruptcy / recovery valve so one bad fight isn't an unrecoverable wipe (analysis Gap 5) (`priority:p2`)
+  - [ ] M33-T4 Ship a difficulty selector (Easy = naive, Normal = strategic) so AI pacing is the player's choice (analysis Gap 7) (`priority:p3`)
+  - [ ] M33-T5 Document the 2-player victory-by-elimination clarification in RULES.md (analysis Gap 6, docs-only) (`priority:p3`)
